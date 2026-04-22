@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "description": "Signal registry for devils-council bench persona triggers. Each signal is a structural pattern the Phase 6 classifier detects in an artifact. Personas reference signals by ID in their frontmatter `triggers:` list. Phase 2 ships the registry shape and seeds the enumeration; Phase 6 implements detection in lib/classify.js.",
+  "signals": {
+    "auth_code_change": {
+      "description": "New or modified authentication / session / token-handling code.",
+      "detection_hint": "Filename patterns auth*, session*, login*, jwt*; imports of bcrypt/jose/jsonwebtoken/passport; endpoint paths like /login, /auth, /oauth.",
+      "target_personas": ["security-reviewer"]
+    },
+    "crypto_import": {
+      "description": "Import of cryptographic primitives or random-number generation.",
+      "detection_hint": "Imports of crypto, node:crypto, webcrypto, libsodium, openssl, bcrypt, argon2; use of Math.random() in security-adjacent paths.",
+      "target_personas": ["security-reviewer"]
+    },
+    "secret_handling": {
+      "description": "New secret material flow - env-var reads, secret-manager fetches, KMS calls.",
+      "detection_hint": "process.env.*_SECRET, *_KEY, *_TOKEN reads; AWS Secrets Manager / KMS / GCP Secret Manager API calls; .env file edits.",
+      "target_personas": ["security-reviewer"]
+    },
+    "dependency_update": {
+      "description": "Changes to lockfile or package.json / requirements.txt / go.sum that add or upgrade dependencies.",
+      "detection_hint": "Diff touches package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, go.sum, Cargo.lock, requirements.txt, or package.json dependencies/devDependencies blocks.",
+      "target_personas": ["security-reviewer", "air-gap-reviewer"]
+    },
+    "aws_sdk_import": {
+      "description": "New use of an AWS SDK client that typically implies new cloud resources or API calls.",
+      "detection_hint": "Imports from @aws-sdk/client-*, aws-sdk, boto3; new CDK/CloudFormation/Terraform resource definitions.",
+      "target_personas": ["finops-auditor"]
+    },
+    "new_cloud_resource": {
+      "description": "New cloud-resource declaration in IaC.",
+      "detection_hint": "New Terraform resource blocks, CDK Construct instantiations, CloudFormation resources, Pulumi resources. Excludes output/data lookups.",
+      "target_personas": ["finops-auditor", "dual-deploy-reviewer"]
+    },
+    "autoscaling_change": {
+      "description": "Changes to autoscaling / replica counts / HPA / batch concurrency.",
+      "detection_hint": "Kubernetes HPA manifests, replica count edits, AWS ASG / AppAutoScaling configs, batch job concurrency parameters.",
+      "target_personas": ["finops-auditor"]
+    },
+    "storage_class_change": {
+      "description": "Changes to storage class, retention, or tiering.",
+      "detection_hint": "S3 StorageClass, GCS storageClass, PersistentVolume storageClassName, bucket lifecycle policies.",
+      "target_personas": ["finops-auditor"]
+    },
+    "network_egress": {
+      "description": "New outbound network call to an external service.",
+      "detection_hint": "fetch/axios/requests to non-loopback hostnames; new outbound NetworkPolicy allowances; egress gateway changes; telemetry/analytics SDK inits.",
+      "target_personas": ["air-gap-reviewer"]
+    },
+    "external_image_pull": {
+      "description": "New container image pulled from an external registry.",
+      "detection_hint": "Dockerfile FROM statements; Kubernetes Pod image: fields; values.yaml image.repository entries pointing outside the org registry.",
+      "target_personas": ["air-gap-reviewer", "dual-deploy-reviewer"]
+    },
+    "unpinned_dependency": {
+      "description": "Dependency without a pinned version or digest.",
+      "detection_hint": "package.json/requirements.txt entries with ranges (^, ~, >=) where exact pins are expected; container image tags like `latest` or unversioned.",
+      "target_personas": ["air-gap-reviewer"]
+    },
+    "license_phone_home": {
+      "description": "Runtime behavior that contacts an external license / telemetry / analytics service.",
+      "detection_hint": "Sentry/Datadog/Mixpanel/Amplitude SDK initialization; license-server URL constants; telemetry opt-out gates.",
+      "target_personas": ["air-gap-reviewer"]
+    },
+    "helm_values_change": {
+      "description": "Changes to Helm chart values or values.yaml surface.",
+      "detection_hint": "Diff touches values.yaml, values.schema.json, or templates that reference .Values.*.",
+      "target_personas": ["dual-deploy-reviewer"]
+    },
+    "chart_yaml_present": {
+      "description": "Artifact contains or modifies a Helm Chart.yaml.",
+      "detection_hint": "File named Chart.yaml anywhere in the artifact path.",
+      "target_personas": ["dual-deploy-reviewer"]
+    },
+    "kots_config_change": {
+      "description": "Changes to Replicated KOTS config / kots-app.yaml / kots-kinds.",
+      "detection_hint": "Files matching kots-*.yaml, manifests/*.yaml with kind: Config / kind: Application (kots.io).",
+      "target_personas": ["dual-deploy-reviewer"]
+    },
+    "saas_only_assumption": {
+      "description": "Code that assumes multi-tenant SaaS context (shared control plane, multi-tenant DB, org-level routing).",
+      "detection_hint": "Tenant-ID routing logic added without a single-tenant mode; references to shared infra by hostname; org-scoped feature flags.",
+      "target_personas": ["dual-deploy-reviewer"]
+    }
+  }
+}
