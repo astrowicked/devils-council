@@ -146,7 +146,7 @@ echo "--- Case D: dc-validate-scorecard.sh with 3-finding mocked draft ---"
 # plant in the fixture's CLAIM ("consider"). If that guarantee regresses, fail
 # fast — a silent validator pass here would be a dangerous false-negative.
 # Check sidecar first (preferred per plugin schema compat), fall back to .md frontmatter.
-STAFF_META="${STAFF_ENG%.md}.meta.yml"
+STAFF_META="$REPO_ROOT/persona-metadata/staff-engineer.yml"
 if [ -f "$STAFF_META" ] && grep -qiE '(^|[[:space:]])-[[:space:]]+"?consider"?[[:space:]]*$' "$STAFF_META"; then
   :
 elif grep -qiE '(^|[[:space:]])-[[:space:]]+"?consider"?[[:space:]]*$' "$STAFF_ENG"; then

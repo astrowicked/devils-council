@@ -205,12 +205,13 @@ if isinstance(v, list):
 # 5. Load persona banned_phrases
 #
 # Resolution order (Claude Code plugin compat — Bedrock rejects unknown agent
-# frontmatter keys, so persona metadata lives in a sidecar .meta.yml):
-#   1. agents/<persona>.meta.yml (preferred — keeps agent frontmatter schema-clean)
+# frontmatter keys, so persona metadata lives in a separate directory):
+#   1. persona-metadata/<persona>.yml (preferred — outside agents/ to avoid
+#      phantom agent registration by Claude Code's directory scan)
 #   2. agents/<persona>.md frontmatter (legacy — still supported for non-plugin use)
 # -----------------------------------------------------------------------------
 
-PERSONA_META="${PERSONA_FILE%.md}.meta.yml"
+PERSONA_META="${REPO_ROOT}/persona-metadata/${PERSONA}.yml"
 
 # Temp dir for all ephemeral artifacts; clean on exit.
 TMPDIR_RUN=$(mktemp -d -t dc-validate.XXXXXX)
