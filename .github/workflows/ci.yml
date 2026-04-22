@@ -59,6 +59,29 @@ jobs:
         shell: bash
         run: npx -y markdownlint-cli2 '**/*.md'
 
+      - name: Install yq (macOS only; ubuntu-latest has it preinstalled)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          if ! command -v yq >/dev/null 2>&1; then
+            brew install yq
+          fi
+          yq --version
+
+      - name: Validate personas
+        shell: bash
+        run: |
+          # Phase 2 PFMT-04: schema-only validator for agents/*.md
+          # Safe when agents/ is empty (early Phase 3) — validator exits 0 in that case.
+          ./scripts/validate-personas.sh
+
+      - name: Run persona-validator self-tests
+        shell: bash
+        run: |
+          # Exercises the validator against tests/fixtures/personas/{valid,invalid}-*.md
+          # to catch regressions in the validator itself (not just in agents/*.md).
+          ./scripts/test-validate-personas.sh
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
