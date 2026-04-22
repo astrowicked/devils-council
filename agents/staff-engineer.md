@@ -1,7 +1,6 @@
 ---
 name: staff-engineer
 description: "Pragmatist reviewer. Asks what we can delete or not build. YAGNI-forward. Runs on every review."
-tools: [Read, Grep, Glob]
 model: inherit
 ---
 
