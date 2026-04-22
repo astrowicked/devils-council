@@ -23,7 +23,7 @@ From a public GitHub marketplace:
 
 ```bash
 # Inside an active Claude Code session
-/plugin marketplace add andywoodard/devils-council
+/plugin marketplace add astrowicked/devils-council
 /plugin install devils-council@devils-council
 ```
 
@@ -37,7 +37,7 @@ claude plugin list --json | jq '.[] | select(.name=="devils-council")'
 
 ```bash
 /plugin uninstall devils-council
-/plugin marketplace remove andywoodard/devils-council
+/plugin marketplace remove astrowicked/devils-council
 ```
 
 Runtime artifacts under `.council/<ts>-<slug>/` (review scratch dirs) and `~/.codex/` (Codex credentials, if installed for this plugin) are NOT removed by uninstall — delete manually if desired.
@@ -73,7 +73,7 @@ To edit the plugin and see changes without re-install:
 
 ```bash
 # Clone
-git clone https://github.com/andywoodard/devils-council.git ~/dev/devils-council
+git clone https://github.com/astrowicked/devils-council.git ~/dev/devils-council
 cd ~/dev/devils-council
 
 # Symlink into Claude Code's plugin dir (D-08 dev loop)
@@ -179,10 +179,10 @@ The CLI isn't on your PATH. Reinstall:
 
 ### `/plugin install` fails with "plugin not found"
 
-The marketplace name is `andywoodard/devils-council` (not `devils-council` alone). The full install is:
+The marketplace name is `astrowicked/devils-council` (not `devils-council` alone). The full install is:
 
 ```bash
-/plugin marketplace add andywoodard/devils-council
+/plugin marketplace add astrowicked/devils-council
 /plugin install devils-council@devils-council
 ```
 

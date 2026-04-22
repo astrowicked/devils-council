@@ -35,5 +35,5 @@ Nothing yet. Phase 2 (persona format + voice scaffolding) begins next.
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/andywoodard/devils-council/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/andywoodard/devils-council/releases/tag/v0.1.0
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/astrowicked/devils-council/releases/tag/v0.1.0
