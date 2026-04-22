@@ -203,29 +203,47 @@ if isinstance(v, list):
 
 # -----------------------------------------------------------------------------
 # 5. Load persona banned_phrases
+#
+# Resolution order (Claude Code plugin compat — Bedrock rejects unknown agent
+# frontmatter keys, so persona metadata lives in a sidecar .meta.yml):
+#   1. agents/<persona>.meta.yml (preferred — keeps agent frontmatter schema-clean)
+#   2. agents/<persona>.md frontmatter (legacy — still supported for non-plugin use)
 # -----------------------------------------------------------------------------
 
-PERSONA_FM=$(extract_frontmatter "$PERSONA_FILE" 2>/dev/null) || {
-  err "persona frontmatter missing or no closing --- fence: $PERSONA_FILE"
-  exit 1
-}
-
-# Sanity: persona frontmatter parses as YAML.
-if ! printf '%s\n' "$PERSONA_FM" \
-     | python3 -c 'import sys, yaml; yaml.safe_load(sys.stdin)' >/dev/null 2>&1; then
-  err "persona frontmatter is not valid YAML: $PERSONA_FILE"
-  exit 1
-fi
+PERSONA_META="${PERSONA_FILE%.md}.meta.yml"
 
 # Temp dir for all ephemeral artifacts; clean on exit.
 TMPDIR_RUN=$(mktemp -d -t dc-validate.XXXXXX)
 trap 'rm -rf "$TMPDIR_RUN"' EXIT
 
 BANNED_PHRASES_FILE="$TMPDIR_RUN/banned-phrases"
+
+if [ -f "$PERSONA_META" ]; then
+  # Sidecar path (preferred)
+  PERSONA_FM=$(cat "$PERSONA_META")
+  if ! printf '%s\n' "$PERSONA_FM" \
+       | python3 -c 'import sys, yaml; yaml.safe_load(sys.stdin)' >/dev/null 2>&1; then
+    err "persona sidecar is not valid YAML: $PERSONA_META"
+    exit 1
+  fi
+else
+  # Legacy path — agent .md frontmatter
+  PERSONA_FM=$(extract_frontmatter "$PERSONA_FILE" 2>/dev/null) || {
+    err "persona frontmatter missing or no closing --- fence: $PERSONA_FILE"
+    exit 1
+  }
+
+  if ! printf '%s\n' "$PERSONA_FM" \
+       | python3 -c 'import sys, yaml; yaml.safe_load(sys.stdin)' >/dev/null 2>&1; then
+    err "persona frontmatter is not valid YAML: $PERSONA_FILE"
+    exit 1
+  fi
+fi
+
 yaml_list_items "$PERSONA_FM" 'banned_phrases' > "$BANNED_PHRASES_FILE" || true
 
 if [ ! -s "$BANNED_PHRASES_FILE" ]; then
-  err "persona '$PERSONA' has empty or missing banned_phrases list — cannot validate"
+  err "persona '$PERSONA' has empty or missing banned_phrases list (checked $PERSONA_META and $PERSONA_FILE frontmatter)"
   exit 1
 fi
 

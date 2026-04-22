@@ -145,8 +145,14 @@ echo "--- Case D: dc-validate-scorecard.sh with 3-finding mocked draft ---"
 # T-03-28 defense: staff-engineer's banned_phrases must include the word we'll
 # plant in the fixture's CLAIM ("consider"). If that guarantee regresses, fail
 # fast — a silent validator pass here would be a dangerous false-negative.
-if ! grep -qiE '(^|[[:space:]])-[[:space:]]+"?consider"?[[:space:]]*$' "$STAFF_ENG"; then
-  fail "D: agents/staff-engineer.md does not list 'consider' in banned_phrases — smoke test cannot assert banned-phrase drop"
+# Check sidecar first (preferred per plugin schema compat), fall back to .md frontmatter.
+STAFF_META="${STAFF_ENG%.md}.meta.yml"
+if [ -f "$STAFF_META" ] && grep -qiE '(^|[[:space:]])-[[:space:]]+"?consider"?[[:space:]]*$' "$STAFF_META"; then
+  :
+elif grep -qiE '(^|[[:space:]])-[[:space:]]+"?consider"?[[:space:]]*$' "$STAFF_ENG"; then
+  :
+else
+  fail "D: neither $STAFF_META nor agents/staff-engineer.md lists 'consider' in banned_phrases — smoke test cannot assert banned-phrase drop"
   exit 1
 fi
 
