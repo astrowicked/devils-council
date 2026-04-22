@@ -1,0 +1,32 @@
+{
+  // markdownlint-cli2 runtime config — reads rule config from .markdownlint.jsonc
+  // and applies these globs/ignores during linting.
+  //
+  // WHY TWO FILES: markdownlint-cli2 only honors `globs` and `ignores` fields
+  // when they live in a .markdownlint-cli2.* file. A plain .markdownlint.jsonc
+  // is treated as rule-config-only (those extra fields are silently ignored).
+  // The rule config itself lives in .markdownlint.jsonc (per plan spec) and is
+  // auto-inherited here via the `config` field pointing at it.
+
+  "config": {
+    "default": true,
+    "MD013": { "line_length": 200, "code_blocks": false, "tables": false, "headings": false },
+    "MD033": false,
+    "MD040": false,
+    "MD034": false,
+    "MD024": { "siblings_only": true },
+    "MD041": false
+  },
+
+  "globs": [
+    "**/*.md"
+  ],
+
+  "ignores": [
+    ".planning/**",
+    "**/fixtures/**",
+    "node_modules/**",
+    ".claude/**",
+    "CHANGELOG.md"
+  ]
+}
