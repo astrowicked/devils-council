@@ -1,6 +1,6 @@
 {
   "name": "devils-council",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Persona-driven adversarial review council for plans, code, and RFCs. Staff Engineer, SRE, PM, Devil's Advocate + auto-triggered bench personas critique in parallel; Council Chair synthesizes contradictions without collapsing dissent.",
   "author": {
     "name": "Andy Woodard",
