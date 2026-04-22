@@ -2,7 +2,7 @@
 name: review
 description: "Run the devils-council adversarial review against a plan, RFC, or code diff. Produces a validated Staff Engineer scorecard at .council/<ts>-<slug>/staff-engineer.md."
 argument-hint: "<artifact-path> [--type=<code-diff|plan|rfc>]"
-allowed-tools: [Bash, Read, Write, Task]
+allowed-tools: [Bash, Read, Write, Agent]
 ---
 
 ## Run preparation
