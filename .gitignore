@@ -26,3 +26,6 @@ coverage/
 # Environment
 .env
 .env.local
+
+# Planning artifacts (local-only per config: commit_docs=false)
+.planning/
