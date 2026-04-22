@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet. Phase 2 (persona format + voice scaffolding) begins next.
+## [0.3.0] - 2026-04-22
+
+### Added
+
+- `bin/dc-prep.sh` — deterministic artifact classifier + INPUT.md snapshot + MANIFEST.json init with per-run nonce (Phase 3 Plan 01)
+- `bin/dc-validate-scorecard.sh` — evidence + banned-phrase validator, sole writer of final scorecard, additive MANIFEST validation summary (Phase 3 Plan 02)
+- `agents/staff-engineer.md` — first core persona (CORE-01): YAGNI-forward pragmatist with worked examples and banned-phrase list (Phase 3 Plan 03)
+- `commands/review.md` — `/devils-council:review` slash command conductor threading prep → persona → validator → render (Phase 3 Plan 04)
+- `tests/fixtures/injection-basic.md` — injection canary fixture for runtime defense verification
+- `scripts/test-engine-smoke.sh` — CI-grade integration test of shell engine with mocked subagent output (Phase 3 Plan 05)
+- Engine smoke test wired into CI matrix (ubuntu-latest + macos-latest)
+
+### Phase 2 + Phase 3 Deliverables (v0.3.0 scope)
+
+- Phase 2 requirements closed: PLUG-06 (persona format), PERS-01, PERS-02
+- Phase 3 requirements closed: ENGN-01, ENGN-02, ENGN-03, ENGN-04, ENGN-05, ENGN-06, ENGN-07, ENGN-08, CORE-01
+- Single-persona end-to-end review pipeline with evidence grounding, injection defense (XML nonce framing + system_directive), and structural single-pass architecture
 
 ## [0.1.0] - 2026-04-22
 
@@ -35,5 +51,6 @@ Nothing yet. Phase 2 (persona format + voice scaffolding) begins next.
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/astrowicked/devils-council/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/astrowicked/devils-council/compare/v0.1.0...v0.3.0
 [0.1.0]: https://github.com/astrowicked/devils-council/releases/tag/v0.1.0
