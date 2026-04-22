@@ -1,0 +1,28 @@
+# Runtime artifacts (review runs per D-07)
+.council/
+
+# Codex CLI credentials and state — never commit
+.codex/
+*.codex-session
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Node (in case @openai/codex is npm-installed here by mistake)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build / test outputs (reserved for later phases)
+dist/
+build/
+coverage/
+*.log
+
+# Environment
+.env
+.env.local
