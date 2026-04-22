@@ -82,6 +82,19 @@ jobs:
           # to catch regressions in the validator itself (not just in agents/*.md).
           ./scripts/test-validate-personas.sh
 
+      - name: Run engine smoke test (Phase 3 — bin/dc-prep.sh + bin/dc-validate-scorecard.sh)
+        shell: bash
+        run: |
+          # Plan 05: integration test for the Phase 3 shell components.
+          # Tests bin/dc-prep.sh and bin/dc-validate-scorecard.sh directly with a
+          # mocked subagent draft. Per ADD-2, no headless `claude` invocation.
+          # Skips gracefully until bin/dc-prep.sh exists (e.g., first Plan-01 commit).
+          if [ -x bin/dc-prep.sh ] && [ -x bin/dc-validate-scorecard.sh ]; then
+            ./scripts/test-engine-smoke.sh
+          else
+            echo "engine smoke test skipped — bin/dc-prep.sh or bin/dc-validate-scorecard.sh not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
