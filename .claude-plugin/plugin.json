@@ -1,0 +1,13 @@
+{
+  "name": "devils-council",
+  "version": "0.1.0",
+  "description": "Persona-driven adversarial review council for plans, code, and RFCs. Staff Engineer, SRE, PM, Devil's Advocate + auto-triggered bench personas critique in parallel; Council Chair synthesizes contradictions without collapsing dissent.",
+  "author": {
+    "name": "Andy Woodard",
+    "url": "https://github.com/andywoodard"
+  },
+  "homepage": "https://github.com/andywoodard/devils-council",
+  "repository": "https://github.com/andywoodard/devils-council",
+  "license": "MIT",
+  "keywords": ["review", "personas", "adversarial-review", "plan-review", "code-review", "gsd", "claude-code-plugin"]
+}

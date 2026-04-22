@@ -1,0 +1,19 @@
+{
+  "name": "devils-council",
+  "owner": {
+    "name": "Andy Woodard"
+  },
+  "metadata": {
+    "description": "Persona-driven adversarial review council",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "devils-council",
+      "source": "./",
+      "description": "Adversarial review: Staff Eng, SRE, PM, Devil's Advocate + bench (Security, FinOps, Air-Gap, Dual-Deploy)",
+      "category": "code-review",
+      "tags": ["review", "personas", "gsd", "adversarial-review"]
+    }
+  ]
+}
