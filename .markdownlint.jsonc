@@ -20,6 +20,9 @@
   // First line doesn't have to be H1 — frontmatter is common.
   "MD041": false,
 
+  // Table column style is stylistic; we use compact tables throughout.
+  "MD060": false,
+
   "globs": [
     "**/*.md"
   ],
