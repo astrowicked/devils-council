@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate plugin (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node (for markdownlint-cli2)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        shell: bash
+        run: |
+          # Prefer the official install script; fall back to npm if that fails.
+          if curl -fsSL https://claude.ai/install.sh | bash; then
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          else
+            npm install -g @anthropic-ai/claude-code
+          fi
+          # Verify
+          which claude || { echo "claude CLI not on PATH after install"; exit 1; }
+          claude --version
+
+      - name: Validate plugin manifest
+        shell: bash
+        run: |
+          claude plugin validate . 2>&1 | tee /tmp/dc-validate.out
+          # Success indicator varies by CLI version; accept common tokens case-insensitively
+          grep -qiE 'valid|passed|success|ok' /tmp/dc-validate.out || {
+            echo "claude plugin validate output did not include a success indicator:"
+            cat /tmp/dc-validate.out
+            exit 1
+          }
+
+      - name: JSON sanity checks
+        shell: bash
+        run: |
+          # Belt-and-suspenders: even if the CLI accepts something weird, our schema must hold
+          jq -e '.name == "devils-council"' .claude-plugin/plugin.json
+          jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' .claude-plugin/plugin.json
+          jq -e '.plugins[0].name == "devils-council" and .plugins[0].source == "./"' .claude-plugin/marketplace.json
+
+      - name: Lint markdown
+        shell: bash
+        run: npx -y markdownlint-cli2 '**/*.md'
+
+      - name: Confirm no settings.json hijack (PLUG-05)
+        shell: bash
+        run: |
+          if [ -f settings.json ] || [ -f .claude-plugin/settings.json ]; then
+            echo "ERROR: plugin ships settings.json which may hijack the main thread (PLUG-05 violation)"
+            exit 1
+          fi
+
+      - name: Confirm skeleton directories exist
+        shell: bash
+        run: |
+          for d in agents commands skills scripts bin hooks; do
+            test -d "$d" || { echo "Missing directory: $d"; exit 1; }
+          done
