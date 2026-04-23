@@ -1,0 +1,34 @@
+# Council Chair synthesizer sidecar. D-42, D-47, D-48.
+# Routed to synthesizer-schema path by scripts/validate-personas.sh based on tier: chair.
+# Consumed by bin/dc-validate-synthesis.sh (Plan 05-03) to enforce CHAIR-02, CHAIR-03, CHAIR-04.
+tier: chair
+
+# D-39 required sections. Missing Perspectives and Also Raised are conditional (per-run presence).
+required_sections:
+  - Contradictions
+  - "Top-3 Blocking Concerns"
+  - Agreements
+  - "Raw Scorecards"
+
+# D-43 edge case: zero survivors (all four personas failed). SYNTHESIS.md contains ONLY
+# Missing Perspectives + "No synthesis possible" sentinel. Validator branches on this.
+required_sections_no_survivors:
+  - "Missing Perspectives"
+
+# CHAIR-04 enforcement. Matched case-insensitively by dc-validate-synthesis.sh.
+# Word-boundary nuance for "5/10" / "7/10" handled inside the validator (Plan 05-03).
+banned_tokens:
+  - APPROVE
+  - REJECT
+  - "overall verdict"
+  - "on balance"
+  - "recommend approval"
+  - "recommend rejection"
+  - "5/10"
+  - "7/10"
+
+# D-33: every ## Contradictions entry must cite >= 2 finding IDs, all resolvable.
+min_contradiction_anchors: 2
+
+# D-34 / D-36: Top-3 hard cap. Extras go to "Also Raised".
+max_blockers: 3
