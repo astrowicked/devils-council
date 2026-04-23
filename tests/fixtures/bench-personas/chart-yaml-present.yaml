@@ -1,0 +1,14 @@
+apiVersion: v2
+name: my-chart
+description: An example Helm chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+maintainers:
+  - name: platform
+    email: platform@example.com
+
+keywords:
+  - example
+  - devils-council

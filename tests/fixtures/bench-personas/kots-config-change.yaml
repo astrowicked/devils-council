@@ -1,0 +1,17 @@
+apiVersion: kots.io/v1beta1
+kind: Config
+metadata:
+  name: example-config
+spec:
+  groups:
+    - name: database
+      title: Database
+      items:
+        - name: db_host
+          title: Database Host
+          type: text
+          required: true
+        - name: db_password
+          title: Database Password
+          type: password
+          required: true
