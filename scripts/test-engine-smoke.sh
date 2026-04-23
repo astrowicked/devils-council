@@ -300,6 +300,190 @@ case "$BP_REASON" in
 esac
 
 # ---------------------------------------------------------------------------
+# Case E — Multi-persona MANIFEST shape + trigger_reason argument handling
+# ---------------------------------------------------------------------------
+# Phase 4 extension: validator now accepts a third positional arg
+# <trigger-reason> with default "core:always-on" AND always writes to
+# personas_run[] (per D-30). Case E exercises:
+#   1. Two-persona run (staff-engineer + sre), both with default trigger reason
+#   2. personas_run[] ends with TWO distinct entries
+#   3. Explicit third-arg invocation with non-default value stores that value
+#   4. Calling validator twice for the same persona is idempotent (no
+#      duplicate personas_run[] entries — deduped by name)
+#
+# Skip gracefully if agents/sre.md or persona-metadata/sre.yml are missing
+# (Wave 1 dependency; Case E is Wave 2).
+
+echo "--- Case E: multi-persona MANIFEST + trigger_reason arg ---"
+
+SRE_AGENT="$REPO_ROOT/agents/sre.md"
+SRE_META="$REPO_ROOT/persona-metadata/sre.yml"
+
+if [ ! -f "$SRE_AGENT" ] || [ ! -f "$SRE_META" ]; then
+  echo "E: skipped — agents/sre.md or persona-metadata/sre.yml not present (Wave 1 not yet delivered)"
+else
+  # Fresh run dir for Case E (independent of Case A/D run dirs).
+  OUT_E=$("$PREP" "$PLAN_SAMPLE" 2>&1) || { fail "E: prep exited non-zero"; exit 1; }
+  RUN_E=$(printf '%s' "$OUT_E" | grep '^RUN_DIR=' | tail -1 | sed 's/^RUN_DIR=//')
+  if [ -z "$RUN_E" ] || [[ "$RUN_E" == ERROR:* ]]; then
+    fail "E: prep RUN_DIR missing"
+    exit 1
+  fi
+  RUN_DIRS+=("$RUN_E")
+
+  # Mock staff-engineer draft: 1 valid finding (reuses the canonical line).
+  cat > "$RUN_E/staff-engineer-draft.md" <<'DRAFT_SE_EOF'
+---
+persona: staff-engineer
+run_id: smoke-test-case-e
+findings:
+  - id: "sha256:case-e-se-valid"
+    target: "## Risks"
+    claim: "The rate limiter feature flag has exactly one consumer."
+    evidence: |
+      Feature-flag via `RATE_LIMIT_ENABLED=true`.
+    ask: "Land unflagged until a second environment needs it off."
+    severity: minor
+    category: complexity
+---
+
+## Summary
+
+One finding. Smoke-test fixture.
+DRAFT_SE_EOF
+
+  # Mock sre draft: 1 valid finding citing the risks section.
+  # Uses evidence from plan-sample.md that appears verbatim.
+  # Must avoid all 6 sre banned_phrases in claim + ask (monitor carefully,
+  # ensure observability, robust, graceful degradation, at scale, high availability).
+  cat > "$RUN_E/sre-draft.md" <<'DRAFT_SRE_EOF'
+---
+persona: sre
+run_id: smoke-test-case-e
+findings:
+  - id: "sha256:case-e-sre-valid"
+    target: "## Risks"
+    claim: "In-memory state reset on deploy produces a 429 spike with no runbook named."
+    evidence: |
+      In-memory state does not survive restart; limits reset on deploy.
+    ask: "Name the pager rotation that owns a deploy-minute 429 spike and document the expected error-budget burn."
+    severity: major
+    category: blast-radius
+---
+
+## Summary
+
+One finding. Smoke-test fixture.
+DRAFT_SRE_EOF
+
+  # 1. Run validator for staff-engineer with DEFAULT trigger_reason (2-arg call — backward compat).
+  "$VALIDATOR" staff-engineer "$RUN_E" > /dev/null 2>&1 \
+    || { fail "E: validator staff-engineer (default trigger) exited non-zero"; exit 1; }
+  pass "E: validator staff-engineer 2-arg invocation exited 0"
+
+  # 2. Run validator for sre with EXPLICIT trigger_reason matching the default ("core:always-on").
+  "$VALIDATOR" sre "$RUN_E" core:always-on > /dev/null 2>&1 \
+    || { fail "E: validator sre (explicit trigger) exited non-zero"; exit 1; }
+  pass "E: validator sre 3-arg invocation exited 0"
+
+  # 3. Assert personas_run[] has TWO entries, correct names, correct trigger_reasons.
+  if jq -e '
+    (.personas_run | type == "array") and
+    (.personas_run | length == 2) and
+    ([.personas_run[].name] | sort == ["sre","staff-engineer"]) and
+    (all(.personas_run[]; .trigger_reason == "core:always-on"))
+  ' "$RUN_E/MANIFEST.json" >/dev/null; then
+    pass "E: personas_run[] has {sre, staff-engineer} with core:always-on trigger reasons"
+  else
+    fail "E: personas_run[] incorrect: $(jq -c '.personas_run' "$RUN_E/MANIFEST.json")"
+  fi
+
+  # 4. Assert validation[] has TWO entries, one per persona.
+  if jq -e '
+    (.validation | type == "array") and
+    (.validation | length == 2) and
+    ([.validation[].persona] | sort == ["sre","staff-engineer"]) and
+    (all(.validation[]; .findings_kept == 1 and .findings_dropped == 0))
+  ' "$RUN_E/MANIFEST.json" >/dev/null; then
+    pass "E: validation[] has both personas with 1 kept / 0 dropped each"
+  else
+    fail "E: validation[] incorrect: $(jq -c '.validation' "$RUN_E/MANIFEST.json")"
+  fi
+
+  # 5. Assert idempotent: re-running the validator for a persona whose draft
+  # is already processed should fail cleanly (draft deleted) — but the IDEMPOTENCE
+  # we care about is at the MANIFEST level: if the draft existed and validator
+  # ran twice, personas_run[] still has ONE entry for that persona (dedupe by name).
+  # Exercise: create a new draft for staff-engineer and re-run validator — ensures
+  # personas_run[] does NOT grow a duplicate.
+  cat > "$RUN_E/staff-engineer-draft.md" <<'DRAFT_SE2_EOF'
+---
+persona: staff-engineer
+run_id: smoke-test-case-e-rerun
+findings: []
+---
+
+## Summary
+
+Re-run fixture — no findings.
+DRAFT_SE2_EOF
+
+  "$VALIDATOR" staff-engineer "$RUN_E" > /dev/null 2>&1 \
+    || { fail "E: validator re-run staff-engineer exited non-zero"; exit 1; }
+
+  if jq -e '.personas_run | length == 2' "$RUN_E/MANIFEST.json" >/dev/null; then
+    pass "E: re-running validator for same persona does not duplicate personas_run[] entry"
+  else
+    fail "E: personas_run[] duplicated on re-run: $(jq -c '.personas_run' "$RUN_E/MANIFEST.json")"
+  fi
+
+  # 6. Assert explicit non-default trigger_reason propagates correctly.
+  # Use a third run-dir-like subdir pattern with a distinct draft to avoid
+  # contaminating the Case E personas_run[] check above.
+  OUT_E2=$("$PREP" "$PLAN_SAMPLE" 2>&1) || { fail "E: prep-2 exited non-zero"; exit 1; }
+  RUN_E2=$(printf '%s' "$OUT_E2" | grep '^RUN_DIR=' | tail -1 | sed 's/^RUN_DIR=//')
+  if [ -z "$RUN_E2" ] || [[ "$RUN_E2" == ERROR:* ]]; then
+    fail "E: prep-2 RUN_DIR missing"
+    exit 1
+  fi
+  RUN_DIRS+=("$RUN_E2")
+
+  cp "$RUN_E/staff-engineer.md" "$RUN_E2/ignored-not-a-draft.md" 2>/dev/null || true
+  cat > "$RUN_E2/sre-draft.md" <<'DRAFT_SRE2_EOF'
+---
+persona: sre
+run_id: smoke-test-case-e2
+findings:
+  - id: "sha256:case-e2-sre-valid"
+    target: "## Risks"
+    claim: "IP-based keying hits corporate NAT and produces false-positive pages."
+    evidence: |
+      IP-based keying hits NAT'd corporate clients disproportionately.
+    ask: "Emit a NAT-suspect metric label so on-call can distinguish abuse from corporate shared-egress."
+    severity: minor
+    category: observability
+---
+
+## Summary
+
+Trigger-reason test fixture.
+DRAFT_SRE2_EOF
+
+  "$VALIDATOR" sre "$RUN_E2" "signal:test-custom-reason" > /dev/null 2>&1 \
+    || { fail "E: validator sre (custom trigger) exited non-zero"; exit 1; }
+
+  if jq -e '
+    (.personas_run | length == 1) and
+    (.personas_run[0].name == "sre") and
+    (.personas_run[0].trigger_reason == "signal:test-custom-reason")
+  ' "$RUN_E2/MANIFEST.json" >/dev/null; then
+    pass "E: custom trigger_reason 'signal:test-custom-reason' stored verbatim"
+  else
+    fail "E: custom trigger_reason not stored correctly: $(jq -c '.personas_run' "$RUN_E2/MANIFEST.json")"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Summary + exit
 # ---------------------------------------------------------------------------
 echo ""
@@ -307,5 +491,5 @@ if [ "$FAIL" -ne 0 ]; then
   printf 'ENGINE SMOKE TEST: FAILED\n' >&2
   exit 1
 fi
-printf 'ENGINE SMOKE TEST: PASSED (all cases A-D)\n'
+printf 'ENGINE SMOKE TEST: PASSED (all cases A-E)\n'
 exit 0
