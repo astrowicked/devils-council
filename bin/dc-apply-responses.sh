@@ -73,7 +73,7 @@ fi
 # Parse responses.md frontmatter + intersect with current-run finding IDs.
 # -----------------------------------------------------------------------------
 python3 - "$RESPONSES_FILE" "$MANIFEST" "$RUN_DIR" <<'PYEOF'
-import sys, json, re, os
+import sys, json, re, os, datetime
 try:
     import yaml
 except ImportError:
@@ -134,11 +134,17 @@ for i, entry in enumerate(responses):
     if status in ('dismissed', 'deferred') and not (isinstance(reason, str) and reason.strip()):
         print(f"ERROR: {resp_path} responses[{i}] status={status!r} requires non-empty reason", file=sys.stderr)
         sys.exit(1)
-    if not (isinstance(date, str) and date_re.match(date)):
+    # Accept both quoted YAML strings and unquoted YYYY-MM-DD (which PyYAML
+    # safe_load coerces to datetime.date). Normalize to YYYY-MM-DD string.
+    if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+        date_str = date.isoformat()
+    elif isinstance(date, str) and date_re.match(date):
+        date_str = date
+    else:
         print(f"ERROR: {resp_path} responses[{i}].date must be YYYY-MM-DD (got {date!r})", file=sys.stderr)
         sys.exit(1)
     if status == 'dismissed':
-        dismissed.append({'finding_id': fid, 'reason': reason, 'dismissed_at': date})
+        dismissed.append({'finding_id': fid, 'reason': reason, 'dismissed_at': date_str})
 
 # Load MANIFEST + build finding-id -> {persona, target} lookup from current run.
 with open(manifest_path, encoding='utf-8') as f:
