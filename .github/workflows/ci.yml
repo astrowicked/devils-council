@@ -104,6 +104,54 @@ jobs:
           # bin/dc-validate-synthesis.sh + commands/review.md render wiring.
           ./scripts/test-chair-synthesis.sh
 
+      - name: Run classifier tests (Phase 6 BNCH-01, BNCH-08)
+        shell: bash
+        run: |
+          # Tests lib/classify.py + bin/dc-classify.sh against 17 fixtures.
+          # Skips gracefully if lib/classify.py not present (e.g., partial phase).
+          if [ -f lib/classify.py ] && [ -x bin/dc-classify.sh ]; then
+            ./scripts/test-classify.sh
+          else
+            echo "classifier tests skipped — lib/classify.py or bin/dc-classify.sh not yet present"
+          fi
+
+      - name: Run budget-cap tests (Phase 6 BNCH-05, BNCH-07)
+        shell: bash
+        run: |
+          # Tests bin/dc-budget-plan.sh against 5+ cap/filter scenarios.
+          # Skips gracefully if bin/dc-budget-plan.sh not present.
+          if [ -x bin/dc-budget-plan.sh ]; then
+            ./scripts/test-budget-cap.sh
+          else
+            echo "budget-cap tests skipped — bin/dc-budget-plan.sh not yet present"
+          fi
+
+      - name: Run codex-delegation tests (Phase 6 CDEX-03, CDEX-05)
+        shell: bash
+        run: |
+          # Tests bin/dc-codex-delegate.sh against all 6 error classes + success
+          # using PATH-injected shell stubs. Does NOT invoke live codex CLI.
+          if [ -x bin/dc-codex-delegate.sh ]; then
+            ./scripts/test-codex-delegation.sh
+          else
+            echo "codex-delegation tests skipped — bin/dc-codex-delegate.sh not yet present"
+          fi
+
+      - name: Run cache-reduction test (Phase 6 BNCH-06, D-61)
+        shell: bash
+        env:
+          # Set DC_SKIP_LIVE_CACHE_TEST=1 to force-skip in CI environments
+          # where `claude` CLI auth is not configured for headless runs.
+          # Default behavior: run if claude CLI is on PATH AND spike outcome
+          # permits (read from 06-CACHE-SPIKE-MEMO.md by the test script itself).
+          DC_SKIP_LIVE_CACHE_TEST: "1"
+        run: |
+          if [ -x scripts/test-cache-reduction.sh ]; then
+            ./scripts/test-cache-reduction.sh
+          else
+            echo "cache-reduction test skipped — scripts/test-cache-reduction.sh not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
