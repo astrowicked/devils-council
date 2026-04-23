@@ -95,6 +95,15 @@ jobs:
             echo "engine smoke test skipped — bin/dc-prep.sh or bin/dc-validate-scorecard.sh not yet present"
           fi
 
+      - name: Run Chair synthesis test
+        shell: bash
+        run: |
+          # Phase 5 CHAIR-01..06 integration test.
+          # Prebuilt-run-dir technique — does NOT invoke `claude` headlessly.
+          # Exercises bin/dc-validate-scorecard.sh (ID stamping) +
+          # bin/dc-validate-synthesis.sh + commands/review.md render wiring.
+          ./scripts/test-chair-synthesis.sh
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
