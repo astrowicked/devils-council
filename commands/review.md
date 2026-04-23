@@ -157,6 +157,103 @@ Canonical-order invariant: iterate the four personas in the fixed order
 .name), so repeated runs of this command on the same artifact produce
 equivalent MANIFEST shapes.
 
+
+## Spawn the Council Chair
+
+After all four persona `<RUN_DIR>/<persona>.md` files exist on disk (each
+either a real scorecard with stamped finding ids, or a failure stub from
+the validator loop above), use the **Agent tool** in a **single tool
+call** to invoke the `council-chair` subagent. Only one Chair call. No
+parallel fan-out. No retry.
+
+The instruction message to Chair (substitute `<RUN_DIR>`):
+
+---
+
+You are the Council Chair. Read `<RUN_DIR>/MANIFEST.json` to discover
+which personas ran and with what outcome. `.personas_run[]` is the
+canonical list — each entry has `name`, `trigger_reason`, `outcome`,
+and (for successfully validated personas) a `findings[]` array whose
+entries carry stamped ids in the format `<persona-slug>-<8hex>`.
+
+For each entry in `.personas_run[]` whose outcome is NOT
+`failed_missing_draft` or `failed_validator_error`, use the Read tool
+to load `<RUN_DIR>/<name>.md` — the validated scorecard.
+
+Do NOT read `<RUN_DIR>/INPUT.md`. Your synthesis is over the
+personas' findings; the evidence verbatim-quote rule is the critics'
+contract, already enforced upstream by
+`bin/dc-validate-scorecard.sh`.
+
+Produce `<RUN_DIR>/SYNTHESIS.md.draft` (note the `.draft` suffix) per
+the output contract in your persona body (`agents/council-chair.md`).
+Required sections: `## Contradictions` (always), `## Top-3 Blocking
+Concerns` (always), `## Agreements` (always), `## Raw Scorecards`
+(always). Conditional sections: `## Missing Perspectives` (present
+only when a persona failed), `## Also Raised` (present only when the
+D-34 candidate set has more than 3 entries).
+
+Every `## Contradictions` entry MUST cite at least 2 finding ids,
+each parenthesized inline (e.g. `(staff-engineer-a3f2c1d8)`). Every
+`## Top-3 Blocking Concerns` entry MUST cite at least 1 finding id.
+The cited ids MUST exist in `MANIFEST.personas_run[].findings[].id`
+— invented ids will cause the conductor's validator to reject your
+draft.
+
+Do NOT emit `APPROVE`, `REJECT`, numeric verdicts like `7/10`,
+`overall verdict`, `on balance`, `recommend approval`, or `recommend
+rejection`. The product thesis is to surface pushback, not to collapse
+it into a score.
+
+Do NOT write the final `<RUN_DIR>/SYNTHESIS.md`. Write only
+`<RUN_DIR>/SYNTHESIS.md.draft`. The conductor's synthesis validator
+owns the atomic rename from `.draft` to the final file on pass, or to
+`.invalid` on fail.
+
+Zero-survivors edge case: if every entry in `.personas_run[]` has
+outcome `failed_missing_draft` or `failed_validator_error`, write a
+SYNTHESIS.md.draft that contains ONLY a `## Missing Perspectives`
+section (one bullet per failed persona, naming its failure reason
+from the stub's `failure:` frontmatter field) plus the literal line
+`No synthesis possible — all four personas failed.`
+
+Return when your draft is written. Do not validate your own output.
+Do not loop.
+
+---
+
+Wait for the Agent call to return. After it returns, the next step
+runs the synthesis validator — which owns the atomic rename from
+`<RUN_DIR>/SYNTHESIS.md.draft` to either `<RUN_DIR>/SYNTHESIS.md` (on
+pass) or `<RUN_DIR>/SYNTHESIS.md.invalid` (on fail).
+
+If the Agent call returned WITHOUT `<RUN_DIR>/SYNTHESIS.md.draft`
+existing (Chair crashed or produced no draft), use the **Write tool**
+to create `<RUN_DIR>/SYNTHESIS.md.invalid` containing the single line:
+
+    Chair agent returned without writing a draft.
+
+Then use the **Bash tool** to update MANIFEST.json:
+
+    TMP_MF=$(mktemp)
+    jq '.synthesis = {
+          ran: false,
+          chair_persona: "council-chair",
+          duration_ms: null,
+          contradiction_count: 0,
+          blocker_candidate_count: 0,
+          top3_count: 0,
+          also_raised_count: 0,
+          missing_personas: [],
+          validation: {passed: false,
+                       errors: [{check: "draft_missing",
+                                 detail: "chair did not write SYNTHESIS.md.draft"}]}
+        }' <RUN_DIR>/MANIFEST.json > "$TMP_MF" && mv "$TMP_MF" <RUN_DIR>/MANIFEST.json
+
+Continue to the render block below. No re-spawn. ENGN-07 is
+structural — Chair runs once.
+
+
 ## Render all four scorecards inline
 
 After all four persona files exist at `<RUN_DIR>/<persona>.md` (either real
