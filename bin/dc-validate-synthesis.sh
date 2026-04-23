@@ -291,3 +291,82 @@ if [ -s "$ERRORS_TSV" ]; then
 else
   VALIDATION_PASSED=1
 fi
+
+# --- 7. build MANIFEST.synthesis block + atomic rename ---
+STATS=$(cat "$STATS_FILE")
+
+# Convert TSV errors to JSON array for MANIFEST.
+ERRORS_JSON='[]'
+if [ -s "$ERRORS_TSV" ]; then
+  ERRORS_JSON=$(python3 - "$ERRORS_TSV" <<'PYEOF'
+import json, sys
+out = []
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    for line in f:
+        line = line.rstrip('\n')
+        if not line:
+            continue
+        parts = line.split('\t', 1)
+        check  = parts[0]
+        detail = parts[1] if len(parts) > 1 else ''
+        out.append({'check': check, 'detail': detail})
+print(json.dumps(out))
+PYEOF
+)
+fi
+
+# Compose MANIFEST.synthesis block.
+if [ "$VALIDATION_PASSED" -eq 1 ]; then
+  SYNTHESIS_BLOCK=$(jq -n \
+    --argjson stats "$STATS" \
+    --argjson missing "$MISSING_PERSONAS_JSON" \
+    '{
+      ran: true,
+      chair_persona: "council-chair",
+      duration_ms: null,
+      contradiction_count: $stats.contradiction_count,
+      blocker_candidate_count: $stats.blocker_candidate_count,
+      top3_count: $stats.top3_count,
+      also_raised_count: $stats.also_raised_count,
+      missing_personas: $missing,
+      validation: {passed: true, errors: []}
+    }')
+else
+  SYNTHESIS_BLOCK=$(jq -n \
+    --argjson stats "$STATS" \
+    --argjson missing "$MISSING_PERSONAS_JSON" \
+    --argjson errs "$ERRORS_JSON" \
+    '{
+      ran: false,
+      chair_persona: "council-chair",
+      duration_ms: null,
+      contradiction_count: $stats.contradiction_count,
+      blocker_candidate_count: $stats.blocker_candidate_count,
+      top3_count: $stats.top3_count,
+      also_raised_count: $stats.also_raised_count,
+      missing_personas: $missing,
+      validation: {passed: false, errors: $errs}
+    }')
+fi
+
+# Additive jq write — mirrors bin/dc-validate-scorecard.sh:489-505 pattern.
+MANIFEST_TMP="$TMPDIR_RUN/manifest.json"
+jq --argjson s "$SYNTHESIS_BLOCK" '.synthesis = $s' "$MANIFEST" > "$MANIFEST_TMP" \
+  && mv "$MANIFEST_TMP" "$MANIFEST"
+
+# Atomic rename draft → final or .invalid.
+if [ "$VALIDATION_PASSED" -eq 1 ]; then
+  mv "$DRAFT" "$FINAL"
+  printf 'dc-validate-synthesis: PASS — contradictions=%s top3=%s candidates=%s missing=%s\n' \
+    "$(printf '%s' "$STATS" | jq '.contradiction_count')" \
+    "$(printf '%s' "$STATS" | jq '.top3_count')" \
+    "$(printf '%s' "$STATS" | jq '.blocker_candidate_count')" \
+    "$(printf '%s' "$MISSING_PERSONAS_JSON" | jq 'length')" >&2
+  exit 0
+else
+  mv "$DRAFT" "$INVALID"
+  printf 'dc-validate-synthesis: FAIL — %s error(s):\n' \
+    "$(printf '%s' "$ERRORS_JSON" | jq 'length')" >&2
+  printf '%s\n' "$ERRORS_JSON" | jq -r '.[] | "  - [\(.check)] \(.detail)"' >&2
+  exit 1
+fi
