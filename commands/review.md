@@ -254,6 +254,48 @@ Continue to the render block below. No re-spawn. ENGN-07 is
 structural — Chair runs once.
 
 
+## Validate synthesis and render synthesis-first
+
+After the Chair Agent call returns AND `<RUN_DIR>/SYNTHESIS.md.draft`
+exists on disk, use the **Bash tool** to execute:
+
+    ${CLAUDE_PLUGIN_ROOT}/bin/dc-validate-synthesis.sh <RUN_DIR>
+
+Expected exit codes:
+- **0** — draft passed; `<RUN_DIR>/SYNTHESIS.md` now exists; MANIFEST
+  carries `.synthesis.ran=true` + `.synthesis.validation.passed=true`.
+- **1** — draft failed; `<RUN_DIR>/SYNTHESIS.md.invalid` now exists;
+  MANIFEST carries `.synthesis.ran=false` +
+  `.synthesis.validation.errors[]` enumerating each failed check.
+- **2** — precondition error (missing draft, missing manifest, missing
+  sidecar). This SHOULD NOT happen after Task 1's stub-write fallback;
+  if it does, treat as exit 1 (invalid synthesis) for rendering.
+
+If the validator exited 0, use the **Read tool** to load
+`<RUN_DIR>/SYNTHESIS.md` and emit its contents VERBATIM at the top of
+the command output (before the raw-scorecard render in the next
+section). Follow the synthesis render with a `---` separator.
+
+If the validator exited non-zero (or the Chair Agent call failed and
+Task 1 wrote the draft_missing stub), emit this literal block INSTEAD
+of the synthesis (still followed by a `---` separator):
+
+    ## Synthesis unavailable
+
+    The Council Chair's draft failed validation or was not produced.
+    Raw per-persona scorecards follow. See
+    `<RUN_DIR>/MANIFEST.json` → `.synthesis.validation.errors[]` for
+    the structural check failures. The synthesis draft (if any) is
+    preserved at `<RUN_DIR>/SYNTHESIS.md.invalid` for inspection.
+
+The raw-scorecard render in the next section runs unchanged regardless
+of synthesis outcome — D-43 + CHAIR-05 philosophy: the run is not
+wasted; the user still sees every critic's scorecard.
+
+No re-spawn of the Chair. No re-run of the validator. ENGN-07 is
+structural.
+
+
 ## Render all four scorecards inline
 
 After all four persona files exist at `<RUN_DIR>/<persona>.md` (either real
@@ -296,9 +338,12 @@ above this raw inline render; Phase 4 ships the raw material only. End.
 
 ## Explicitly NOT in this flow
 
-- **No Council Chair synthesis.** Phase 5. Phase 4 ships raw inline rendering
-  of 4 scorecards; the user reads them manually. Phase 5 will layer a
-  `SYNTHESIS.md` on top naming contradictions and the top-3 blockers.
+- **No Council Chair retry.** Phase 5's ENGN-07 extension: if the synthesis
+  validator rejects the Chair's draft, the raw-scorecard render still
+  happens, but the Chair is NOT re-spawned. The draft lands at
+  `<RUN_DIR>/SYNTHESIS.md.invalid` and the MANIFEST records the
+  structural failures. Single-pass synthesis is architectural, not a
+  convention.
 - **No auto-triggered bench personas.** Phase 6. The `<!-- bench-personas -->`
   section marker above is the Phase 6 extension point.
 - **No Agent rerun of any kind.** Each persona runs once. ENGN-07 is
