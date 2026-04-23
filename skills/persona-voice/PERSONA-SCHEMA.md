@@ -41,7 +41,7 @@ shell-injection at invocation time.
 
 | Field | Type | Required | Constraint | Validator Check |
 |-------|------|----------|------------|-----------------|
-| `tier` | enum | yes | One of `core`, `bench`, `chair` (D-12). | Exact string match against the enum — any other value is a hard failure. |
+| `tier` | enum | yes | One of `core`, `bench`, `chair`, `classifier` (D-12 + Phase 6 D-53 extension). | Exact string match against the enum — any other value is a hard failure. |
 | `primary_concern` | string | yes | Non-empty one-sentence statement. The persona's value-system anchor. | Present, non-empty. |
 | `blind_spots` | list of strings | yes | Non-empty list. 2-4 entries recommended; neither bound is enforced. | Present, non-empty list. |
 | `characteristic_objections` | list of strings | yes | **At least 3 entries** (D-14). No upper bound. | `length >= 3` is a hard failure if violated. |
@@ -75,8 +75,15 @@ so the author sees it but does not fail the build.
   from `lib/signals.json`.
 - **`chair`** — the Council Chair (Phase 5). Runs sequentially after
   core + bench personas complete. `triggers:` is empty or absent.
+- **`classifier`** — Haiku-tier subagent invoked by the conductor ONLY when
+  lib/classify.py returns `deterministic_match_count == 0`. The classifier
+  is not a critic — it emits a structured JSON object naming which bench
+  personas to spawn. `triggers:` is empty or absent. Custom critic fields
+  (`primary_concern`, `blind_spots`, `characteristic_objections`,
+  `banned_phrases`) are FORBIDDEN per R9. Phase 6 delivers
+  `agents/artifact-classifier.md` in this tier.
 
-The enum is closed at three values. Adding a tier is a schema change
+The enum is closed at four values. Adding a tier is a schema change
 and requires a coordinated update to this doc plus the validator.
 
 ## Worked-Example Body Requirement (D-09)
@@ -153,13 +160,17 @@ in the order the validator runs it:
 - All 5 required custom fields are present: `tier`, `primary_concern`,
   `blind_spots`, `characteristic_objections`, `banned_phrases` (hard
   failure if any are missing).
-- `tier ∈ {core, bench, chair}` (hard failure on any other value).
+- `tier ∈ {core, bench, chair, classifier}` (hard failure on any other value).
 - `banned_phrases` is a non-empty list (hard failure on empty).
 - `characteristic_objections` has ≥ 3 entries (hard failure on fewer).
 - Bench personas have non-empty `triggers`; core and chair personas
   have empty or absent `triggers` (hard failure on either mismatch).
 - Trigger IDs (when present) exist as keys in `lib/signals.json`'s
   `signals` object (hard failure on any undeclared ID).
+- R9: if `tier: classifier`: MUST NOT have `primary_concern`,
+  `blind_spots`, `characteristic_objections`, or `banned_phrases`;
+  `triggers:` empty or absent (hard failure on any violation — added
+  Phase 6 D-53 per RESEARCH.md §Q6 Option 2).
 - Soft check: warn if the persona body lacks a `## Examples` section.
 - Soft check: warn if any of `consider`, `think about`, `be aware of`
   are missing from `banned_phrases`.
