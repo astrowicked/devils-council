@@ -1,0 +1,13 @@
+{
+  "budget": {
+    "cap_usd": 0.50,
+    "per_persona_estimate_usd": 0.08,
+    "bench_priority_order": [
+      "security-reviewer",
+      "dual-deploy-reviewer",
+      "finops-auditor",
+      "air-gap-reviewer"
+    ],
+    "wall_clock_cap_seconds": 30
+  }
+}

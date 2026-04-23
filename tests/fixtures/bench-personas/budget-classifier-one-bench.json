@@ -1,0 +1,10 @@
+{
+  "classifier": {
+    "version": 1,
+    "deterministic_match_count": 1,
+    "needs_haiku": false
+  },
+  "triggered_personas": ["finops-auditor"],
+  "trigger_reasons": {"finops-auditor": ["autoscaling_change"]},
+  "personas_run": []
+}

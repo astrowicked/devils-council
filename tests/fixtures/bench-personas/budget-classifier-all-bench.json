@@ -1,0 +1,15 @@
+{
+  "classifier": {
+    "version": 1,
+    "deterministic_match_count": 8,
+    "needs_haiku": false
+  },
+  "triggered_personas": ["air-gap-reviewer", "dual-deploy-reviewer", "finops-auditor", "security-reviewer"],
+  "trigger_reasons": {
+    "security-reviewer": ["auth_code_change", "crypto_import"],
+    "dual-deploy-reviewer": ["helm_values_change", "kots_config_change"],
+    "finops-auditor": ["aws_sdk_import", "new_cloud_resource"],
+    "air-gap-reviewer": ["dependency_update", "external_image_pull"]
+  },
+  "personas_run": []
+}

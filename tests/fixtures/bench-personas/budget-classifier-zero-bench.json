@@ -1,0 +1,10 @@
+{
+  "classifier": {
+    "version": 1,
+    "deterministic_match_count": 0,
+    "needs_haiku": true
+  },
+  "triggered_personas": [],
+  "trigger_reasons": {},
+  "personas_run": []
+}
