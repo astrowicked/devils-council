@@ -325,6 +325,7 @@ validate_one() {
   local rel="$file"
   local errors=()
   local fm
+  local meta
   local body
 
   # R1: frontmatter present + parseable YAML.
@@ -342,14 +343,35 @@ validate_one() {
 
   body=$(extract_body "$file")
 
+  # Sidecar resolution — Bedrock rejects custom keys in agent frontmatter,
+  # so tier/primary_concern/blind_spots/characteristic_objections/banned_phrases
+  # live in persona-metadata/<persona>.yml. Resolution order matches
+  # bin/dc-validate-scorecard.sh:
+  #   1. persona-metadata/<basename>.yml (preferred — sidecar pattern)
+  #   2. agent frontmatter (legacy path — pre-sidecar personas)
+  local persona_slug sidecar
+  persona_slug=$(basename "$file" .md)
+  sidecar="${REPO_ROOT}/persona-metadata/${persona_slug}.yml"
+  if [ -f "$sidecar" ]; then
+    meta=$(cat "$sidecar")
+    if ! yaml_parse_check "$meta"; then
+      errors+=("$rel: [R1] persona-metadata sidecar is not valid YAML: $sidecar")
+      for e in "${errors[@]}"; do printf '%s\n' "$e"; done
+      return 1
+    fi
+  else
+    # Legacy: custom fields live in agent frontmatter alongside name/description/model.
+    meta="$fm"
+  fi
+
   # R2: tier present AND ∈ {core, bench, chair}.
   local tier tier_type
-  tier_type=$(yaml_type "$fm" 'tier')
+  tier_type=$(yaml_type "$meta" 'tier')
   if [ "$tier_type" = "missing" ] || [ "$tier_type" = "null" ]; then
     errors+=("$rel: [R2] tier missing (required; must be one of core|bench|chair)")
     tier=""
   else
-    tier=$(yaml_string "$fm" 'tier')
+    tier=$(yaml_string "$meta" 'tier')
     case "$tier" in
       core|bench|chair) ;;
       *) errors+=("$rel: [R2] tier '${tier}' is not one of core|bench|chair") ;;
@@ -358,13 +380,13 @@ validate_one() {
 
   # R3: primary_concern present + non-empty string.
   local pc_type pc
-  pc_type=$(yaml_type "$fm" 'primary_concern')
+  pc_type=$(yaml_type "$meta" 'primary_concern')
   case "$pc_type" in
     missing|null)
       errors+=("$rel: [R3] primary_concern missing (required non-empty string)")
       ;;
     string)
-      pc=$(yaml_string "$fm" 'primary_concern')
+      pc=$(yaml_string "$meta" 'primary_concern')
       # Strip whitespace; if empty after strip, treat as empty.
       local pc_stripped
       pc_stripped=$(printf '%s' "$pc" | awk '{$1=$1;print}')
@@ -379,7 +401,7 @@ validate_one() {
 
   # R4: blind_spots present + non-empty list.
   local bs_len
-  bs_len=$(yaml_list_length "$fm" 'blind_spots')
+  bs_len=$(yaml_list_length "$meta" 'blind_spots')
   case "$bs_len" in
     -2) errors+=("$rel: [R4] blind_spots missing (required non-empty list)") ;;
     -1) errors+=("$rel: [R4] blind_spots has wrong type (expected list)") ;;
@@ -389,7 +411,7 @@ validate_one() {
 
   # R5: characteristic_objections list, length >= 3.
   local co_len
-  co_len=$(yaml_list_length "$fm" 'characteristic_objections')
+  co_len=$(yaml_list_length "$meta" 'characteristic_objections')
   case "$co_len" in
     -2) errors+=("$rel: [R5] characteristic_objections missing (required list, length >= 3)") ;;
     -1) errors+=("$rel: [R5] characteristic_objections has wrong type (expected list)") ;;
@@ -402,7 +424,7 @@ validate_one() {
 
   # R6: banned_phrases list, non-empty.
   local bp_len
-  bp_len=$(yaml_list_length "$fm" 'banned_phrases')
+  bp_len=$(yaml_list_length "$meta" 'banned_phrases')
   case "$bp_len" in
     -2) errors+=("$rel: [R6] banned_phrases missing (required non-empty list)") ;;
     -1) errors+=("$rel: [R6] banned_phrases has wrong type (expected list)") ;;
@@ -412,7 +434,7 @@ validate_one() {
 
   # R7 / R8: tier-conditional triggers handling.
   local tr_type tr_len
-  tr_type=$(yaml_type "$fm" 'triggers')
+  tr_type=$(yaml_type "$meta" 'triggers')
 
   if [ "$tier" = "bench" ]; then
     # R7: triggers must be a non-empty list AND every ID in signals registry.
@@ -421,7 +443,7 @@ validate_one() {
         errors+=("$rel: [R7] bench tier requires non-empty triggers list (was ${tr_type})")
         ;;
       list)
-        tr_len=$(yaml_list_length "$fm" 'triggers')
+        tr_len=$(yaml_list_length "$meta" 'triggers')
         if [ "$tr_len" -eq 0 ]; then
           errors+=("$rel: [R7] bench tier requires non-empty triggers list (was empty)")
         else
@@ -432,7 +454,7 @@ validate_one() {
             if ! printf '%s\n' "$VALID_SIGNAL_IDS" | grep -Fxq -- "$id"; then
               errors+=("$rel: [R7] triggers references undeclared signal ID '${id}' (not a key in ${SIGNALS_PATH})")
             fi
-          done < <(yaml_list_items "$fm" 'triggers')
+          done < <(yaml_list_items "$meta" 'triggers')
         fi
         ;;
       *)
@@ -444,7 +466,7 @@ validate_one() {
     case "$tr_type" in
       missing|null) ;;
       list)
-        tr_len=$(yaml_list_length "$fm" 'triggers')
+        tr_len=$(yaml_list_length "$meta" 'triggers')
         if [ "$tr_len" -gt 0 ]; then
           errors+=("$rel: [R8] tier '${tier}' must have empty or absent triggers (had ${tr_len} entries)")
         fi
@@ -460,7 +482,7 @@ validate_one() {
   # W1: banned_phrases missing any of consider / think about / be aware of.
   if [ "${bp_len:-0}" -gt 0 ]; then
     local bp_items missing_bans=()
-    bp_items=$(yaml_list_items "$fm" 'banned_phrases' | tr '[:upper:]' '[:lower:]')
+    bp_items=$(yaml_list_items "$meta" 'banned_phrases' | tr '[:upper:]' '[:lower:]')
     for needle in 'consider' 'think about' 'be aware of'; do
       if ! printf '%s\n' "$bp_items" | grep -Fxq -- "$needle"; then
         missing_bans+=("$needle")
