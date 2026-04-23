@@ -76,8 +76,6 @@
 
 - [ ] **HARD-01**: Prompt-injection test corpus covers `<!-- Ignore previous instructions -->`, role-confusion, tool-hijack payloads in each artifact type; CI runs the corpus
 - [ ] **HARD-02**: Persona output that fails schema validation is dropped from synthesis with a structural error logged, not silently included
-- [ ] **HARD-03**: Prompt caching on the artifact block is verified via observable token-usage reduction across fan-out
-- [ ] **HARD-04**: Hard budget cap (default `$0.50` / `30s` per invocation, configurable) halts further bench-persona fan-out when exceeded and reports which personas didn't run
 - [ ] **HARD-05**: Coexistence test matrix installs devils-council + GSD + Superpowers and verifies no command, hook, or MCP conflicts
 
 ### Response Workflow + Dig-In (RESP)
@@ -158,17 +156,19 @@
 | BNCH-01..08 | Phase 6 | Pending |
 | BNCH-09..10 | Phase 6 | Pending |
 | CDEX-03..05 | Phase 6 | Pending |
-| HARD-01..05 | Phase 7 | Pending |
-| RESP-01..04 | Phase 7 | Pending |
+| HARD-01, HARD-02, HARD-05 | Phase 7 | Pending |
+| RESP-01, RESP-03, RESP-04 | Phase 7 | Pending |
+| RESP-02 | Phase 8 | Pending |
 | GSDI-01..04 | Phase 8 | Pending |
 | DOCS-01..06 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 67 total
-- Mapped to phases: 67
+- v1 requirements: 65 total
+- Mapped to phases: 65
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-22*
 *Last updated: 2026-04-22 — RESP-01 path reconciled to .council/responses.md per Phase 1 D-07*
 *Last updated: 2026-04-23 — Phase 6 amendments: BNCH-01 (py), BNCH-03 (shell-primary), CDEX-04 (shell-primary; MCP deferred to v1.1); BNCH-09 (budget cap) and BNCH-10 (prompt cache observable reduction) added.*
+*Last updated: 2026-04-23 — Phase 7 amendments: HARD-03/HARD-04 deleted (duplicates of BNCH-10/BNCH-09); RESP-02 traceability moved to Phase 8 per D-63; `.council/responses.md` path reconciled per D-64.*
