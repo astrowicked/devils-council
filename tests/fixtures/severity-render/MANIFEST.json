@@ -1,0 +1,24 @@
+{
+  "artifact_path": "tests/fixtures/severity-render/sample-artifact",
+  "sha256": "deterministicplaceholder1234567890abcdef1234567890abcdef1234567890abcdef",
+  "detected_type": "plan",
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "outcome": "success",
+      "findings": [
+        {"id": "staff-engineer-blocker1", "target": "section-scope", "severity": "blocker"},
+        {"id": "staff-engineer-major01", "target": "section-approach", "severity": "major"},
+        {"id": "staff-engineer-major02", "target": "section-rollout", "severity": "major"},
+        {"id": "staff-engineer-minor01", "target": "section-risks", "severity": "minor"},
+        {"id": "staff-engineer-minor02", "target": "section-scope", "severity": "minor"},
+        {"id": "staff-engineer-nit0001", "target": "section-goal", "severity": "nit"}
+      ]
+    }
+  ],
+  "validation": [
+    {"persona": "staff-engineer", "findings_kept": 6, "findings_dropped": 0, "drop_reasons": []}
+  ],
+  "suppressed_findings": []
+}
