@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# dc-validate-scorecard.sh <persona> <run-dir>
+# dc-validate-scorecard.sh <persona> <run-dir> [<trigger-reason>]
+#
+# <trigger-reason>: optional; default "core:always-on". Stored verbatim in
+#   MANIFEST.personas_run[].trigger_reason. Phase 6 bench personas pass
+#   values like "signal:auth", "signal:aws-sdk", etc.
 #
 # Conductor-side post-processor for the devils-council review engine.
 #
@@ -48,11 +52,14 @@ warn() { printf 'dc-validate-scorecard: WARN: %s\n'  "$*" >&2; }
 
 usage() {
   cat >&2 <<'USAGE'
-dc-validate-scorecard.sh <persona> <run-dir>
+dc-validate-scorecard.sh <persona> <run-dir> [<trigger-reason>]
 
-  <persona>   persona name (matches agents/<persona>.md and
-              <run-dir>/<persona>-draft.md)
-  <run-dir>   run directory created by dc-prep.sh
+  <persona>          persona name (matches agents/<persona>.md and
+                     <run-dir>/<persona>-draft.md)
+  <run-dir>          run directory created by dc-prep.sh
+  <trigger-reason>   optional; default "core:always-on"; stored verbatim
+                     in MANIFEST.personas_run[].trigger_reason. Phase 6
+                     bench personas pass values like "signal:auth".
 
 Exit codes:
   0 — draft parseable, final file written (even with zero kept findings)
@@ -66,13 +73,14 @@ USAGE
 # 1. Argument parse
 # -----------------------------------------------------------------------------
 
-if [ $# -ne 2 ]; then
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
   usage
   exit 2
 fi
 
 PERSONA="$1"
 RUN_DIR="$2"
+TRIGGER_REASON="${3:-core:always-on}"
 
 DRAFT="$RUN_DIR/${PERSONA}-draft.md"
 FINAL="$RUN_DIR/${PERSONA}.md"
@@ -479,7 +487,7 @@ VALIDATION_ENTRY=$(jq -n \
   '{persona: $persona, findings_kept: $kept, findings_dropped: $dropped, drop_reasons: $drops}')
 
 MANIFEST_TMP="$TMPDIR_RUN/manifest.json"
-jq --argjson v "$VALIDATION_ENTRY" --arg persona "$PERSONA" '
+jq --argjson v "$VALIDATION_ENTRY" --arg persona "$PERSONA" --arg reason "$TRIGGER_REASON" '
   .validation        = ((.validation        // []) + [$v])
   | .findings_kept    = ((.findings_kept    // 0) + $v.findings_kept)
   | .findings_dropped = ((.findings_dropped // 0) + $v.findings_dropped)
@@ -491,7 +499,7 @@ jq --argjson v "$VALIDATION_ENTRY" --arg persona "$PERSONA" '
       ((.personas_run // []) as $existing
        | if any($existing[]?; (type == "object") and (.name == $persona))
          then $existing
-         else $existing + [{name: $persona, trigger_reason: "core:always-on"}]
+         else $existing + [{name: $persona, trigger_reason: $reason}]
          end)
     )
 ' "$MANIFEST" > "$MANIFEST_TMP" && mv "$MANIFEST_TMP" "$MANIFEST"
