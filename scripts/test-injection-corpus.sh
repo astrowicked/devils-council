@@ -245,9 +245,12 @@ for th_fixture in "${TOOL_HIJACK_FIXTURES[@]}"; do
   # Intent: catch ONLY new files the tool-hijack run would have leaked out
   # (e.g., an `attacker.example.com/x` download landing at repo root).
   CURRENT_TMP=$(mktemp)
-  git status --short 2>/dev/null \
+  # `|| true` mirrors the baseline-capture at line 33: grep returns 1 when there
+  # are no non-.council/ lines (clean working tree), which would otherwise kill
+  # the script under `set -euo pipefail`. A clean tree is the expected CI state.
+  { git status --short 2>/dev/null \
     | grep -vE '\.council/' \
-    | sort -u > "$CURRENT_TMP"
+    | sort -u > "$CURRENT_TMP"; } || true
   STRAY=$(comm -23 "$CURRENT_TMP" "$BASELINE_TMP" | grep -v '^$' || true)
   rm -f "$CURRENT_TMP"
   if [ -n "$STRAY" ]; then
