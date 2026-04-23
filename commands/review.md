@@ -1,13 +1,22 @@
 ---
 name: review
 description: "Run the devils-council adversarial review against a plan, RFC, or code diff. Produces four validated scorecards (Staff Engineer, SRE, Product Manager, Devil's Advocate) in parallel at .council/<ts>-<slug>/*.md."
-argument-hint: "<artifact-path> [--type=<code-diff|plan|rfc>]"
+argument-hint: "<artifact-path> [--type=<code-diff|plan|rfc>] [--only=<p1,p2>] [--exclude=<p1,p2>] [--cap-usd=<N>]"
 allowed-tools: [Bash, Read, Write, Agent]
 ---
 
 ## Run preparation
 
 !`${CLAUDE_PLUGIN_ROOT}/bin/dc-prep.sh $ARGUMENTS`
+
+!`${CLAUDE_PLUGIN_ROOT}/bin/dc-classify.sh "$(ls -t .council/*/INPUT.md 2>/dev/null | head -1)" "$(ls -t .council/*/MANIFEST.json 2>/dev/null | head -1)"`
+
+The block above runs the structural classifier (lib/classify.py via
+bin/dc-classify.sh). On success it writes MANIFEST.classifier,
+MANIFEST.triggered_personas[], and MANIFEST.trigger_reasons{}. On
+classifier failure (degrade-to-core per RESEARCH.md Pitfall 6), it
+writes MANIFEST.classifier.error and empty triggered_personas — the
+core four still spawn; bench is skipped.
 
 ## Interpreting the prep output
 
@@ -19,6 +28,114 @@ The block above printed exactly one `RUN_DIR=...` line as its final stdout.
   Treat empty output as an error.
 - Otherwise, extract the path that follows `RUN_DIR=` and treat it as `<RUN_DIR>`
   for the rest of this command. The directory contains `INPUT.md` and `MANIFEST.json`.
+
+## Parse Phase 6 flags from $ARGUMENTS
+
+Extract the following optional flags from `$ARGUMENTS` (use the Bash tool
+to parse — jq, awk, or simple grep):
+
+- `--only=<csv>` — comma-separated persona slugs; filters the candidate
+  bench set. Core four are NOT filtered by --only. D-58.
+- `--exclude=<csv>` — wins over --only for the same persona. Can
+  suppress core personas when listed explicitly (e.g.
+  `--exclude=staff-engineer,sre`).
+- `--cap-usd=<N>` — positive decimal; overrides `config.json`'s
+  `.budget.cap_usd`. No sentinel values (`unlimited` is rejected per
+  D-58).
+
+Store these values in bash variables `ONLY`, `EXCLUDE`, `CAP_USD` for
+the next step. If a flag is absent, leave the variable empty.
+
+## Invoke Haiku classifier when needed (BNCH-02, D-53)
+
+Read `<RUN_DIR>/MANIFEST.json .classifier.needs_haiku`. If `true` AND
+`<RUN_DIR>/MANIFEST.json .classifier.haiku_result` is absent, spawn the
+artifact-classifier subagent ONCE via the Agent tool:
+
+- Type: `artifact-classifier`
+- Prompt: the same XML-nonce-framed artifact block the critic personas
+  receive (see `## Prepare the injection-resistant framing` below). The
+  classifier must see the artifact inside `<artifact-$NONCE>` tags.
+
+When the Agent call returns, parse its response as JSON matching the
+contract in `agents/artifact-classifier.md`:
+
+```json
+{"artifact_type": "...", "suggested_personas": ["...", ...], "reasoning": "..."}
+```
+
+Validate `suggested_personas` against the whitelist `{security-reviewer,
+finops-auditor, air-gap-reviewer, dual-deploy-reviewer}`. Reject any
+slug not in the whitelist. Use the Bash tool to merge the validated
+result into MANIFEST:
+
+    TMP_MF=$(mktemp)
+    jq --argjson haiku '<validated-json>' '.classifier.haiku_result = $haiku
+      | .triggered_personas = ((.triggered_personas // []) + $haiku.suggested_personas | unique | sort)
+      | .trigger_reasons = (.trigger_reasons // {}) + ($haiku.suggested_personas | map({key: ., value: ["haiku_fallback"]}) | from_entries)
+    ' <RUN_DIR>/MANIFEST.json > "$TMP_MF" && mv "$TMP_MF" <RUN_DIR>/MANIFEST.json
+
+If the classifier returns malformed JSON OR all slugs fail the whitelist,
+proceed with zero bench personas (classifier failure is degrade-to-core
+per RESEARCH.md Pitfall 6). Log the classifier failure but do not abort
+the run.
+
+## Apply pre-spawn budget plan (BNCH-05, D-56)
+
+Use the Bash tool to execute:
+
+    ${CLAUDE_PLUGIN_ROOT}/bin/dc-budget-plan.sh <RUN_DIR> \
+      ${ONLY:+--only="$ONLY"} \
+      ${EXCLUDE:+--exclude="$EXCLUDE"} \
+      ${CAP_USD:+--cap-usd="$CAP_USD"}
+
+Expected exit code 0 (even when over_budget=true). The script writes
+MANIFEST.budget + MANIFEST.personas_skipped[] and emits two lines to
+stdout:
+
+- `SPAWN_BENCH=slug1,slug2,...` — comma-separated bench personas that
+  survived filter + cap. May be empty.
+- `ERRORS=N` — count of pre-spawn errors. N > 0 means a cap_exceeded
+  error was raised (visible in MANIFEST.budget.errors[]).
+
+Parse `SPAWN_BENCH` into a bash array `BENCH_SPAWN_LIST`. The bench
+personas in this list — in the order returned — are the ones the
+fan-out block below spawns alongside the core four.
+
+If exit code != 0, log the structural failure and proceed with zero
+bench personas (core four still spawn — D-56 does NOT gate core).
+
+## Apply --exclude filter to core personas (D-58)
+
+Per D-58 "Core filter semantics": core personas are the value floor of
+the product; `--only` NEVER suppresses them (core always spawns unless
+explicitly excluded). `--exclude` CAN suppress core personas when the
+user names them explicitly (e.g. `--exclude=staff-engineer,sre`).
+
+Execute this step AFTER `bin/dc-budget-plan.sh` has filtered bench,
+and BEFORE the parallel fan-out at the marker replacement below:
+
+1. Start with the canonical core list:
+   `CORE_SPAWN_LIST=(staff-engineer sre product-manager devils-advocate)`.
+2. If `$EXCLUDE` is non-empty: for each slug in `$EXCLUDE`, if that
+   slug is in `CORE_SPAWN_LIST`, REMOVE it from `CORE_SPAWN_LIST` and
+   APPEND `{"persona": "<slug>", "reason": "excluded_by_flag"}` to
+   `MANIFEST.personas_skipped[]` using the same additive jq pattern
+   used elsewhere in this file. Example bash shape:
+
+       TMP_MF=$(mktemp)
+       jq --arg persona "$slug" '
+         .personas_skipped = ((.personas_skipped // []) + [{persona: $persona, reason: "excluded_by_flag"}])
+       ' <RUN_DIR>/MANIFEST.json > "$TMP_MF" && mv "$TMP_MF" <RUN_DIR>/MANIFEST.json
+
+3. `--only` behavior for core: per D-58, `--only` does NOT suppress
+   core personas. If `$ONLY` is present and contains no core slugs,
+   all four core personas STILL spawn. `--only` only narrows the
+   bench set (handled inside `bin/dc-budget-plan.sh`); it never
+   narrows core.
+4. After this filter, `CORE_SPAWN_LIST` is the authoritative list of
+   core personas to spawn in the fan-out block below. The combined
+   spawn list is `CORE_SPAWN_LIST + BENCH_SPAWN_LIST`.
 
 ## Prepare the injection-resistant framing
 
@@ -84,7 +201,40 @@ order in your response):
 3. `product-manager` -> writes `<RUN_DIR>/product-manager-draft.md`
 4. `devils-advocate` -> writes `<RUN_DIR>/devils-advocate-draft.md`
 
-<!-- bench-personas: Phase 6 signal-triggered additions go here. -->
+<!-- Phase 6 bench fan-out: BENCH_SPAWN_LIST from the budget-plan step above -->
+
+For each bench persona `B` in `BENCH_SPAWN_LIST` (in order), issue an
+Agent tool call AS PART OF THE SAME PARALLEL TURN as the four core
+personas. The instruction message is identical in shape to the core
+persona instruction (same XML-nonce framing, same INPUT.md inline),
+but substitutes `<PERSONA>` with `B` and `<PERSONA-DRAFT>` with
+`<B>-draft.md`. Example: for B=security-reviewer, writes to
+`<RUN_DIR>/security-reviewer-draft.md`.
+
+All Agent calls — four core + N bench — MUST be issued together in one
+assistant turn. Claude Code's harness parallelizes concurrent tool
+calls. Bench personas never see another persona's draft; isolation is
+architectural, not coincidental.
+
+Bench personas supported in Phase 6:
+- `security-reviewer` → writes `<RUN_DIR>/security-reviewer-draft.md`
+- `finops-auditor` → writes `<RUN_DIR>/finops-auditor-draft.md`
+- `air-gap-reviewer` → writes `<RUN_DIR>/air-gap-reviewer-draft.md`
+- `dual-deploy-reviewer` → writes `<RUN_DIR>/dual-deploy-reviewer-draft.md`
+
+After the parallel turn returns, the `## Reconcile Codex delegations`
+section below (added in Plan 05) runs against `security-reviewer` and
+`dual-deploy-reviewer` if they appear in BENCH_SPAWN_LIST. Then the
+validator loop below processes core + bench drafts in an extended
+canonical order: `[staff-engineer, sre, product-manager,
+devils-advocate]` + BENCH_SPAWN_LIST (in the order returned by the
+budget-plan script).
+
+For each bench persona validated via `bin/dc-validate-scorecard.sh`,
+pass the third trigger-reason argument as
+`signal:<comma-joined-signal-ids-from-MANIFEST.trigger_reasons[B]>`
+(e.g. `signal:auth_code_change,crypto_import`). For personas added
+via Haiku fallback, pass `trigger_reason=signal:haiku_fallback`.
 
 Wait for all four to return. Each successful return means that persona's draft
 file exists on disk. A persona that returns without its draft file is a failure
@@ -363,6 +513,27 @@ only — the file slug `P` is used everywhere else):
 - `sre` → `SRE`
 - `product-manager` → `Product Manager`
 - `devils-advocate` → `Devil's Advocate`
+
+After the four core scorecards are rendered, render each bench
+persona in BENCH_SPAWN_LIST order using the same per-persona block
+format. Display names:
+- `security-reviewer` → `Security Reviewer`
+- `finops-auditor` → `FinOps Auditor`
+- `air-gap-reviewer` → `Air-Gap Reviewer`
+- `dual-deploy-reviewer` → `Dual-Deploy Reviewer`
+
+If `MANIFEST.personas_skipped[]` is non-empty, emit a one-line summary
+immediately before the final meta-summary line:
+
+    N bench personas skipped: <persona-1> (<reason>), <persona-2> (<reason>)...
+
+Where `<reason>` is rendered as human-readable text:
+`budget_cap` → "budget cap", `excluded_by_flag` → "excluded by flag".
+
+If `MANIFEST.budget.errors[]` is non-empty (cap_exceeded from
+--cap-usd override), emit a second line before the meta-summary:
+
+    Pre-spawn budget error: <code> — requested N personas, allowed M under cap $<cap_usd>.
 
 After all four scorecards are rendered, emit one final meta-summary line
 immediately after the fourth scorecard's block:
