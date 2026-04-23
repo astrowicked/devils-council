@@ -91,6 +91,42 @@ file exists on disk. A persona that returns without its draft file is a failure
 — the validator loop below writes a stub scorecard in that case. Do NOT
 re-spawn any agent. Do NOT run a second pass. ENGN-07 is structural.
 
+## Reconcile Codex delegations (bench personas only)
+
+Before running the validator loop, iterate each bench persona whose draft
+may carry a `delegation_request:` block (Security Reviewer, Dual-Deploy
+Reviewer — Phase 6 D-50, CDEX-03). For each such persona `P`:
+
+1. Check whether `<RUN_DIR>/P-draft.md` exists AND contains a
+   `delegation_request:` key in its YAML frontmatter. If either is
+   false, skip `P` (nothing to reconcile).
+2. Use the Bash tool to execute:
+
+       ${CLAUDE_PLUGIN_ROOT}/bin/dc-codex-delegate.sh P <RUN_DIR>
+
+   Expected exit code 0 in ALL cases (fail-loud per D-51 — the script
+   writes delegation.status=failed into MANIFEST on error, never
+   non-zero exits except on structural problems like missing draft).
+3. The script merges Codex findings (success) OR a delegation_failed
+   finding (any of the 6 error classes per skills/codex-deep-scan/SKILL.md
+   error taxonomy) into `<RUN_DIR>/P-draft.md` and writes the delegation
+   block to `<RUN_DIR>/MANIFEST.json .personas_run[] where name == P`.
+4. If the script exits non-zero (structural error — missing MANIFEST,
+   malformed YAML, etc.), log the failure and continue. Do NOT re-spawn
+   the persona. Do NOT retry the delegation. ENGN-07 is structural.
+
+The bench personas in scope for this reconciliation are the two whose
+bodies emit `delegation_request:` — `security-reviewer` and
+`dual-deploy-reviewer`. FinOps and Air-Gap personas do NOT delegate in
+v1 per D-50; iterating them here is a no-op (their drafts lack
+`delegation_request:`).
+
+Run this reconciliation BEFORE the validator loop below — the merged
+draft is what the validator reads. The validator's verbatim-evidence
+check applies to both persona-authored findings and codex-delegate
+findings (the Codex output is embedded in the `evidence` field and
+must substring-match INPUT.md per the existing contract).
+
 ## Validate each persona's draft sequentially
 
 After all four Agent calls return, iterate the four personas in the canonical
@@ -335,6 +371,32 @@ immediately after the fourth scorecard's block:
 
 This is the entire output. Phase 5 (Council Chair) will layer a synthesis
 above this raw inline render; Phase 4 ships the raw material only. End.
+
+## Render delegation status lines (CDEX-05 fail-loud)
+
+After rendering all scorecards (and before the final meta-summary
+line above), inspect `<RUN_DIR>/MANIFEST.json .personas_run[]` for any
+entry whose `.delegation.status == "failed"`. For each such entry,
+emit one literal line immediately AFTER the meta-summary (so that
+degraded runs are visibly annotated at the end of the output):
+
+    Codex unavailable, <persona-display-name> persona proceeded without deep scan (<error_code>).
+
+Substitute `<persona-display-name>` using the display-name map in
+`## Render all four scorecards inline` above (extend that map with
+`security-reviewer → Security Reviewer` and
+`dual-deploy-reviewer → Dual-Deploy Reviewer` when Phase 6 bench
+fan-out lands in Plan 06). Substitute `<error_code>` with the literal
+value from `.delegation.error_code` (e.g. `codex_not_installed`,
+`codex_timeout`).
+
+If zero personas have `.delegation.status == "failed"`, emit no line
+here. Success and not_invoked statuses require no rendering.
+
+This render is the BNCH-03 amended "Codex unavailable, Security
+persona proceeded without deep scan" contract. D-51 requires this
+surface AT the command output AND in MANIFEST — both paths exist
+for auditability.
 
 ## Explicitly NOT in this flow
 
