@@ -298,7 +298,7 @@ DECISIONS_FILE="$TMPDIR_RUN/decisions"
 DRAFT_FM_FILE="$TMPDIR_RUN/draft-fm.yaml"
 printf '%s\n' "$DRAFT_FM" > "$DRAFT_FM_FILE"
 
-python3 - "$DRAFT_FM_FILE" "$DECISIONS_FILE" <<'PYEOF'
+python3 - "$DRAFT_FM_FILE" "$DECISIONS_FILE" "$PERSONA" <<'PYEOF'
 import os
 import re
 import sys
@@ -306,6 +306,7 @@ import yaml
 
 draft_fm_path = sys.argv[1]
 decisions_path = sys.argv[2]
+persona_slug = sys.argv[3]
 norm_input_path = os.environ['NORMALIZED_INPUT']
 banned_phrases_path = os.environ['BANNED_PHRASES_FILE']
 
@@ -346,6 +347,23 @@ def banned_hit(text: str, phrase: str) -> bool:
     return bool(pat.search(text))
 
 
+import hashlib
+
+def canon(s: str) -> str:
+    """D-38 canonicalization: trim, collapse whitespace runs to single space, lowercase.
+    Load-bearing for CHAIR-06 stable-ID invariant; changing this recipe churns every id."""
+    if s is None:
+        return ''
+    return re.sub(r'\s+', ' ', str(s).strip().lower())
+
+def stamp_id(persona: str, target: str, claim: str) -> str:
+    """D-38 ID format: <persona-slug>-<sha256(persona|target|claim)[:8]>.
+    Evidence is EXCLUDED from payload (re-run stability — same concern, different quote
+    selection must yield the same id)."""
+    payload = f"{canon(persona)}|{canon(target)}|{canon(claim)}".encode('utf-8')
+    return f"{canon(persona)}-{hashlib.sha256(payload).hexdigest()[:8]}"
+
+
 decisions = []
 for idx, finding in enumerate(findings):
     fid = finding.get('id') or f'finding-{idx}'
@@ -357,12 +375,12 @@ for idx, finding in enumerate(findings):
 
     # Check 1: minimum length after normalization.
     if len(norm_evi) < 8:
-        decisions.append(('DROP', idx, fid, 'evidence_too_short', ''))
+        decisions.append(('DROP', idx, fid, 'evidence_too_short', '', ''))
         continue
 
     # Check 2: substring of normalized INPUT.md.
     if norm_evi not in normalized_input:
-        decisions.append(('DROP', idx, fid, 'evidence_not_verbatim', ''))
+        decisions.append(('DROP', idx, fid, 'evidence_not_verbatim', '', ''))
         continue
 
     # Check 3: banned phrase in claim OR ask (never evidence — Pitfall 3).
@@ -373,15 +391,16 @@ for idx, finding in enumerate(findings):
             break
 
     if matched:
-        decisions.append(('DROP', idx, fid, 'banned_phrase_detected', matched))
+        decisions.append(('DROP', idx, fid, 'banned_phrase_detected', matched, ''))
         continue
 
-    decisions.append(('KEEP', idx, fid, '', ''))
+    fresh_id = stamp_id(persona_slug, finding.get('target', ''), finding.get('claim', ''))
+    decisions.append(('KEEP', idx, fid, '', '', fresh_id))
 
-# Emit decisions as TSV: kind<TAB>idx<TAB>id<TAB>reason<TAB>phrase
+# Emit decisions as TSV: kind<TAB>idx<TAB>id<TAB>reason<TAB>phrase<TAB>stamped_id
 with open(decisions_path, 'w', encoding='utf-8') as f:
-    for kind, idx, fid, reason, phrase in decisions:
-        f.write(f"{kind}\t{idx}\t{fid}\t{reason}\t{phrase}\n")
+    for kind, idx, fid, reason, phrase, stamped_id in decisions:
+        f.write(f"{kind}\t{idx}\t{fid}\t{reason}\t{phrase}\t{stamped_id}\n")
 PYEOF
 
 # -----------------------------------------------------------------------------
@@ -389,15 +408,17 @@ PYEOF
 # -----------------------------------------------------------------------------
 
 KEPT_INDICES=()
+KEPT_IDS=()
 DROPS_JSON='[]'
 KEPT_COUNT=0
 DROPPED_COUNT=0
 
-while IFS=$'\t' read -r KIND IDX FID REASON PHRASE; do
+while IFS=$'\t' read -r KIND IDX FID REASON PHRASE STAMPED_ID; do
   [ -z "$KIND" ] && continue
   case "$KIND" in
     KEEP)
       KEPT_INDICES+=("$IDX")
+      KEPT_IDS+=("$STAMPED_ID")
       KEPT_COUNT=$((KEPT_COUNT + 1))
       ;;
     DROP)
@@ -421,6 +442,15 @@ if [ ${#KEPT_INDICES[@]} -eq 0 ]; then
 else
   KEPT_IDX_JSON=$(printf '%s\n' "${KEPT_INDICES[@]}" | jq -R . | jq -s 'map(tonumber)')
 fi
+
+# KEPT_IDS as JSON array, 1-to-1 aligned with KEPT_INDICES — used by the
+# python frontmatter rewrite to stamp `id` onto each kept finding.
+if [ ${#KEPT_IDS[@]} -eq 0 ]; then
+  KEPT_IDS_JSON='[]'
+else
+  KEPT_IDS_JSON=$(printf '%s\n' "${KEPT_IDS[@]}" | jq -R . | jq -s .)
+fi
+export KEPT_IDS_JSON
 
 # -----------------------------------------------------------------------------
 # 9. Build final scorecard frontmatter (python3 + yaml.safe_dump)
