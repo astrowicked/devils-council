@@ -79,10 +79,10 @@ The four personas (canonical spawn order for the tool-call sequence inside
 your single assistant turn — the harness parallelizes regardless of textual
 order in your response):
 
-1. `staff-engineer` → writes `<RUN_DIR>/staff-engineer-draft.md`
-2. `sre` → writes `<RUN_DIR>/sre-draft.md`
-3. `product-manager` → writes `<RUN_DIR>/product-manager-draft.md`
-4. `devils-advocate` → writes `<RUN_DIR>/devils-advocate-draft.md`
+1. `staff-engineer` -> writes `<RUN_DIR>/staff-engineer-draft.md`
+2. `sre` -> writes `<RUN_DIR>/sre-draft.md`
+3. `product-manager` -> writes `<RUN_DIR>/product-manager-draft.md`
+4. `devils-advocate` -> writes `<RUN_DIR>/devils-advocate-draft.md`
 
 <!-- bench-personas: Phase 6 signal-triggered additions go here. -->
 
