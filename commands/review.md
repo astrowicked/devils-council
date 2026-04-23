@@ -444,6 +444,26 @@ not wasted; downstream render + CI assertions handle the null
 measurement case.
 
 
+## Apply responses.md suppression (RESP-01)
+
+Before spawning the Council Chair, apply any user dismissals from
+`.council/responses.md` so suppressed findings never enter the Chair's
+candidate set for Top-3 Blocking Concerns. On first run, the helper
+creates an empty `.council/responses.md` with schema-only frontmatter so
+the user can discover the annotation file.
+
+Shell-inject the helper BEFORE the Chair spawn (Claude Code expands
+`` !`<cmd>` `` before the prompt reaches the model). Capture the
+SUPPRESSED_IDS line for the render stage below:
+
+    !`${CLAUDE_PLUGIN_ROOT}/bin/dc-apply-responses.sh <RUN_DIR>`
+
+The helper writes `MANIFEST.suppressed_findings[]` additively (always
+present; empty array when no suppressions) and exits 0. The Chair prompt
+below must filter its candidate set against this array per Phase 7
+D-71.
+
+
 ## Spawn the Council Chair
 
 After all four persona `<RUN_DIR>/<persona>.md` files exist on disk (each
@@ -463,8 +483,17 @@ and (for successfully validated personas) a `findings[]` array whose
 entries carry stamped ids in the format `<persona-slug>-<8hex>`.
 
 For each entry in `.personas_run[]` whose outcome is NOT
-`failed_missing_draft` or `failed_validator_error`, use the Read tool
-to load `<RUN_DIR>/<name>.md` — the validated scorecard.
+`failed_missing_draft`, NOT `failed_validator_error`, and NOT
+`dropped_from_synthesis`, use the Read tool to load
+`<RUN_DIR>/<name>.md` — the validated scorecard.
+
+When building candidate_set for Top-3 Blocking Concerns and for any
+finding cross-reference, EXCLUDE findings whose `id` appears in
+`MANIFEST.suppressed_findings[].finding_id`. The suppressed findings
+remain in the source scorecards and in `.personas_run[].findings[]`
+for audit purposes; you are filtering the Chair's view only. Dismissed
+findings MUST NOT appear in the Top-3 Blocking Concerns section nor in
+any cross-persona agreement line.
 
 Do NOT read `<RUN_DIR>/INPUT.md`. Your synthesis is over the
 personas' findings; the evidence verbatim-quote rule is the critics'
@@ -580,6 +609,22 @@ wasted; the user still sees every critic's scorecard.
 
 No re-spawn of the Chair. No re-run of the validator. ENGN-07 is
 structural.
+
+
+## Render responses.md suppression note (D-71)
+
+After the Chair's synthesis is rendered and BEFORE the raw per-persona
+scorecards, read `MANIFEST.suppressed_findings[]`. If the array has one
+or more entries, emit exactly one line (substituting N + the
+comma-separated ids):
+
+    N findings suppressed from responses.md (IDs: id1, id2, ...)
+
+If the array is empty, emit nothing (silent). The suppressed findings
+themselves are not rendered; users inspect `.council/responses.md` for
+their annotations. MANIFEST.suppressed_findings[] entries carry
+`{finding_id, status, reason, dismissed_at, persona, target}` for
+auditors.
 
 
 ## Render all four scorecards inline
