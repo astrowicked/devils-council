@@ -395,9 +395,15 @@ for idx, finding in enumerate(findings):
         continue
 
     fresh_id = stamp_id(persona_slug, finding.get('target', ''), finding.get('claim', ''))
-    decisions.append(('KEEP', idx, fid, '', '', fresh_id))
+    # REASON/PHRASE sentinels ('-') for KEEP rows: bash `read -r` with IFS=\t
+    # collapses CONSECUTIVE whitespace-IFS delimiters, silently eating the
+    # empty middle fields. Using a non-empty sentinel preserves column
+    # alignment so STAMPED_ID is read into the correct variable.
+    decisions.append(('KEEP', idx, fid, '-', '-', fresh_id))
 
 # Emit decisions as TSV: kind<TAB>idx<TAB>id<TAB>reason<TAB>phrase<TAB>stamped_id
+# NB: non-KEEP rows may have a trailing empty stamped_id column; trailing empty
+# fields ARE preserved by `read -r`, only internal consecutive delimiters collapse.
 with open(decisions_path, 'w', encoding='utf-8') as f:
     for kind, idx, fid, reason, phrase, stamped_id in decisions:
         f.write(f"{kind}\t{idx}\t{fid}\t{reason}\t{phrase}\t{stamped_id}\n")
@@ -473,9 +479,16 @@ with open(draft_path, 'r', encoding='utf-8') as f:
 
 keep = json.loads(os.environ['KEPT_IDX_JSON'])
 drops = json.loads(os.environ['DROPS_JSON'])
+keep_ids = json.loads(os.environ['KEPT_IDS_JSON'])  # aligned 1-to-1 with `keep`
 
 findings = fm.get('findings') or []
-kept = [findings[i] for i in keep if 0 <= i < len(findings)]
+kept = []
+for pos, i in enumerate(keep):
+    if 0 <= i < len(findings):
+        finding = dict(findings[i])  # shallow copy to avoid mutating input fm
+        if pos < len(keep_ids):
+            finding['id'] = keep_ids[pos]
+        kept.append(finding)
 
 fm['findings'] = kept
 fm['dropped_findings'] = drops
@@ -509,6 +522,30 @@ rm -f "$DRAFT"
 # 11. Update MANIFEST.json — additive (preserve existing fields + arrays)
 # -----------------------------------------------------------------------------
 
+# CHAIR-06 / D-37 mirror: pull the full kept-finding records (id, target, claim,
+# severity, category) from the final scorecard YAML into a JSON array, so
+# MANIFEST.personas_run[].findings[] carries enough metadata for Plan 05-03's
+# candidate-set jq to compute D-34 without re-reading the per-persona .md files.
+KEPT_FINDINGS_JSON_FILE="$TMPDIR_RUN/kept-findings.json"
+python3 - "$FINAL_FM_FILE" "$KEPT_FINDINGS_JSON_FILE" <<'PYEOF'
+import json, sys, yaml
+fm_path, out_path = sys.argv[1], sys.argv[2]
+with open(fm_path, 'r', encoding='utf-8') as f:
+    fm = yaml.safe_load(f) or {}
+out = []
+for fnd in (fm.get('findings') or []):
+    out.append({
+        'id':       fnd.get('id', ''),
+        'target':   fnd.get('target', ''),
+        'claim':    fnd.get('claim', ''),
+        'severity': fnd.get('severity', ''),
+        'category': fnd.get('category', ''),
+    })
+with open(out_path, 'w', encoding='utf-8') as f:
+    json.dump(out, f)
+PYEOF
+KEPT_FINDINGS_JSON=$(cat "$KEPT_FINDINGS_JSON_FILE")
+
 VALIDATION_ENTRY=$(jq -n \
   --arg persona "$PERSONA" \
   --argjson kept "$KEPT_COUNT" \
@@ -517,19 +554,20 @@ VALIDATION_ENTRY=$(jq -n \
   '{persona: $persona, findings_kept: $kept, findings_dropped: $dropped, drop_reasons: $drops}')
 
 MANIFEST_TMP="$TMPDIR_RUN/manifest.json"
-jq --argjson v "$VALIDATION_ENTRY" --arg persona "$PERSONA" --arg reason "$TRIGGER_REASON" '
+jq --argjson v "$VALIDATION_ENTRY" \
+   --arg persona "$PERSONA" \
+   --arg reason "$TRIGGER_REASON" \
+   --argjson findings "$KEPT_FINDINGS_JSON" '
   .validation        = ((.validation        // []) + [$v])
   | .findings_kept    = ((.findings_kept    // 0) + $v.findings_kept)
   | .findings_dropped = ((.findings_dropped // 0) + $v.findings_dropped)
   | .personas_run     = (
-      # ENGN-08: personas_run[] entries are {name, trigger_reason} OBJECTS,
-      # not bare strings. Conductor (Plan 04) is expected to append the
-      # entry BEFORE calling the validator; if it did not, fall back to a
-      # stub entry so downstream tooling still sees this persona ran.
       ((.personas_run // []) as $existing
        | if any($existing[]?; (type == "object") and (.name == $persona))
-         then $existing
-         else $existing + [{name: $persona, trigger_reason: $reason}]
+         then ($existing | map(if (type == "object") and (.name == $persona)
+                               then . + {findings: $findings}
+                               else . end))
+         else $existing + [{name: $persona, trigger_reason: $reason, findings: $findings}]
          end)
     )
 ' "$MANIFEST" > "$MANIFEST_TMP" && mv "$MANIFEST_TMP" "$MANIFEST"
