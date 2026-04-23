@@ -1,0 +1,5 @@
+# Haiku classifier subagent metadata (D-53, Phase 6).
+# R9: classifier tier has no critic fields (no primary_concern, no
+# blind_spots, no characteristic_objections, no banned_phrases).
+# triggers MUST be empty or absent.
+tier: classifier
