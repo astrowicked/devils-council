@@ -152,6 +152,71 @@ jobs:
             echo "cache-reduction test skipped — scripts/test-cache-reduction.sh not yet present"
           fi
 
+      - name: Run dropped-scorecard test (Phase 7 HARD-02)
+        shell: bash
+        run: |
+          # Plan 02: validator HARD-02 zero-kept branch writes stub + MANIFEST flags.
+          # Skips gracefully if scripts/test-dropped-scorecard.sh or the fixture set is not yet present.
+          if [ -x scripts/test-dropped-scorecard.sh ] && [ -f tests/fixtures/dropped-scorecard/all-findings-fail.md ]; then
+            ./scripts/test-dropped-scorecard.sh
+          else
+            echo "dropped-scorecard test skipped — scripts/test-dropped-scorecard.sh or fixtures not yet present"
+          fi
+
+      - name: Run coexistence test (Phase 7 HARD-05)
+        shell: bash
+        run: |
+          # Plan 03: static collision-check across devils-council + (optional) Superpowers + GSD.
+          # CI has neither Superpowers nor GSD installed — the script SKIPs those branches and runs the rest.
+          if [ -x scripts/test-coexistence.sh ]; then
+            ./scripts/test-coexistence.sh
+          else
+            echo "coexistence test skipped — scripts/test-coexistence.sh not yet present"
+          fi
+
+      - name: Run injection corpus test (Phase 7 HARD-01)
+        shell: bash
+        env:
+          # Mock-mode is the only supported CI path per Plan 05. Live-Agent run requires Claude Code CLI auth which CI does not have.
+          DC_MOCK_INJECTION_CORPUS: "1"
+        run: |
+          # Plan 04+05: 9-fixture corpus + static D-68 grep + tool-hijack no-side-effect audit + D-62 over-budget fold-in.
+          # Depends on bin/dc-prep.sh, bin/dc-validate-scorecard.sh, and the 9 fixture files under tests/fixtures/injection-corpus/.
+          if [ -x scripts/test-injection-corpus.sh ] \
+              && [ -d tests/fixtures/injection-corpus/inject-ignore ] \
+              && [ -d tests/fixtures/injection-corpus/role-confusion ] \
+              && [ -d tests/fixtures/injection-corpus/tool-hijack ] \
+              && [ -x bin/dc-prep.sh ] \
+              && [ -x bin/dc-validate-scorecard.sh ]; then
+            ./scripts/test-injection-corpus.sh
+          else
+            echo "injection-corpus test skipped — scripts/test-injection-corpus.sh, fixtures, or engine binaries not yet present"
+          fi
+
+      - name: Run responses-suppression test (Phase 7 RESP-01 + RESP-03)
+        shell: bash
+        run: |
+          # Plan 06: two-run test — Run 1 bootstraps responses.md, annotate one dismissed, Run 2 asserts suppression.
+          # Depends on bin/dc-apply-responses.sh + bin/dc-validate-scorecard.sh + fixtures under tests/fixtures/responses-suppression/.
+          if [ -x scripts/test-responses-suppression.sh ] \
+              && [ -x bin/dc-apply-responses.sh ] \
+              && [ -f tests/fixtures/responses-suppression/scorecard-sample.md ]; then
+            ./scripts/test-responses-suppression.sh
+          else
+            echo "responses-suppression test skipped — scripts/test-responses-suppression.sh, binary, or fixtures not yet present"
+          fi
+
+      - name: Run severity-render test (Phase 7 RESP-04)
+        shell: bash
+        run: |
+          # Plan 07: render-transform spec test against prebuilt fixtures (default + --show-nits modes).
+          if [ -x scripts/test-severity-render.sh ] \
+              && [ -f tests/fixtures/severity-render/staff-engineer.md ]; then
+            ./scripts/test-severity-render.sh
+          else
+            echo "severity-render test skipped — scripts/test-severity-render.sh or fixtures not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
