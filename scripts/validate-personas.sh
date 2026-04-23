@@ -314,6 +314,72 @@ if isinstance(v, list):
   fi
 }
 
+# validate_synthesis_schema_inline <rel> <meta-yaml-text> <errors-array-name>
+#
+# D-42, D-48 synthesizer schema rules (R-CHAIR-*). Invoked for tier: chair.
+# Appends errors to the named bash array by reference (local -n).
+validate_synthesis_schema_inline() {
+  local rel=$1
+  local meta=$2
+  local -n err_ref=$3
+
+  # R-CHAIR-1: required_sections present + non-empty list.
+  local rs_len
+  rs_len=$(yaml_list_length "$meta" 'required_sections')
+  case "$rs_len" in
+    -2) err_ref+=("$rel: [R-CHAIR-1] required_sections missing (required non-empty list per D-48)") ;;
+    -1) err_ref+=("$rel: [R-CHAIR-1] required_sections has wrong type (expected list)") ;;
+    0)  err_ref+=("$rel: [R-CHAIR-1] required_sections is empty (required non-empty list per D-48)") ;;
+    *)  ;;
+  esac
+
+  # R-CHAIR-2: banned_tokens present + non-empty list (CHAIR-04 enforcement surface).
+  local bt_len
+  bt_len=$(yaml_list_length "$meta" 'banned_tokens')
+  case "$bt_len" in
+    -2) err_ref+=("$rel: [R-CHAIR-2] banned_tokens missing (required non-empty list per D-48 / CHAIR-04)") ;;
+    -1) err_ref+=("$rel: [R-CHAIR-2] banned_tokens has wrong type (expected list)") ;;
+    0)  err_ref+=("$rel: [R-CHAIR-2] banned_tokens is empty (required non-empty list per D-48 / CHAIR-04)") ;;
+    *)  ;;
+  esac
+
+  # R-CHAIR-3: min_contradiction_anchors present AND equals 2 (D-48 fixed value).
+  local mca_type mca
+  mca_type=$(yaml_type "$meta" 'min_contradiction_anchors')
+  case "$mca_type" in
+    missing|null)
+      err_ref+=("$rel: [R-CHAIR-3] min_contradiction_anchors missing (required int == 2 per D-48)")
+      ;;
+    int)
+      mca=$(yaml_string "$meta" 'min_contradiction_anchors')
+      if [ "$mca" != "2" ]; then
+        err_ref+=("$rel: [R-CHAIR-3] min_contradiction_anchors is ${mca}; D-48 fixes this at 2")
+      fi
+      ;;
+    *)
+      err_ref+=("$rel: [R-CHAIR-3] min_contradiction_anchors has wrong type (expected int, got ${mca_type})")
+      ;;
+  esac
+
+  # R-CHAIR-4: max_blockers present AND equals 3 (D-48 / D-34 fixed value).
+  local mb_type mb
+  mb_type=$(yaml_type "$meta" 'max_blockers')
+  case "$mb_type" in
+    missing|null)
+      err_ref+=("$rel: [R-CHAIR-4] max_blockers missing (required int == 3 per D-48 / D-34)")
+      ;;
+    int)
+      mb=$(yaml_string "$meta" 'max_blockers')
+      if [ "$mb" != "3" ]; then
+        err_ref+=("$rel: [R-CHAIR-4] max_blockers is ${mb}; D-48 / D-34 fix this at 3")
+      fi
+      ;;
+    *)
+      err_ref+=("$rel: [R-CHAIR-4] max_blockers has wrong type (expected int, got ${mb_type})")
+      ;;
+  esac
+}
+
 # -----------------------------------------------------------------------------
 # 5. Per-file validation
 # -----------------------------------------------------------------------------
@@ -378,58 +444,68 @@ validate_one() {
     esac
   fi
 
-  # R3: primary_concern present + non-empty string.
-  local pc_type pc
-  pc_type=$(yaml_type "$meta" 'primary_concern')
-  case "$pc_type" in
-    missing|null)
-      errors+=("$rel: [R3] primary_concern missing (required non-empty string)")
-      ;;
-    string)
-      pc=$(yaml_string "$meta" 'primary_concern')
-      # Strip whitespace; if empty after strip, treat as empty.
-      local pc_stripped
-      pc_stripped=$(printf '%s' "$pc" | awk '{$1=$1;print}')
-      if [ -z "$pc_stripped" ]; then
-        errors+=("$rel: [R3] primary_concern is empty (required non-empty string)")
-      fi
-      ;;
-    *)
-      errors+=("$rel: [R3] primary_concern has wrong type (expected string, got ${pc_type})")
-      ;;
-  esac
+  # R3-R6 apply to CRITIC personas (tier: core, tier: bench).
+  # tier: chair personas are synthesizers — validated by validate_synthesis_schema_inline instead.
+  local bp_len=-2    # declared in outer scope so W1 guard below can reference it
+  case "$tier" in
+    core|bench)
+      # R3: primary_concern present + non-empty string.
+      local pc_type pc
+      pc_type=$(yaml_type "$meta" 'primary_concern')
+      case "$pc_type" in
+        missing|null)
+          errors+=("$rel: [R3] primary_concern missing (required non-empty string)")
+          ;;
+        string)
+          pc=$(yaml_string "$meta" 'primary_concern')
+          local pc_stripped
+          pc_stripped=$(printf '%s' "$pc" | awk '{$1=$1;print}')
+          if [ -z "$pc_stripped" ]; then
+            errors+=("$rel: [R3] primary_concern is empty (required non-empty string)")
+          fi
+          ;;
+        *)
+          errors+=("$rel: [R3] primary_concern has wrong type (expected string, got ${pc_type})")
+          ;;
+      esac
 
-  # R4: blind_spots present + non-empty list.
-  local bs_len
-  bs_len=$(yaml_list_length "$meta" 'blind_spots')
-  case "$bs_len" in
-    -2) errors+=("$rel: [R4] blind_spots missing (required non-empty list)") ;;
-    -1) errors+=("$rel: [R4] blind_spots has wrong type (expected list)") ;;
-    0)  errors+=("$rel: [R4] blind_spots is empty (required non-empty list)") ;;
-    *) ;;
-  esac
+      # R4: blind_spots present + non-empty list.
+      local bs_len
+      bs_len=$(yaml_list_length "$meta" 'blind_spots')
+      case "$bs_len" in
+        -2) errors+=("$rel: [R4] blind_spots missing (required non-empty list)") ;;
+        -1) errors+=("$rel: [R4] blind_spots has wrong type (expected list)") ;;
+        0)  errors+=("$rel: [R4] blind_spots is empty (required non-empty list)") ;;
+        *) ;;
+      esac
 
-  # R5: characteristic_objections list, length >= 3.
-  local co_len
-  co_len=$(yaml_list_length "$meta" 'characteristic_objections')
-  case "$co_len" in
-    -2) errors+=("$rel: [R5] characteristic_objections missing (required list, length >= 3)") ;;
-    -1) errors+=("$rel: [R5] characteristic_objections has wrong type (expected list)") ;;
-    *)
-      if [ "$co_len" -lt 3 ]; then
-        errors+=("$rel: [R5] characteristic_objections has ${co_len} entries; rule requires >= 3")
-      fi
+      # R5: characteristic_objections list, length >= 3.
+      local co_len
+      co_len=$(yaml_list_length "$meta" 'characteristic_objections')
+      case "$co_len" in
+        -2) errors+=("$rel: [R5] characteristic_objections missing (required list, length >= 3)") ;;
+        -1) errors+=("$rel: [R5] characteristic_objections has wrong type (expected list)") ;;
+        *)
+          if [ "$co_len" -lt 3 ]; then
+            errors+=("$rel: [R5] characteristic_objections has ${co_len} entries; rule requires >= 3")
+          fi
+          ;;
+      esac
+
+      # R6: banned_phrases list, non-empty.
+      bp_len=$(yaml_list_length "$meta" 'banned_phrases')
+      case "$bp_len" in
+        -2) errors+=("$rel: [R6] banned_phrases missing (required non-empty list)") ;;
+        -1) errors+=("$rel: [R6] banned_phrases has wrong type (expected list)") ;;
+        0)  errors+=("$rel: [R6] banned_phrases is empty (required non-empty list)") ;;
+        *) ;;
+      esac
       ;;
-  esac
-
-  # R6: banned_phrases list, non-empty.
-  local bp_len
-  bp_len=$(yaml_list_length "$meta" 'banned_phrases')
-  case "$bp_len" in
-    -2) errors+=("$rel: [R6] banned_phrases missing (required non-empty list)") ;;
-    -1) errors+=("$rel: [R6] banned_phrases has wrong type (expected list)") ;;
-    0)  errors+=("$rel: [R6] banned_phrases is empty (required non-empty list)") ;;
-    *) ;;
+    chair)
+      # Synthesizer schema (D-42 reuse-of-tier path). Inline so errors
+      # accumulate in the same `errors` array other rules use.
+      validate_synthesis_schema_inline "$rel" "$meta" errors
+      ;;
   esac
 
   # R7 / R8: tier-conditional triggers handling.
@@ -479,8 +555,8 @@ validate_one() {
 
   # -- Soft warnings (never affect exit code) --
 
-  # W1: banned_phrases missing any of consider / think about / be aware of.
-  if [ "${bp_len:-0}" -gt 0 ]; then
+  # W1: only meaningful for critics that have banned_phrases. Skip for chair.
+  if [ "$tier" != "chair" ] && [ "${bp_len:-0}" -gt 0 ]; then
     local bp_items missing_bans=()
     bp_items=$(yaml_list_items "$meta" 'banned_phrases' | tr '[:upper:]' '[:lower:]')
     for needle in 'consider' 'think about' 'be aware of'; do
@@ -493,8 +569,8 @@ validate_one() {
     fi
   fi
 
-  # W2: body lacks `## Examples` H2.
-  if ! printf '%s\n' "$body" | grep -qE '^##[[:space:]]+Examples[[:space:]]*$'; then
+  # W2: body lacks `## Examples` H2. Chair's body has `## Complete worked example` instead.
+  if [ "$tier" != "chair" ] && ! printf '%s\n' "$body" | grep -qE '^##[[:space:]]+Examples[[:space:]]*$'; then
     warn "$rel: body lacks '## Examples' section (W2 — per skills/persona-voice/SKILL.md worked-example discipline)"
   fi
 
