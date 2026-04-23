@@ -156,6 +156,18 @@ else
   exit 1
 fi
 
+# CHAIR-06 snapshot: the exact id that stamp_id() must produce for the canonical
+# valid finding in the Case D fixture. Recomputed here at test time from the
+# canonical payload so that if the canonicalization recipe drifts in
+# dc-validate-scorecard.sh's `canon()`/`stamp_id()`, this assertion breaks loudly.
+# payload = "staff-engineer|## risks|the rate limiter feature flag has exactly one consumer in the plan."
+EXPECTED_CASE_D_ID="staff-engineer-$(
+  python3 -c "import hashlib; \
+payload=b'staff-engineer|## risks|the rate limiter feature flag has exactly one consumer in the plan.'; \
+print(hashlib.sha256(payload).hexdigest()[:8])"
+)"
+echo "Case D expected id: $EXPECTED_CASE_D_ID"
+
 # Mocked draft: 1 valid + 1 fabricated-evidence + 1 banned-phrase-in-claim.
 # Pitfall 3 guarantee: only claim/ask are scanned for banned phrases, NOT
 # evidence — so the banned-phrase finding's evidence reuses the valid line.
@@ -231,6 +243,27 @@ if printf '%s' "$FINAL_FM_JSON" | jq -e '(.findings | length) == 1' >/dev/null; 
   pass "D: final scorecard has exactly 1 kept finding"
 else
   fail "D: expected 1 kept finding, got $(printf '%s' "$FINAL_FM_JSON" | jq '.findings | length')"
+fi
+
+# CHAIR-06 Assertion 1 — stamped id on kept finding matches the canonical snapshot.
+STAMPED_D=$(printf '%s' "$FINAL_FM_JSON" | jq -r '.findings[0].id // empty')
+if [ "$STAMPED_D" = "$EXPECTED_CASE_D_ID" ]; then
+  pass "D: kept finding has stamped id matching canonical snapshot ($STAMPED_D)"
+else
+  fail "D: stamped id mismatch — expected '$EXPECTED_CASE_D_ID', got '$STAMPED_D'"
+fi
+
+# CHAIR-06 Assertion 2 — MANIFEST.personas_run[].findings[] mirrors the full record.
+if jq -e --arg eid "$EXPECTED_CASE_D_ID" '
+  (.personas_run[0].findings | type == "array") and
+  (.personas_run[0].findings | length == 1) and
+  (.personas_run[0].findings[0].id == $eid) and
+  (.personas_run[0].findings[0] | has("target") and has("claim")
+                                and has("severity") and has("category") and has("id"))
+' "$RUN_A/MANIFEST.json" >/dev/null; then
+  pass "D: MANIFEST.personas_run[0].findings[0] mirrors full record with id"
+else
+  fail "D: MANIFEST mirror missing/wrong: $(jq -c '.personas_run[0].findings' "$RUN_A/MANIFEST.json")"
 fi
 
 # 2 dropped findings.
@@ -484,6 +517,118 @@ DRAFT_SRE2_EOF
 fi
 
 # ---------------------------------------------------------------------------
+# Case F — CHAIR-06 id stability across re-runs + evidence-swap
+# ---------------------------------------------------------------------------
+echo "--- Case F: CHAIR-06 id stability (re-run + evidence-swap) ---"
+
+# Fresh run dir for Case F (independent of prior cases).
+OUT_F1=$("$PREP" "$PLAN_SAMPLE" 2>&1) || { fail "F: prep-1 exited non-zero"; exit 1; }
+RUN_F1=$(printf '%s' "$OUT_F1" | grep '^RUN_DIR=' | tail -1 | sed 's/^RUN_DIR=//')
+[ -n "$RUN_F1" ] && [[ "$RUN_F1" != ERROR:* ]] || { fail "F: RUN_F1 missing"; exit 1; }
+RUN_DIRS+=("$RUN_F1")
+
+cat > "$RUN_F1/staff-engineer-draft.md" <<'DRAFT_F1_EOF'
+---
+persona: staff-engineer
+run_id: case-f-run1
+findings:
+  - id: "sha256:placeholder"
+    target: "## Risks"
+    claim: "The rate limiter feature flag has exactly one consumer in the plan."
+    evidence: |
+      Feature-flag via `RATE_LIMIT_ENABLED=true`.
+    ask: "Land unflagged until a second environment needs it off."
+    severity: minor
+    category: complexity
+---
+
+## Summary
+
+Case F run 1.
+DRAFT_F1_EOF
+
+"$VALIDATOR" staff-engineer "$RUN_F1" > /dev/null 2>&1 || { fail "F: validator run1 exited non-zero"; exit 1; }
+ID_F1=$(jq -r '.personas_run[0].findings[0].id' "$RUN_F1/MANIFEST.json")
+
+# Run 2: fresh prep dir, same draft content, assert id is IDENTICAL.
+OUT_F2=$("$PREP" "$PLAN_SAMPLE" 2>&1) || { fail "F: prep-2 exited non-zero"; exit 1; }
+RUN_F2=$(printf '%s' "$OUT_F2" | grep '^RUN_DIR=' | tail -1 | sed 's/^RUN_DIR=//')
+[ -n "$RUN_F2" ] && [[ "$RUN_F2" != ERROR:* ]] || { fail "F: RUN_F2 missing"; exit 1; }
+RUN_DIRS+=("$RUN_F2")
+
+# Rebuild an IDENTICAL draft in RUN_F2
+cat > "$RUN_F2/staff-engineer-draft.md" <<'DRAFT_F2_EOF'
+---
+persona: staff-engineer
+run_id: case-f-run2
+findings:
+  - id: "sha256:placeholder"
+    target: "## Risks"
+    claim: "The rate limiter feature flag has exactly one consumer in the plan."
+    evidence: |
+      Feature-flag via `RATE_LIMIT_ENABLED=true`.
+    ask: "Land unflagged until a second environment needs it off."
+    severity: minor
+    category: complexity
+---
+
+## Summary
+
+Case F run 2.
+DRAFT_F2_EOF
+
+"$VALIDATOR" staff-engineer "$RUN_F2" > /dev/null 2>&1 || { fail "F: validator run2 exited non-zero"; exit 1; }
+ID_F2=$(jq -r '.personas_run[0].findings[0].id' "$RUN_F2/MANIFEST.json")
+
+if [ "$ID_F1" = "$ID_F2" ] && [ -n "$ID_F1" ]; then
+  pass "F: id stable across re-runs ($ID_F1)"
+else
+  fail "F: id not stable — run1='$ID_F1' run2='$ID_F2'"
+fi
+
+# Run 3: swap evidence to a DIFFERENT verbatim line from plan-sample.md; assert id UNCHANGED.
+OUT_F3=$("$PREP" "$PLAN_SAMPLE" 2>&1) || { fail "F: prep-3 exited non-zero"; exit 1; }
+RUN_F3=$(printf '%s' "$OUT_F3" | grep '^RUN_DIR=' | tail -1 | sed 's/^RUN_DIR=//')
+[ -n "$RUN_F3" ] && [[ "$RUN_F3" != ERROR:* ]] || { fail "F: RUN_F3 missing"; exit 1; }
+RUN_DIRS+=("$RUN_F3")
+
+# Verify the alternate evidence line is in plan-sample.md before using it.
+ALT_EVIDENCE='In-memory state does not survive restart; limits reset on deploy.'
+if ! grep -qF -- "$ALT_EVIDENCE" "$PLAN_SAMPLE"; then
+  fail "F: alt evidence line not found in plan-sample.md — update Case F fixture"
+  exit 1
+fi
+
+cat > "$RUN_F3/staff-engineer-draft.md" <<DRAFT_F3_EOF
+---
+persona: staff-engineer
+run_id: case-f-run3
+findings:
+  - id: "sha256:placeholder"
+    target: "## Risks"
+    claim: "The rate limiter feature flag has exactly one consumer in the plan."
+    evidence: |
+      $ALT_EVIDENCE
+    ask: "Land unflagged until a second environment needs it off."
+    severity: minor
+    category: complexity
+---
+
+## Summary
+
+Case F run 3 (evidence-swapped).
+DRAFT_F3_EOF
+
+"$VALIDATOR" staff-engineer "$RUN_F3" > /dev/null 2>&1 || { fail "F: validator run3 exited non-zero"; exit 1; }
+ID_F3=$(jq -r '.personas_run[0].findings[0].id' "$RUN_F3/MANIFEST.json")
+
+if [ "$ID_F1" = "$ID_F3" ] && [ -n "$ID_F3" ]; then
+  pass "F: id unchanged when evidence differs (evidence excluded from hash — $ID_F3)"
+else
+  fail "F: id changed with evidence swap — baseline='$ID_F1' evidence-swap='$ID_F3'"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary + exit
 # ---------------------------------------------------------------------------
 echo ""
@@ -491,5 +636,5 @@ if [ "$FAIL" -ne 0 ]; then
   printf 'ENGINE SMOKE TEST: FAILED\n' >&2
   exit 1
 fi
-printf 'ENGINE SMOKE TEST: PASSED (all cases A-E)\n'
+printf 'ENGINE SMOKE TEST: PASSED (all cases A-F)\n'
 exit 0
