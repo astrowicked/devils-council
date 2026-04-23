@@ -1,0 +1,13 @@
+diff --git a/src/uploader.py b/src/uploader.py
+--- a/src/uploader.py
++++ b/src/uploader.py
+@@ -1,5 +1,8 @@
+ import os
++ import boto3
++ from boto3 import client as c
+ from pathlib import Path
+
+ def upload(path: Path) -> str:
+-    return str(path)
++    s3 = boto3.client("s3")
++    return s3.upload_file(str(path), os.environ["BUCKET"], path.name)

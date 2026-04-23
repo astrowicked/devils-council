@@ -17,13 +17,15 @@
 #
 # Hard rules (exit 1 on any violation, all violations reported):
 #   R1  frontmatter present AND parses as valid YAML
-#   R2  `tier` present AND ∈ {core, bench, chair}
-#   R3  `primary_concern` present AND non-empty string
-#   R4  `blind_spots` present AND non-empty list
-#   R5  `characteristic_objections` present AND length >= 3
-#   R6  `banned_phrases` present AND non-empty list
+#   R2  `tier` present AND ∈ {core, bench, chair, classifier}
+#   R3  `primary_concern` present AND non-empty string            (critics only: core|bench)
+#   R4  `blind_spots` present AND non-empty list                  (critics only: core|bench)
+#   R5  `characteristic_objections` present AND length >= 3       (critics only: core|bench)
+#   R6  `banned_phrases` present AND non-empty list               (critics only: core|bench)
 #   R7  if tier == bench: `triggers` non-empty AND every ID ∈ signals.json keys
 #   R8  if tier ∈ {core, chair}: `triggers` empty or absent
+#   R9  if tier == classifier: MUST NOT have primary_concern / blind_spots /
+#       characteristic_objections / banned_phrases; triggers empty or absent
 #
 # Soft warnings (stderr only, exit code unchanged):
 #   W1  banned_phrases missing any of "consider" / "think about" / "be aware of"
@@ -430,17 +432,17 @@ validate_one() {
     meta="$fm"
   fi
 
-  # R2: tier present AND ∈ {core, bench, chair}.
+  # R2: tier present AND ∈ {core, bench, chair, classifier}.
   local tier tier_type
   tier_type=$(yaml_type "$meta" 'tier')
   if [ "$tier_type" = "missing" ] || [ "$tier_type" = "null" ]; then
-    errors+=("$rel: [R2] tier missing (required; must be one of core|bench|chair)")
+    errors+=("$rel: [R2] tier missing (required; must be one of core|bench|chair|classifier)")
     tier=""
   else
     tier=$(yaml_string "$meta" 'tier')
     case "$tier" in
-      core|bench|chair) ;;
-      *) errors+=("$rel: [R2] tier '${tier}' is not one of core|bench|chair") ;;
+      core|bench|chair|classifier) ;;
+      *) errors+=("$rel: [R2] tier '${tier}' is not one of core|bench|chair|classifier") ;;
     esac
   fi
 
@@ -549,6 +551,29 @@ validate_one() {
         ;;
       *)
         errors+=("$rel: [R8] triggers has wrong type (expected list or absent, got ${tr_type})")
+        ;;
+    esac
+  fi
+
+  # R9: tier: classifier — synthesizers/classifiers with no critic frontmatter.
+  #     No primary_concern, no blind_spots, no characteristic_objections,
+  #     no banned_phrases. Triggers must be empty or absent.
+  if [ "$tier" = "classifier" ]; then
+    for forbidden_key in primary_concern blind_spots characteristic_objections banned_phrases; do
+      if yaml_has_key "$meta" "$forbidden_key"; then
+        errors+=("$rel: [R9] tier 'classifier' must NOT declare '${forbidden_key}' (not a critic)")
+      fi
+    done
+    case "$tr_type" in
+      missing|null) ;;
+      list)
+        tr_len=$(yaml_list_length "$meta" 'triggers')
+        if [ "$tr_len" -gt 0 ]; then
+          errors+=("$rel: [R9] tier 'classifier' must have empty or absent triggers (had ${tr_len} entries)")
+        fi
+        ;;
+      *)
+        errors+=("$rel: [R9] triggers has wrong type (expected list or absent, got ${tr_type})")
         ;;
     esac
   fi
