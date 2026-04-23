@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Persona-driven adversarial review council",
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "plugins": [
     {
@@ -13,7 +13,12 @@
       "source": "./",
       "description": "Adversarial review: Staff Eng, SRE, PM, Devil's Advocate + bench (Security, FinOps, Air-Gap, Dual-Deploy)",
       "category": "code-review",
-      "tags": ["review", "personas", "gsd", "adversarial-review"]
+      "tags": [
+        "review",
+        "personas",
+        "gsd",
+        "adversarial-review"
+      ]
     }
   ]
 }
