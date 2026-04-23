@@ -15,10 +15,11 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - Plugin scaffolding + installable from GitHub (Phase 1, 2026-04-22)
 - Persona file format loaded dynamically (Phase 2, 2026-04-22)
 - Staff Engineer persona produces validated scorecard end-to-end with evidence enforcement and injection defense (Phase 3, 2026-04-22 — `/devils-council:review` verified live against plan-sample.md and injection-basic.md canary)
+- All four always-on core personas (Staff Engineer, SRE, Product Manager, Devil's Advocate) authored with distinct concern lenses and parallel-fan-out conductor; static verification complete, live runtime verification pending (Phase 4, 2026-04-23)
 
 ### Active
 
-- [ ] Remaining three always-on core personas: SRE/On-call, Product Manager, Devil's Advocate (Phase 4)
+- [ ] Live-runtime verification of Phase 4: `/devils-council:review` 4-persona fan-out + blinded-reader 8/8 + order-swap isolation (pending in 04-HUMAN-UAT.md)
 - [ ] Bench personas for v1: Security Reviewer, FinOps Auditor, Air-Gap Reviewer, Dual-Deploy Reviewer
 - [ ] Auto-trigger logic: bench personas join based on artifact signals (auth code → Security, new AWS resources → FinOps, Helm values → Dual-Deploy, etc.)
 - [ ] `/devils-council review <artifact>` standalone command
