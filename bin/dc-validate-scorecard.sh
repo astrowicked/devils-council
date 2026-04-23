@@ -499,24 +499,82 @@ with open(final_path, 'w', encoding='utf-8') as f:
 PYEOF
 
 # -----------------------------------------------------------------------------
-# 10. Compose final scorecard (frontmatter + body) atomically, delete draft
+# 9.5 HARD-02 / D-65: Zero-kept drop branch.
+#
+# If every finding failed validation (KEPT == 0 AND DROPPED > 0), the persona's
+# scorecard is structurally unsafe to synthesize. Instead of writing the
+# filtered frontmatter from step 9, write a Phase 4 D-21 stub with
+# failure: "validation_all_findings_dropped". Chair's existing Missing
+# Perspectives logic (Phase 5 D-43) reads this via personas_run[].outcome
+# (see step 11) + MANIFEST.validation[].dropped_from_synthesis unchanged.
+#
+# Normal (KEPT > 0) path: HARD02_DROPPED stays 0 and the original atomic-swap
+# path below runs unchanged. The persona-validly-silent case
+# (KEPT == 0 AND DROPPED == 0) also takes the normal path; a persona saying
+# "nothing to raise" is not the same as a persona failing validation.
 # -----------------------------------------------------------------------------
 
-BODY_FILE="$TMPDIR_RUN/body"
-extract_body "$DRAFT" > "$BODY_FILE"
+HARD02_DROPPED=0
+if [ "$KEPT_COUNT" -eq 0 ] && [ "$DROPPED_COUNT" -gt 0 ]; then
+  HARD02_DROPPED=1
 
-FINAL_TMP="$TMPDIR_RUN/final.md"
-{
-  printf -- '---\n'
-  cat "$FINAL_FM_FILE"
-  # yaml.safe_dump already terminates with a newline; no extra needed.
-  printf -- '---\n'
-  cat "$BODY_FILE"
-} > "$FINAL_TMP"
+  # Build stub content — preserves dropped_findings[] for audit.
+  # DROPS_JSON is the same variable step 8 already computed; convert to YAML
+  # list for frontmatter via python3 + PyYAML.
+  STUB_PATH="$RUN_DIR/$PERSONA.md"
+  python3 - "$PERSONA" "$DROPS_JSON" "$STUB_PATH" <<'PYEOF'
+import sys, json, yaml
+persona, drops_json, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+drops = json.loads(drops_json) if drops_json else []
+fm = {
+    'persona': persona,
+    'findings': [],
+    'dropped_findings': drops,
+    'failure': 'validation_all_findings_dropped',
+}
+yaml_fm = yaml.safe_dump(fm, sort_keys=False, allow_unicode=True,
+                         default_flow_style=False)
+body = (
+    '\n## Summary\n\n'
+    'All findings from this persona failed validator checks. This scorecard\n'
+    'is structurally dropped from synthesis. See MANIFEST.validation[] for\n'
+    'drop reasons per finding.\n'
+)
+with open(out_path, 'w', encoding='utf-8') as f:
+    f.write('---\n')
+    f.write(yaml_fm)
+    f.write('---\n')
+    f.write(body)
+PYEOF
 
-# Atomic swap: move final into place, then delete draft only on success.
-mv "$FINAL_TMP" "$FINAL"
-rm -f "$DRAFT"
+  rm -f "$DRAFT"
+fi
+
+# -----------------------------------------------------------------------------
+# 10. Compose final scorecard (frontmatter + body) atomically, delete draft
+#
+# Skipped entirely when HARD02_DROPPED == 1 — the stub from step 9.5 is already
+# the final file. The existing mv path only runs on the normal (kept >= 0)
+# persona-valid-output path.
+# -----------------------------------------------------------------------------
+
+if [ "$HARD02_DROPPED" -eq 0 ]; then
+  BODY_FILE="$TMPDIR_RUN/body"
+  extract_body "$DRAFT" > "$BODY_FILE"
+
+  FINAL_TMP="$TMPDIR_RUN/final.md"
+  {
+    printf -- '---\n'
+    cat "$FINAL_FM_FILE"
+    # yaml.safe_dump already terminates with a newline; no extra needed.
+    printf -- '---\n'
+    cat "$BODY_FILE"
+  } > "$FINAL_TMP"
+
+  # Atomic swap: move final into place, then delete draft only on success.
+  mv "$FINAL_TMP" "$FINAL"
+  rm -f "$DRAFT"
+fi
 
 # -----------------------------------------------------------------------------
 # 11. Update MANIFEST.json — additive (preserve existing fields + arrays)
@@ -546,17 +604,43 @@ with open(out_path, 'w', encoding='utf-8') as f:
 PYEOF
 KEPT_FINDINGS_JSON=$(cat "$KEPT_FINDINGS_JSON_FILE")
 
+# HARD-02 / D-65: dropped_from_synthesis flag is CONDITIONAL — only present
+# when the zero-kept drop branch (step 9.5) fired. The `with_entries(...)`
+# pass strips the key entirely on the normal path so happy-path MANIFESTs
+# remain byte-identical to pre-Phase-7.
 VALIDATION_ENTRY=$(jq -n \
   --arg persona "$PERSONA" \
   --argjson kept "$KEPT_COUNT" \
   --argjson dropped "$DROPPED_COUNT" \
   --argjson drops "$DROPS_JSON" \
-  '{persona: $persona, findings_kept: $kept, findings_dropped: $dropped, drop_reasons: $drops}')
+  --argjson dropped_from_syn "$HARD02_DROPPED" '
+  {
+    persona: $persona,
+    findings_kept: $kept,
+    findings_dropped: $dropped,
+    drop_reasons: $drops,
+    dropped_from_synthesis: (if $dropped_from_syn == 1 then true else null end)
+  }
+  | with_entries(select(.value != null))
+')
+
+# HARD-02 / D-65 + A10 dual-write: personas_run[].outcome gets the A10
+# Chair-iteration helper value "dropped_from_synthesis" when the zero-kept
+# drop branch fired, otherwise "success". This is written ADDITIVELY —
+# existing entries from commands/review.md (where the conductor initialized
+# the persona as {outcome: "pending"}) are upgraded to the terminal outcome
+# here. Missing entries get created with the terminal outcome directly.
+if [ "$HARD02_DROPPED" -eq 1 ]; then
+  OUTCOME="dropped_from_synthesis"
+else
+  OUTCOME="success"
+fi
 
 MANIFEST_TMP="$TMPDIR_RUN/manifest.json"
 jq --argjson v "$VALIDATION_ENTRY" \
    --arg persona "$PERSONA" \
    --arg reason "$TRIGGER_REASON" \
+   --arg outcome "$OUTCOME" \
    --argjson findings "$KEPT_FINDINGS_JSON" '
   .validation        = ((.validation        // []) + [$v])
   | .findings_kept    = ((.findings_kept    // 0) + $v.findings_kept)
@@ -565,9 +649,9 @@ jq --argjson v "$VALIDATION_ENTRY" \
       ((.personas_run // []) as $existing
        | if any($existing[]?; (type == "object") and (.name == $persona))
          then ($existing | map(if (type == "object") and (.name == $persona)
-                               then . + {findings: $findings}
+                               then . + {findings: $findings, outcome: $outcome}
                                else . end))
-         else $existing + [{name: $persona, trigger_reason: $reason, findings: $findings}]
+         else $existing + [{name: $persona, trigger_reason: $reason, findings: $findings, outcome: $outcome}]
          end)
     )
 ' "$MANIFEST" > "$MANIFEST_TMP" && mv "$MANIFEST_TMP" "$MANIFEST"
