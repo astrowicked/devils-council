@@ -116,3 +116,178 @@ MISSING_PERSONAS_JSON=$(jq -c '
 ' "$MANIFEST")
 
 export STAMPED_IDS_FILE CANDIDATE_TARGETS_FILE SURVIVOR_COUNT
+
+# --- 5. per-check validation (embedded python for clarity + correctness) ---
+ERRORS_TSV="$TMPDIR_RUN/errors.tsv"
+STATS_FILE="$TMPDIR_RUN/stats"
+
+python3 - "$DRAFT" "$SIDECAR" "$ERRORS_TSV" "$STATS_FILE" <<'PYEOF'
+import json, os, re, sys, yaml
+
+draft_path, sidecar_path, errors_path, stats_path = sys.argv[1:5]
+
+# Inputs from bash ---------------------------------------------------------
+with open(draft_path,   'r', encoding='utf-8') as f:
+    draft_text = f.read()
+with open(sidecar_path, 'r', encoding='utf-8') as f:
+    sidecar = yaml.safe_load(f) or {}
+with open(os.environ['STAMPED_IDS_FILE'], 'r', encoding='utf-8') as f:
+    stamped_ids = {ln.strip() for ln in f if ln.strip()}
+with open(os.environ['CANDIDATE_TARGETS_FILE'], 'r', encoding='utf-8') as f:
+    candidate_targets = {ln.strip() for ln in f if ln.strip()}
+survivor_count = int(os.environ.get('SURVIVOR_COUNT', '0') or '0')
+
+required_sections      = sidecar.get('required_sections', []) or []
+req_sections_no_surv   = sidecar.get('required_sections_no_survivors', []) or []
+banned_tokens          = sidecar.get('banned_tokens', []) or []
+min_anchors            = int(sidecar.get('min_contradiction_anchors', 2))
+max_blockers           = int(sidecar.get('max_blockers', 3))
+
+errors = []  # each: (check, detail)
+
+# ID resolution table: stamped id -> (persona, target, severity) — built from MANIFEST.
+# We need target lookup by id for the Top-3 candidate-set check.
+MANIFEST_PATH = os.path.join(os.path.dirname(draft_path), 'MANIFEST.json')
+with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
+    manifest = json.load(f)
+id_to_finding = {}
+for pr in (manifest.get('personas_run') or []):
+    if not isinstance(pr, dict):
+        continue
+    for fnd in (pr.get('findings') or []):
+        fid = (fnd or {}).get('id')
+        if fid:
+            id_to_finding[fid] = {
+                'persona':  pr.get('name'),
+                'target':   fnd.get('target'),
+                'severity': fnd.get('severity'),
+            }
+
+# Section parser: dict of "heading text" -> body string (between this heading and next H2).
+# D-39 section order matters for readability but the validator checks presence, not order.
+SECTION_H2 = re.compile(r'^##\s+(.+?)\s*$', re.MULTILINE)
+sections = {}
+matches = list(SECTION_H2.finditer(draft_text))
+for i, m in enumerate(matches):
+    heading = m.group(1).strip()
+    start = m.end()
+    end = matches[i+1].start() if i+1 < len(matches) else len(draft_text)
+    sections[heading] = draft_text[start:end]
+
+# -----------------------------------------------------------------------
+# Check 1: required sections present (D-43 survivor branching).
+# -----------------------------------------------------------------------
+if survivor_count == 0:
+    # Zero-survivors edge case (D-43): only required_sections_no_survivors.
+    wanted = req_sections_no_surv
+    # Also require the "No synthesis possible" sentinel anywhere in body.
+    if 'No synthesis possible' not in draft_text:
+        errors.append(('required_sentinel_missing',
+                       'zero-survivors run must include the sentinel line "No synthesis possible"'))
+else:
+    wanted = required_sections
+
+for s in wanted:
+    if s not in sections:
+        errors.append(('required_section_missing', s))
+
+# -----------------------------------------------------------------------
+# Check 2: banned_tokens scan (case-insensitive substring).
+# -----------------------------------------------------------------------
+lower = draft_text.lower()
+for tok in banned_tokens:
+    if str(tok).lower() in lower:
+        errors.append(('banned_token', str(tok)))
+
+# -----------------------------------------------------------------------
+# Check 3: contradictions — each entry cites >= min_anchors ids, all resolve.
+# We treat each "- **" bullet or each blank-line-separated block inside the
+# Contradictions section as one "entry". An id is any `(<slug>-<8hex>)` paren
+# citation.
+# D-44: if body matches the "No contradictions surfaced" sentinel, skip per-entry check.
+# -----------------------------------------------------------------------
+ID_RE = re.compile(r'\(([a-z][a-z0-9-]*-[0-9a-f]{8})\)')
+contradictions_body = sections.get('Contradictions', '')
+contradiction_count = 0
+no_contradictions_sentinel = 'No contradictions surfaced' in contradictions_body
+if survivor_count > 0 and 'Contradictions' in sections and not no_contradictions_sentinel:
+    # Split entries by blank lines. Each paragraph is one entry.
+    raw_entries = [p.strip() for p in re.split(r'\n[ \t]*\n', contradictions_body) if p.strip()]
+    for entry in raw_entries:
+        cited = ID_RE.findall(entry)
+        if len(cited) < min_anchors:
+            errors.append(('contradiction_anchors_insufficient',
+                           f'entry cites {len(cited)} id(s); sidecar requires >= {min_anchors}'))
+            continue
+        unresolvable = [cid for cid in cited if cid not in stamped_ids]
+        if unresolvable:
+            errors.append(('contradiction_id_not_resolvable',
+                           ','.join(unresolvable)))
+        contradiction_count += 1
+
+# -----------------------------------------------------------------------
+# Check 4: Top-3 — each entry cites >= 1 resolvable id AND target in candidate set.
+# Zero-blocker sentinel short-circuits the check (D-35).
+# -----------------------------------------------------------------------
+top3_body = sections.get('Top-3 Blocking Concerns', '')
+top3_count = 0
+zero_blocker_sentinel = 'No blocking concerns raised — candidate set is empty' in top3_body
+if survivor_count > 0 and 'Top-3 Blocking Concerns' in sections and not zero_blocker_sentinel:
+    # Numbered or bulleted entries; split on leading "- " or "1." "2." "3." line starts.
+    entries = [p.strip() for p in re.split(r'\n[ \t]*\n', top3_body) if p.strip()]
+    if len(entries) > max_blockers:
+        errors.append(('top3_exceeds_max',
+                       f'{len(entries)} entries; max_blockers = {max_blockers}'))
+    for entry in entries:
+        cited = ID_RE.findall(entry)
+        if len(cited) < 1:
+            errors.append(('top3_anchor_missing',
+                           'entry cites zero finding ids'))
+            continue
+        resolvable = [cid for cid in cited if cid in stamped_ids]
+        if not resolvable:
+            errors.append(('top3_id_not_resolvable',
+                           ','.join(cited)))
+            continue
+        # Target membership check against D-34 candidate set.
+        off_candidate = []
+        for cid in resolvable:
+            tgt = id_to_finding.get(cid, {}).get('target')
+            if tgt is not None and tgt not in candidate_targets:
+                off_candidate.append(f'{cid}->{tgt}')
+        if off_candidate:
+            errors.append(('top3_off_candidate_set',
+                           ','.join(off_candidate)))
+        top3_count += 1
+
+# -----------------------------------------------------------------------
+# Also-Raised count (informational, written to stats).
+# -----------------------------------------------------------------------
+also_raised_body = sections.get('Also Raised', '')
+also_raised_count = 0
+if also_raised_body.strip():
+    also_raised_count = len([ln for ln in also_raised_body.splitlines() if ln.strip().startswith('-')])
+
+# Emit TSV of errors ------------------------------------------------------
+with open(errors_path, 'w', encoding='utf-8') as f:
+    for check, detail in errors:
+        f.write(f"{check}\t{detail}\n")
+
+# Emit stats JSON ---------------------------------------------------------
+with open(stats_path, 'w', encoding='utf-8') as f:
+    json.dump({
+        'contradiction_count':    contradiction_count,
+        'blocker_candidate_count': len(candidate_targets),
+        'top3_count':             top3_count,
+        'also_raised_count':      also_raised_count,
+        'survivor_count':         survivor_count,
+    }, f)
+
+PYEOF
+
+# --- 6. determine pass/fail from ERRORS_TSV ---
+if [ -s "$ERRORS_TSV" ]; then
+  VALIDATION_PASSED=0
+else
+  VALIDATION_PASSED=1
+fi
