@@ -383,17 +383,20 @@ echo "--- Case E: CHAIR-05 structural (review.md render wiring) ---"
 
 if grep -q "^## Spawn the Council Chair$"                      "$REVIEW_MD" \
    && grep -q "^## Validate synthesis and render synthesis-first$" "$REVIEW_MD" \
-   && grep -q "^## Render all four scorecards inline$"          "$REVIEW_MD"; then
+   && grep -qE "^## Render all four scorecards( inline| \(severity-tier transform)" "$REVIEW_MD"; then
   pass "E: all three Phase 5 sections present in commands/review.md"
 else
   fail "E: one or more Phase 5 sections missing from commands/review.md"
 fi
 
 # Ordering check: Spawn -> Validate -> Render.
+# Phase 7 Plan 07 replaces "## Render all four scorecards inline" with
+# "## Render all four scorecards (severity-tier transform — D-72 / D-73)"
+# per D-72; accept either header shape.
 if awk '
   /^## Spawn the Council Chair$/                      {s=NR}
   /^## Validate synthesis and render synthesis-first$/{v=NR}
-  /^## Render all four scorecards inline$/            {r=NR}
+  /^## Render all four scorecards( inline| \(severity-tier transform)/ {r=NR}
   END { exit !(s && v && r && s < v && v < r) }
 ' "$REVIEW_MD"; then
   pass "E: Phase 5 section order correct (Spawn -> Validate -> Render)"

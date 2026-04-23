@@ -7,6 +7,18 @@ allowed-tools: [Bash, Read, Write, Agent]
 
 ## Run preparation
 
+If `SKIP_FANOUT=1` (set by the `## --show-nits dedup (D-73 Option iii)`
+block below), SKIP everything in this section and proceed directly to
+`## Render all four scorecards (severity-tier transform — D-72 / D-73)`
+near the end of this file. `RUN_DIR` is already set and all disk
+artifacts (SYNTHESIS.md + per-persona `<persona>.md`) exist from the
+prior run.
+
+Otherwise, run the prep pipeline below (fresh run). Use `$ARGS_FOR_PREP`
+(the `--show-nits`-stripped copy of `$ARGUMENTS` from the flag-parser
+block above) anywhere an artifact path would otherwise be resolved from
+`$ARGUMENTS`.
+
 !`${CLAUDE_PLUGIN_ROOT}/bin/dc-prep.sh $ARGUMENTS`
 
 !`${CLAUDE_PLUGIN_ROOT}/bin/dc-classify.sh "$(ls -t .council/*/INPUT.md 2>/dev/null | head -1)" "$(ls -t .council/*/MANIFEST.json 2>/dev/null | head -1)"`
@@ -45,6 +57,81 @@ to parse — jq, awk, or simple grep):
 
 Store these values in bash variables `ONLY`, `EXCLUDE`, `CAP_USD` for
 the next step. If a flag is absent, leave the variable empty.
+
+## --show-nits (D-73 / RESP-04)
+
+`/devils-council:review <artifact> --show-nits` expands collapsed nits in the
+output render without re-running the engine. Parse this flag alongside the
+Phase 6 D-58 family. Strip the flag from the artifact-resolution path so it
+does not become the file to review.
+
+Shell-inject before prep:
+
+    !`case " $ARGUMENTS " in *" --show-nits "*) echo "SHOW_NITS=1"; echo "ARGS_FOR_PREP=$(echo "$ARGUMENTS" | sed -E 's/(^|[[:space:]])--show-nits([[:space:]]|$)/ /g' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')" ;; *) echo "SHOW_NITS=0"; echo "ARGS_FOR_PREP=$ARGUMENTS" ;; esac`
+
+The conductor reads `SHOW_NITS` and `ARGS_FOR_PREP` from the resulting shell
+output. Use `ARGS_FOR_PREP` (not `$ARGUMENTS`) everywhere an artifact path is
+resolved — notably in the `## --show-nits dedup (D-73 Option iii)` block
+below and in any fresh-run fall-through to `bin/dc-prep.sh`. If
+`ARGS_FOR_PREP` is empty after stripping `--show-nits` (user invoked
+`/devils-council:review --show-nits` with no artifact), emit an error and
+exit — do NOT proceed to prep.
+
+`SHOW_NITS=1` flips the render block below to expand nits inline; it does
+NOT trigger a re-run by itself. The dedup block next decides whether this
+invocation reuses an existing run dir or falls through to a fresh run.
+
+## --show-nits dedup (D-73 Option iii)
+
+When `SHOW_NITS=1` AND an existing `.council/<ts>-<slug>/MANIFEST.json` has
+`.artifact_path` equal to the resolved artifact path (or `.sha256` equal to
+the computed SHA256 of the artifact), reuse that run dir instead of spawning
+a fresh one. This preserves D-73 "re-render from existing scorecards"
+semantics and keeps token cost at zero for a re-inspection.
+
+Shell-inject before prep:
+
+    !`if [ "${SHOW_NITS:-0}" -eq 1 ]; then
+        RESOLVED_PATH=$(echo "$ARGS_FOR_PREP" | awk '{print $1}')
+        if [ -n "$RESOLVED_PATH" ] && [ -f "$RESOLVED_PATH" ]; then
+          if command -v shasum >/dev/null 2>&1; then
+            ART_SHA=$(shasum -a 256 "$RESOLVED_PATH" | awk '{print $1}')
+          else
+            ART_SHA=$(sha256sum "$RESOLVED_PATH" | awk '{print $1}')
+          fi
+          for m in .council/*/MANIFEST.json; do
+            [ -f "$m" ] || continue
+            MATCH=$(jq -r --arg p "$RESOLVED_PATH" --arg sha "$ART_SHA" '
+              select(.artifact_path == $p or .sha256 == $sha) | input_filename
+            ' "$m" 2>/dev/null || true)
+            if [ -n "$MATCH" ]; then
+              echo "RUN_DIR=$(dirname "$MATCH")"
+              echo "SKIP_FANOUT=1"
+              break
+            fi
+          done
+        fi
+      fi`
+
+If `SKIP_FANOUT=1` is set by the block above, the blocks below (Haiku
+classifier, budget plan, `--exclude` filter, injection-resistant framing,
+core fan-out, bench fan-out, delegation reconcile, validator loop, cache
+stats, responses.md suppression, Chair spawn, synthesis validator) are
+SKIPPED and control jumps directly to the severity-tier render block
+near the end of this file. `RUN_DIR` is already set from the dedup match;
+SYNTHESIS.md + per-persona `<persona>.md` files already exist on disk from
+the prior run.
+
+If `SKIP_FANOUT=0` or unset (either `SHOW_NITS=0` or no prior run found),
+the pipeline proceeds as usual. When `SHOW_NITS=1` but no prior run
+matched (SKIP_FANOUT stays unset), emit this warning to the user in the
+render output near the top:
+
+    No prior run found for this artifact; running fresh. --show-nits will be applied to this run's output.
+
+Then fall through to the normal fresh-run pipeline. The `SHOW_NITS=1`
+variable still flips the render block's nit-expansion branch when control
+eventually reaches it.
 
 ## Invoke Haiku classifier when needed (BNCH-02, D-53)
 
@@ -627,45 +714,101 @@ their annotations. MANIFEST.suppressed_findings[] entries carry
 auditors.
 
 
-## Render all four scorecards inline
+## Render all four scorecards (severity-tier transform — D-72 / D-73)
 
-After all four persona files exist at `<RUN_DIR>/<persona>.md` (either real
-scorecards or failure stubs), render them to the user in the canonical order
-`[staff-engineer, sre, product-manager, devils-advocate]`.
+After the Chair's SYNTHESIS.md has been rendered (synthesis-first) and
+Plan 06's `## Render responses.md suppression note (D-71)` line has
+been emitted (when `MANIFEST.suppressed_findings[]` is non-empty), render
+per-persona findings under a severity-tier collapse. This block REPLACES
+the Phase 4/5 inline verbatim dump: users who want full verbatim always
+have `cat .council/<run>/<persona>.md`.
 
-For each persona `P` in that order:
+Branch on `SHOW_FULL`:
+
+- If `SHOW_FULL=1` (reserved for a future `--full` flag; NOT wired in
+  Phase 7): emit the legacy verbatim dump (full file contents of each
+  `<RUN_DIR>/P.md`, frontmatter and all). `SHOW_NITS=1` alone does NOT
+  set `SHOW_FULL`. This branch is intentionally unreachable in Phase 7.
+- Else (default — includes `SHOW_NITS=1`): emit the severity-tier block
+  below.
+
+For each persona `P` in the canonical order
+`[staff-engineer, sre, product-manager, devils-advocate]` followed by
+any bench personas present in `BENCH_SPAWN_LIST` (in spawn order):
 
 1. Use the Read tool to load `<RUN_DIR>/P.md`.
-2. Use the Read tool to load `<RUN_DIR>/MANIFEST.json` once at the top and
-   extract the `validation[]` entry matching `persona == P` to get
-   `findings_kept` and `findings_dropped`. If P failed (no validation[] entry
-   for it), treat as `0 kept, 0 dropped` and note the `failure:` field from
-   the stub scorecard's frontmatter.
-3. Emit this block (literal text with substitutions):
+2. Parse the frontmatter `findings:` list (python3 + PyYAML is the
+   canonical parser path used elsewhere in this plugin; jq on a parsed
+   JSON projection is fine too).
+3. Use the Read tool to load `<RUN_DIR>/MANIFEST.json` once at the top
+   and extract the `validation[]` entry matching `persona == P` to get
+   `findings_kept` and `findings_dropped`. If P failed (no validation[]
+   entry for it) OR the persona stub has a `failure:` field (draft
+   missing, validator error, or HARD-02 `validation_all_findings_dropped`),
+   skip the severity-tier block for this persona and emit the
+   single-line failure summary already in Phase 4-6 prose:
 
-       ---
+       ## <Persona display name>
+
+       Scorecard unavailable — <failure-reason from frontmatter>. See `.council/<run>/P.md`.
+
+   Then continue to the next persona.
+4. Otherwise partition `findings` by `severity` into four buckets:
+   blocker, major, minor, nit. Emit this per-persona block (substituting
+   `<Persona display name>` via the display-name map below, and
+   `<run>` with the basename of `<RUN_DIR>`):
 
        ## <Persona display name>
 
        <findings_kept> findings kept, <findings_dropped> dropped.
 
-       (full contents of <RUN_DIR>/P.md rendered inline, frontmatter and all)
+   Then emit the severity-tier lines:
+
+   - **Blockers:** already summarized in the Chair's Top-3 Blocking
+     Concerns section above. Do NOT re-render blocker findings inline
+     here — the Chair has already cited them with full prose and finding
+     ids. (Skip the blocker bucket for this persona entirely.)
+   - **Major findings:** for each finding in the major bucket, emit one
+     line:
+
+         [major] <Persona display name>: <target> — <first 80 chars of claim>…
+
+     (Append the ellipsis `…` only if the claim was truncated; the first
+     80 characters are followed by an ellipsis when `len(claim) > 80`.)
+   - **Minor findings:** if `len(minor) > 0`, emit one summary line:
+
+         <N> minor findings from <Persona display name> — cat .council/<run>/P.md to expand
+
+     (Omit the entire line when `N == 0`.)
+   - **Nit findings:**
+     - If `SHOW_NITS == 1`: for each finding in the nit bucket, emit one
+       line (same shape as major):
+
+           [nit] <Persona display name>: <target> — <first 80 chars of claim>…
+
+     - Else (default): if `len(nit) > 0`, emit one summary line:
+
+           <N> nits collapsed from <Persona display name> — run with --show-nits to expand or cat .council/<run>/P.md
+
+       (Omit the entire line when `N == 0`.)
 
 Persona display names (human-readable, used in the `## <Persona>` heading
-only — the file slug `P` is used everywhere else):
+AND inside the `[major]` / `[nit]` one-liner prefixes — the file slug
+`P` is used in the `cat .council/<run>/P.md` hint):
 
 - `staff-engineer` → `Staff Engineer`
 - `sre` → `SRE`
 - `product-manager` → `Product Manager`
 - `devils-advocate` → `Devil's Advocate`
-
-After the four core scorecards are rendered, render each bench
-persona in BENCH_SPAWN_LIST order using the same per-persona block
-format. Display names:
 - `security-reviewer` → `Security Reviewer`
 - `finops-auditor` → `FinOps Auditor`
 - `air-gap-reviewer` → `Air-Gap Reviewer`
 - `dual-deploy-reviewer` → `Dual-Deploy Reviewer`
+
+After all four core scorecards and any bench scorecards have been
+rendered under the severity-tier transform, preserve the existing
+Phase 6 `N bench personas skipped` / `Pre-spawn budget error` /
+`4 personas ran` meta-summary prose unchanged.
 
 If `MANIFEST.personas_skipped[]` is non-empty, emit a one-line summary
 immediately before the final meta-summary line:
@@ -685,8 +828,17 @@ immediately after the fourth scorecard's block:
 
     4 personas ran. Total findings: <sum of findings_kept across all four>. Total dropped: <sum of findings_dropped across all four>.
 
-This is the entire output. Phase 5 (Council Chair) will layer a synthesis
-above this raw inline render; Phase 4 ships the raw material only. End.
+SYNTHESIS.md and per-persona `<RUN_DIR>/<persona>.md` files on disk are
+NEVER modified by this transform (D-72 transform-only invariant; Phase 3
+D-12 single-writer preserved). The render layer's job is to reduce noise
+for the read-at-a-glance case; the on-disk archive stays complete and
+the Chair's synthesis inline is unchanged.
+
+NOTE: this render transform REPLACES the inline verbatim dump from
+Phase 4/5. Users who want full verbatim for a persona:
+`cat .council/<run>/<persona>.md`. A future `--full` flag may restore
+inline verbatim by setting `SHOW_FULL=1`; not in Phase 7 scope (D-73
+deliberately narrow).
 
 ## Render delegation status lines (CDEX-05 fail-loud)
 
