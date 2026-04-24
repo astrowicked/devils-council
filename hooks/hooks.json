@@ -10,6 +10,23 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Agent(gsd-plan-checker)",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/dc-gsd-wrap.sh plan-checker"
+          },
+          {
+            "type": "command",
+            "if": "Agent(gsd-code-reviewer)",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/dc-gsd-wrap.sh code-reviewer"
+          }
+        ]
+      }
     ]
   }
 }
