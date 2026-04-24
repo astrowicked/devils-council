@@ -10,7 +10,18 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 
 **Still correct after v1.0:** Yes. 08-UAT.md real-artifact run (reviewing Phase 3 03-00-PLAN.md) produced 13 findings across 4 personas with voice-differentiated output — the anti-generic property holds.
 
-## Current State
+## Current Milestone: v1.1 Expansion + Hardening
+
+**Goal:** Expand persona coverage to 10 bench personas (6 new), give users a path to author their own via a scaffolder skill, tighten the injection-defense class that slipped v1.0.0, and spike Codex `--output-schema` enforcement for Security deep scans.
+
+**Target features:**
+
+- 6 new bench personas: Compliance, Junior Eng, Performance, Test Lead, Executive Sponsor, Competing Team Lead (5 with new classifier signals; Junior Eng always-invokable)
+- `skills/create-persona/SKILL.md` — interactive scaffolder that writes schema-valid `agents/*.md` passing `validate-personas.sh` on first run
+- Codex `--output-schema` spike for Security persona (go/no-go memo in Phase 1; rollout or document negative result)
+- Tech debt bundle from v1.0 audit: TD-02, TD-03, TD-04, TD-05, TD-06, TD-07 (folded in; no separate v1.0.3 line)
+
+## Current State (as of v1.0 ship)
 
 **Shipped:** v1.0.2 (2026-04-24) — release chain v1.0.0 → v1.0.1 → v1.0.2, all tagged + GitHub Releases live.
 **Installable:** `/plugin marketplace add astrowicked/devils-council && /plugin install devils-council@devils-council`
@@ -33,20 +44,38 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - ✓ `/devils-council:on-plan`, `/devils-council:on-code`, `/devils-council:dig` + opt-in GSD hook wrappers — v1.0
 - ✓ README + CHANGELOG + v1.0.0 GitHub Release — v1.0
 
-### Active (v1.0.3 / v1.1 candidates — will be scoped in next milestone)
+### Active (v1.1 — in scope)
 
-- [ ] Slash-command shell-inject dry-run pre-parser smoke test (TD-04 → v1.1)
-- [ ] Chair Top-3 target-field strictness (TD-05 → v1.0.3)
-- [ ] Rename `agents/README.md` → `agents/AUTHORING.md` to avoid plugin-loader mis-classification (TD-06 → v1.1)
-- [ ] README troubleshooting: `/plugin marketplace update` step before reinstall (TD-07 → v1.0.3)
-- [ ] Formal Phase 1 + Phase 4 VERIFICATION flips + Phase 5 Nyquist pass (TD-02/03 → housekeeping)
+**New bench personas (6):**
+- [ ] Compliance Reviewer — policy/audit/regulation signals (GDPR/HIPAA/SOC2, data retention/residency)
+- [ ] Junior Engineer — always-invokable (no signal); readability, naming, "I don't understand this" flags
+- [ ] Performance Reviewer — N+1 patterns, hot-path allocation, loops-over-collections signals
+- [ ] Test Lead — src-without-test + test-without-src imbalance, flaky patterns, coverage gaps
+- [ ] Executive Sponsor — cost/budget/timeline/roadmap keywords; ROI, opportunity cost, strategic alignment
+- [ ] Competing Team Lead — shared-infra + API-contract change signals; blast radius, coordination cost
+
+**Authoring UX:**
+- [ ] `skills/create-persona/SKILL.md` — interactive scaffolder writing schema-valid `agents/*.md` passing `validate-personas.sh` on first run
+
+**Codex hardening:**
+- [ ] Codex `--output-schema` spike for Security (Phase 1 deliverable: go/no-go memo; if green, rollout + CI fixture)
+
+**Tech debt bundle (all folded into v1.1):**
+- [ ] TD-02: Phase 1 + Phase 4 VERIFICATION.md formal flip (cite v1.0.x release chain + 08-UAT evidence)
+- [ ] TD-03: Phase 5 Nyquist retroactive validation
+- [ ] TD-04: Slash-command shell-inject dry-run pre-parser (the v1.0.0 P0 class)
+- [ ] TD-05: Chair Top-3 target-field strictness (dc-validate-synthesis.sh composite-target fix)
+- [ ] TD-06: Rename `agents/README.md` → `agents/AUTHORING.md`
+- [ ] TD-07: README troubleshooting — `/plugin marketplace update` refresh step
+
+### Deferred (v1.2+)
+
+- [ ] `userConfig.custom_personas_dir` pointing at user-maintained persona library outside plugin cache (v1.2)
+- [ ] Non-Claude-Code runtimes as plugin *hosts* (Codex CLI, Gemini CLI, OpenCode) — v1.x targets Claude Code plugin only
 
 ### Out of Scope (still)
 
 - Gemini integration — `consulting-design-skill` already covers this path
-- Remaining bench personas (Compliance, Junior Eng, Performance, Test Lead, Executive Sponsor, Competing Team Lead) — candidates for future milestones, not v1.0.x
-- Custom persona authoring UX (scaffolder skill) — deferred past v1.1
-- Non-Claude-Code runtimes as *hosts* (Codex CLI, Gemini CLI, OpenCode) — v1 targets Claude Code plugin only
 
 ## Context
 
@@ -89,4 +118,4 @@ Representative subset from ~81 decisions logged across phase CONTEXT files (full
 Document evolves at phase transitions (`/gsd-transition`) and milestone boundaries (`/gsd-complete-milestone`). Pre-v1.0 content archived in `.planning/milestones/v1.0-ROADMAP.md`.
 
 ---
-*Last updated: 2026-04-24 after v1.0 MVP milestone shipped*
+*Last updated: 2026-04-24 — v1.1 Expansion + Hardening milestone started*
