@@ -539,11 +539,16 @@ candidate set for Top-3 Blocking Concerns. On first run, the helper
 creates an empty `.council/responses.md` with schema-only frontmatter so
 the user can discover the annotation file.
 
-Shell-inject the helper BEFORE the Chair spawn (Claude Code expands
-`` !`<cmd>` `` before the prompt reaches the model). Capture the
-SUPPRESSED_IDS line for the render stage below:
+Use the **Bash tool** to invoke the helper BEFORE the Chair spawn,
+substituting `<RUN_DIR>` with the actual run directory path extracted
+earlier from `RUN_DIR=` output of `dc-prep.sh`. Capture the
+SUPPRESSED_IDS line from stdout for the render stage below:
 
-    !`${CLAUDE_PLUGIN_ROOT}/bin/dc-apply-responses.sh <RUN_DIR>`
+    ${CLAUDE_PLUGIN_ROOT}/bin/dc-apply-responses.sh <RUN_DIR>
+
+Do NOT use `` !`<cmd>` `` shell-inject here — `<RUN_DIR>` is resolved
+at runtime, not at parse time, so shell-inject would fail with a zsh
+parse error on the literal `<` character.
 
 The helper writes `MANIFEST.suppressed_findings[]` additively (always
 present; empty array when no suppressions) and exits 0. The Chair prompt
