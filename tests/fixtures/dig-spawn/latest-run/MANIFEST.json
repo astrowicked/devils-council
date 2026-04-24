@@ -1,0 +1,5 @@
+{
+  "fixture": "dig-spawn",
+  "purpose": "ephemeral-invariant check — hash this file before and after dig test; must be unchanged",
+  "version": 1
+}

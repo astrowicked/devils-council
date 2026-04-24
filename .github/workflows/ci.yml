@@ -240,6 +240,20 @@ jobs:
             echo "on-plan/on-code test skipped — scripts/test-on-plan-on-code.sh or commands not yet present"
           fi
 
+      - name: Run dig-spawn test (Phase 8 RESP-02)
+        shell: bash
+        run: |
+          # Plan 03: exercises commands/dig.md shell logic (persona regex, run-id path-traversal,
+          # latest sentinel, missing-scorecard error, ephemeral invariant) against a fixture .council/.
+          # Skips gracefully if scripts/test-dig-spawn.sh, commands/dig.md, or fixture not present.
+          if [ -x scripts/test-dig-spawn.sh ] \
+              && [ -f commands/dig.md ] \
+              && [ -f tests/fixtures/dig-spawn/latest-run/staff-engineer.md ]; then
+            ./scripts/test-dig-spawn.sh
+          else
+            echo "dig-spawn test skipped — scripts/test-dig-spawn.sh, commands/dig.md, or fixture not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
