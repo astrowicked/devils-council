@@ -217,6 +217,17 @@ jobs:
             echo "severity-render test skipped — scripts/test-severity-render.sh or fixtures not yet present"
           fi
 
+      - name: Run GSD hook guard test (Phase 8 GSDI-03, GSDI-04)
+        shell: bash
+        run: |
+          # Plan 01: exercises bin/dc-gsd-wrap.sh across the three guard-logic paths.
+          # Skips gracefully if bin/dc-gsd-wrap.sh or scripts/test-hooks-gsd-guard.sh not yet present.
+          if [ -x scripts/test-hooks-gsd-guard.sh ] && [ -x bin/dc-gsd-wrap.sh ]; then
+            ./scripts/test-hooks-gsd-guard.sh
+          else
+            echo "hooks-gsd-guard test skipped — scripts/test-hooks-gsd-guard.sh or bin/dc-gsd-wrap.sh not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
