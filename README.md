@@ -1,28 +1,28 @@
 # devils-council
 
-A Claude Code plugin that runs a panel of role-scoped persona subagents (Staff Engineer, SRE, PM, Devil's Advocate + context-triggered
-Security, FinOps, Air-Gap, Dual-Deploy reviewers) against a plan, diff, or RFC in parallel. A Council Chair synthesizes contradictions
-by name without collapsing dissent into a scalar verdict.
+> Persona-driven adversarial review for plans, code, and design artifacts. Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give.
 
-**Status:** Phase 1 scaffold (v0.1.0). No personas yet — those land in Phase 2+. This commit is the installable skeleton.
+**Status:** v1.0.0 — 10 personas shipped (4 core + 4 bench + Chair + classifier), Codex-backed deep scans for Security + Dual-Deploy, hard budget cap, stable finding IDs, response-workflow suppression, severity-tier render, and prompt-injection corpus in CI.
+
+**Repo:** <https://github.com/astrowicked/devils-council> · **License:** MIT · **Claude Code:** v2.1.63+
 
 ## Core Value
 
-Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give, in a form the author can respond to.
+Four always-on core personas (Staff Engineer, SRE, Product Manager, Devil's Advocate) critique the artifact in parallel. Four bench personas (Security, FinOps, Air-Gap, Dual-Deploy) auto-trigger on structural signals — Helm values changes wake Dual-Deploy; AWS SDK imports wake FinOps; auth/crypto code wakes Security. A Council Chair synthesizes contradictions **by name** ("PM says ship, SRE says block because...") without collapsing dissent into a scalar verdict. Every finding cites a verbatim quote from the artifact; every finding has a stable ID so dismissals persist across re-runs.
 
 ## Requirements
 
-- Claude Code v2.1.63 or newer (for the `Agent` subagent tool)
-- `jq` (standard; on macOS via `brew install jq`)
-- OpenAI Codex CLI (see "Codex Setup" below — required for v1; deep scans used by Security + Dual-Deploy personas in Phase 6)
-- Node 18+ (only if installing Codex via `npm`; `brew install --cask codex` avoids this)
+- **Claude Code** v2.1.63 or newer (`Agent` subagent tool)
+- **jq** (macOS: `brew install jq`; Ubuntu: `apt install jq`)
+- **python3** + PyYAML (`pip install pyyaml`)
+- **OpenAI Codex CLI** — required for v1; used by Security + Dual-Deploy personas (see [Codex Setup](#codex-setup))
+- **Node 18+** only if installing Codex via `npm` (`brew install --cask codex` avoids this)
 
 ## Install
 
-From a public GitHub marketplace:
+From the GitHub marketplace (recommended):
 
 ```bash
-# Inside an active Claude Code session
 /plugin marketplace add astrowicked/devils-council
 /plugin install devils-council@devils-council
 ```
@@ -30,108 +30,180 @@ From a public GitHub marketplace:
 Verify:
 
 ```bash
-claude plugin list --json | jq '.[] | select(.name=="devils-council")'
+claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
+# Expected: "1.0.0"
+```
+
+After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-bump) if new commands don't appear):
+
+```bash
+/plugin uninstall devils-council@devils-council
+/plugin install devils-council@devils-council
 ```
 
 ## Uninstall
 
 ```bash
-/plugin uninstall devils-council
+/plugin uninstall devils-council@devils-council
 /plugin marketplace remove astrowicked/devils-council
 ```
 
-Runtime artifacts under `.council/<ts>-<slug>/` (review scratch dirs) and `~/.codex/` (Codex credentials, if installed for this plugin) are NOT removed by uninstall — delete manually if desired.
+Runtime artifacts under `.council/<run-id>/` (review outputs) and `~/.codex/` (Codex credentials) are NOT removed by uninstall — delete manually if desired.
 
 ## Quickstart
 
-> Phase 1 ships only the plugin skeleton. `/devils-council:review` lands in Phase 3. Once it does, the flow will be:
-
 ```bash
-# Review a plan file (Phase 3 — not yet available)
+# Review a plan (core personas + any triggered bench personas + Chair synthesis)
 /devils-council:review path/to/PLAN.md
 
-# Review code via stdin (Phase 3 — not yet available)
-git diff main...feature | /devils-council:review -
+# Review code via file or stdin
+/devils-council:review path/to/diff.patch --type=code-diff
+git diff main...feature > /tmp/d.patch && /devils-council:review /tmp/d.patch --type=code-diff
 
-# Dig into one persona's scorecard after a run (Phase 8 — not yet available)
-/devils-council:dig staff-engineer 2026-04-22-142301-my-plan
+# Dig into ONE persona's findings after a review
+/devils-council:dig staff-engineer latest "Why is the ConfigLoader a blocker?"
+
+# GSD integration: review every plan in a phase, or the phase's committed diff
+/devils-council:on-plan 7
+/devils-council:on-code 7                 # auto-discovers phase-start commit
+/devils-council:on-code 7 --from HEAD~10  # explicit base when .planning/ is gitignored
 ```
 
-Today (Phase 1) you can:
+Output renders synthesis-first: top-3 blockers with persona attribution, contradictions called out by name, per-persona scorecards collapsed into one-liners by default (pass `--show-nits` to expand). Raw scorecards live under `.council/<run>/<persona>.md`.
+
+## Persona Roster
+
+Ten personas ship in v1.0.0. Core tier always runs; bench tier auto-triggers on artifact signals.
+
+| Persona | Tier | Primary Concern | Trigger / always-on |
+|---------|------|-----------------|---------------------|
+| [Staff Engineer](agents/staff-engineer.md) | core | Simplicity, YAGNI, right-sized design | always-on |
+| [SRE / On-call](agents/sre.md) | core | Operational reality, failure modes | always-on |
+| [Product Manager](agents/product-manager.md) | core | Business alignment, user value | always-on |
+| [Devil's Advocate](agents/devils-advocate.md) | core | Red-team, premise attack | always-on |
+| [Security Reviewer](agents/security-reviewer.md) | bench | Authn/z, crypto, input handling, dependencies | auth/crypto code, secret handling, dep update |
+| [FinOps Auditor](agents/finops-auditor.md) | bench | Cloud cost, storage/compute efficiency | AWS SDK, new cloud resource, autoscaling, storage class |
+| [Air-Gap Reviewer](agents/air-gap-reviewer.md) | bench | Self-hosted, no-egress, pinned deps | network egress, external image pull, unpinned dep, license phone-home |
+| [Dual-Deploy Reviewer](agents/dual-deploy-reviewer.md) | bench | SaaS + self-hosted parity, Helm/KOTS surface | Helm values change, Chart.yaml, KOTS config, SaaS-only assumption |
+| [Council Chair](agents/council-chair.md) | chair | Contradiction synthesis, top-3 blockers | always-on; runs sequentially after core + bench |
+| [Artifact Classifier](agents/artifact-classifier.md) | classifier | Ambiguous artifact type routing | Haiku fallback when structural signals are zero |
+
+Each persona has a distinct value-system anchor, characteristic-objection list, and banned-phrase list; a blinded-reader test on a sample artifact can attribute scorecards to personas without filenames (Phase 4 CORE-05 criterion; verified 2026-04-23).
+
+## Trigger Rules
+
+Bench personas auto-join the review when the classifier detects structural signals in the artifact. Signal detection is pure-function filename + AST + Helm-key + Chart.yaml + AWS-SDK-import matching — NOT keyword matching (per BNCH-01). Ambiguous artifacts fall back to a Haiku-classifier subagent.
+
+<details>
+<summary>16 signals (expand)</summary>
+
+Source of truth: [`lib/signals.json`](lib/signals.json).
+
+| Signal ID | Description | Target personas |
+|-----------|-------------|-----------------|
+| `auth_code_change` | Auth/session/token code (auth\*, session\*, jwt\*, bcrypt/jose imports, /login endpoints) | security-reviewer |
+| `crypto_import` | Imports of cryptographic primitives or RNG | security-reviewer |
+| `secret_handling` | Env-var reads, secret-manager fetches, KMS calls | security-reviewer |
+| `dependency_update` | Lockfile / package.json / requirements.txt / go.sum / Cargo.lock diffs | security-reviewer, air-gap-reviewer |
+| `aws_sdk_import` | New use of AWS SDK client (`@aws-sdk/client-*`, `aws-sdk`, `boto3`) | finops-auditor |
+| `new_cloud_resource` | New Terraform / CDK / CloudFormation / Pulumi resource | finops-auditor, dual-deploy-reviewer |
+| `autoscaling_change` | HPA, ASG, replica count, batch concurrency | finops-auditor |
+| `storage_class_change` | S3 StorageClass, GCS storageClass, PV storageClassName, lifecycle policies | finops-auditor |
+| `network_egress` | Outbound calls to non-loopback hostnames, NetworkPolicy egress | air-gap-reviewer |
+| `external_image_pull` | Dockerfile FROM / Pod image / values image.repository outside org registry | air-gap-reviewer, dual-deploy-reviewer |
+| `unpinned_dependency` | Ranges instead of pins, `:latest` tags, unversioned deps | air-gap-reviewer |
+| `license_phone_home` | Sentry/Datadog/Mixpanel/Amplitude/license-server SDKs | air-gap-reviewer |
+| `helm_values_change` | `values.yaml` / `values.schema.json` / templates referencing `.Values.*` | dual-deploy-reviewer |
+| `chart_yaml_present` | Artifact contains or modifies `Chart.yaml` | dual-deploy-reviewer |
+| `kots_config_change` | `kots-*.yaml` / `kind: Config` (kots.io) | dual-deploy-reviewer |
+| `saas_only_assumption` | Single-tenant, cloud-only architectural assumptions | dual-deploy-reviewer |
+
+</details>
+
+Override the auto-selection with flags:
 
 ```bash
-# Confirm the plugin is loaded
-claude plugin list --json | jq '.[] | select(.name=="devils-council")'
-
-# Verify your Codex setup (required for v1 personas in future phases)
-./scripts/smoke-codex.sh
+/devils-council:review path/to/diff --only=security-reviewer,sre
+/devils-council:review path/to/diff --exclude=devils-advocate
+/devils-council:review path/to/diff --cap-usd=0.25
 ```
 
-## Local Development
+Trigger reasons appear in `MANIFEST.trigger_reasons{}` for every bench persona that joined a run.
 
-To edit the plugin and see changes without re-install:
+## Commands
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `/devils-council:review <artifact>` | Primary entry point: runs core + triggered bench + Chair synthesis on a file / stdin | `/devils-council:review plan.md` |
+| `/devils-council:on-plan <phase>` | Review every `.planning/phases/<NN>-*/<NN>-*-PLAN.md` for a GSD phase | `/devils-council:on-plan 7` |
+| `/devils-council:on-code <phase>` | Review the committed diff for a GSD phase; `--from <ref>` fallback for commit_docs=false projects | `/devils-council:on-code 7 --from HEAD~10` |
+| `/devils-council:dig <persona> <run-id\|latest> [question]` | Ask a follow-up scoped to ONE persona's scorecard; single-turn, ephemeral | `/devils-council:dig security-reviewer latest "justify blocker severity"` |
+
+Flags on `review`:
+- `--only=<persona,persona>` — force-include (ignores triggers)
+- `--exclude=<persona,persona>` — force-exclude
+- `--cap-usd=<N>` — override budget cap
+- `--type=code-diff|plan|rfc` — override auto-detected artifact type
+- `--show-nits` — expand collapsed nits inline (default: nits hidden, one-line summary)
+
+## Configuration
+
+### Budget cap (config.json)
+
+```json
+{
+  "budget": {
+    "cap_usd": 0.50,
+    "per_persona_estimate_usd": 0.05,
+    "bench_priority_order": ["security-reviewer", "dual-deploy-reviewer", "finops-auditor", "air-gap-reviewer"]
+  }
+}
+```
+
+Default cap is $0.50 / 30s per invocation. When exceeded, further bench fan-out is halted and skipped personas appear in `MANIFEST.personas_skipped[]`. Override per-invocation with `--cap-usd=<N>`.
+
+### GSD integration (userConfig)
+
+Off by default. To enable PostToolUse wrapping of `gsd-plan-checker` and `gsd-code-reviewer` (appends a one-line pointer directing you to `/devils-council:review <path>` after a GSD agent runs):
 
 ```bash
-# Clone
-git clone https://github.com/astrowicked/devils-council.git ~/dev/devils-council
-cd ~/dev/devils-council
-
-# Symlink into Claude Code's plugin dir (D-08 dev loop)
-mkdir -p ~/.claude/plugins
-ln -sfn ~/dev/devils-council ~/.claude/plugins/devils-council
-
-# Inside a Claude Code session, after edits:
-/reload-plugins
+/plugin config devils-council
+# Toggle: gsd_integration → true
 ```
 
-The symlink must point at the REPO ROOT (not `.claude-plugin/`). Verify with `readlink ~/.claude/plugins/devils-council`.
+Or edit `~/.claude/settings.json` directly. The hook is a no-op when GSD is not installed (checks `~/.claude/agents/gsd-plan-checker.md` presence).
 
 ## Codex Setup
 
-devils-council uses OpenAI Codex CLI for deep code scans in the Security and Dual-Deploy Reviewer personas (wired in Phase 6;
-envelope defined in `skills/codex-deep-scan/SKILL.md` in this Phase 1 scaffold).
+Security + Dual-Deploy personas delegate deep code scans to Codex via `codex exec --json --sandbox read-only`.
 
-### 1. Install Codex CLI
+### 1. Install
 
-On macOS (recommended — no Node dependency):
+macOS:
 
 ```bash
 brew install --cask codex
 ```
 
-On Linux or as a fallback:
+Linux / as fallback:
 
 ```bash
 npm install -g @openai/codex
 ```
 
-Verify:
-
-```bash
-codex --version
-# Expected: codex-cli 0.122.0 or newer
-```
+Verify: `codex --version` (expected: 0.122.0 or newer).
 
 ### 2. Authenticate (OAuth — recommended)
-
-This is the path tested end-to-end in Phase 1 Plan 02.
 
 ```bash
 codex login
 ```
 
-A browser window opens for ChatGPT OAuth. Sign in. Credentials are written to `~/.codex/` — this directory is gitignored by the repo's `.gitignore`.
+Browser opens for ChatGPT OAuth. Credentials land in `~/.codex/` (gitignored).
 
-Verify:
+Verify: `codex login status` exits 0.
 
-```bash
-codex login status
-# exit 0 = authenticated
-```
-
-### 3. Authenticate (API key — for CI or headless environments)
-
-If you prefer not to use OAuth (e.g., for CI runners, or on a headless machine):
+### 3. Authenticate (API key — CI / headless)
 
 ```bash
 export OPENAI_API_KEY="sk-..."
@@ -139,84 +211,128 @@ echo "$OPENAI_API_KEY" | codex login --with-api-key
 codex login status
 ```
 
-Either auth path produces the same `~/.codex/` credential material and the plugin invokes Codex identically.
-
 ### 4. Smoke test
 
 ```bash
-cd ~/dev/devils-council
 ./scripts/smoke-codex.sh
 # Expected: "smoke-codex: OK" and exit 0
-# First run takes ~7s on a fast network; subsequent runs comparable.
+# First run ~7s on a fast network.
 ```
 
-If the smoke test fails, see Troubleshooting below.
+### Sandbox
 
-### Sandbox default
+`--sandbox read-only` is fixed in v1 (no writes, no network beyond Codex's own API). Widening is a post-v1 decision requiring a dedicated threat-model review.
 
-The plugin invokes Codex with `--sandbox read-only` by default (no writes, no network beyond Codex's own API call). This is fixed
-in v1; widening is a post-v1 decision requiring a dedicated threat-model review.
+## Responses Workflow
+
+After a review, annotate findings by editing `.council/responses.md`:
+
+```yaml
+---
+version: 1
+responses:
+  - finding_id: security-reviewer-a3f2c1d8
+    status: dismissed
+    reason: legacy migration path, tracked in adr-014
+    date: 2026-04-24
+  - finding_id: sre-b9e401f2
+    status: accepted
+    reason: will fix in follow-up PR
+    date: 2026-04-24
+---
+# Notes (free-form body)
+```
+
+`status` enum: `accepted | dismissed | deferred`. `finding_id` format is `<persona-slug>-<8hex>` (stable across re-runs of the same artifact with the same persona and target+claim per Phase 5 D-38).
+
+On re-run: dismissed findings are suppressed from Chair synthesis; a one-line `Suppressed N findings per .council/responses.md (dismissed: N1, deferred: N2)` note renders above top-3.
+
+See [Troubleshooting #3](#3-dismissals-not-suppressing-on-re-run-resp-03-llm-variance) for a known limitation.
 
 ## Troubleshooting
 
-### `codex: command not found`
+### 1. Plugin cache staleness after version bump
 
-The CLI isn't on your PATH. Reinstall:
+**Symptom:** new commands (`on-plan`, `on-code`, `dig`) don't appear in the picker after `/plugin install` on an already-installed older version. `claude plugin list --json` still reports the old version.
 
-- macOS: `brew install --cask codex` (brew cask path is added automatically)
-- All platforms: `npm install -g @openai/codex` (then verify `npm bin -g` is on your PATH)
-
-### `codex login status` exits non-zero after `codex login`
-
-- OAuth: the browser flow may not have completed. Re-run `codex login` and watch for any error output.
-- API key: confirm `$OPENAI_API_KEY` is non-empty: `[ -n "$OPENAI_API_KEY" ] && echo set`. Re-run the API-key flow.
-
-### `./scripts/smoke-codex.sh` hangs or times out
-
-- First invocation after auth can take 10-30s (model warmup). Give it up to 60 seconds.
-- If it hangs past 60s, `Ctrl-C` and try: `codex exec --json --sandbox read-only --skip-git-repo-check "hello"` directly to isolate whether the issue is Codex or the script.
-- If Codex itself hangs, check `~/.codex/config.toml` for a non-default model or profile that may be unavailable.
-
-### `/plugin install` fails with "plugin not found"
-
-The marketplace name is `astrowicked/devils-council` (not `devils-council` alone). The full install is:
+**Fix:** version bumps require uninstall + reinstall — this is documented Claude Code behavior, not a devils-council bug:
 
 ```bash
-/plugin marketplace add astrowicked/devils-council
+/plugin uninstall devils-council@devils-council
 /plugin install devils-council@devils-council
 ```
 
-The `@devils-council` suffix is the marketplace scope, not optional.
+A v1.1 ticket tracks adding a first-class cache-invalidation mechanism upstream.
 
-### `/reload-plugins` doesn't pick up my edits
+### 2. Codex unavailable
 
-- Confirm your symlink is correct: `readlink ~/.claude/plugins/devils-council` should output `/Users/<you>/dev/devils-council` (or wherever your clone lives).
-- Confirm the symlink points at the REPO ROOT, not at `.claude-plugin/`.
-- If the symlink looks right, try restarting Claude Code entirely.
+**Symptom:** Security or Dual-Deploy scorecard includes a finding with `category: delegation_failed`; `[devils-council: Codex unavailable, persona proceeded without deep scan]` in command output.
 
-### Command collision with GSD or Superpowers
+**Fix:** `codex login status` (exit non-zero = not authed); re-run `codex login`. If Codex CLI isn't installed, see [Codex Setup](#codex-setup). If delegation_failed persists with Codex healthy, run `./scripts/smoke-codex.sh` and inspect stderr.
 
-devils-council uses the `/devils-council:*` namespace (e.g., `/devils-council:review`). This does not collide with `/gsd:*`,
-`/gsd-*`, or `/superpowers:*`. If you see a collision, report it — it's a bug on our side. Phase 1 Plan 03 verified 0 collisions
-across all installed plugins on the reference machine.
+Per D-51 the plugin is fail-loud by design — it does NOT silently degrade.
 
-### Codex token/cost concerns
+### 3. Dismissals not suppressing on re-run (RESP-03 LLM variance)
 
-Codex is only invoked by Security and Dual-Deploy Reviewer personas (Phase 6+), and only when their auto-trigger conditions match.
-v1 ships a hard budget cap (default `$0.50` / `30s` per review invocation) that halts further bench-persona fan-out when exceeded.
+**Symptom:** you dismissed a finding in `.council/responses.md`, but it re-appears on re-run with a slightly different `claim` and a different finding ID.
 
-## Plugin Namespace
+**Cause:** finding IDs hash `persona + target + claim`. Personas may produce slightly different claim text across re-runs (e.g., "Deploy-time reset of the token bucket means every deploy gra..." vs "Deploy resets every token bucket, so every deploy is an inst..."). Same concern, different hash.
 
-- Commands: `/devils-council:review`, `/devils-council:dig`, `/devils-council:on-plan`, `/devils-council:on-code` (Phase 3-8)
-- Agents: `agents/<persona>.md` (Phase 2+)
-- Skills: `skills/codex-deep-scan`, `skills/persona-voice`, `skills/scorecard-schema`, `skills/signal-detector` (Phase 1-6)
+**Workaround for v1.0:** dismiss multiple variants proactively. Or use `--exclude=<persona>` on re-run to skip the persona while you investigate.
 
-This plugin does NOT ship a `settings.json` with a top-level `agent` key (which would hijack the main thread). Coexistence with GSD and Superpowers is verified on every push by CI.
+**v1.1 fix tracked:** normalize `claim` before hashing (lowercase + stopword-strip + whitespace-collapse). See `.planning/phases/07-hardening-injection-defense-response-workflow/07-UAT.md` finding #2 for the full rationale.
 
-## Status, Roadmap, and Requirements
+### 4. GSD hook integration not firing
 
-This is Phase 1 of 8. The `.planning/` directory in this repo is gitignored by design (phase plans, research, and roadmap are
-author-local GSD artifacts). Public users see only the installable plugin surface.
+**Symptom:** after `gsd-plan-checker` runs, no `[devils-council: ...]` pointer appears.
+
+**Checks:**
+1. Opt-in on? `jq '.plugins.devils-council.userConfig.gsd_integration' ~/.claude/settings.json` (expected: `true`)
+2. GSD installed? `ls ~/.claude/agents/gsd-plan-checker.md ~/.claude/agents/gsd-code-reviewer.md` — at least one must exist
+3. Hook registered? `jq '.hooks.PostToolUse' ~/.claude/plugins/cache/devils-council/devils-council/1.0.0/hooks/hooks.json` (should show the Agent matcher)
+
+If all three look right and the pointer still doesn't appear, check `bin/dc-gsd-wrap.sh` extraction — the `tool_input.prompt` field might not contain an extractable PLAN.md path. Run the guard test locally: `./scripts/test-hooks-gsd-guard.sh`.
+
+### 5. Bench persona not spawning despite artifact match
+
+**Symptom:** reviewing a Helm values diff, but dual-deploy-reviewer didn't join.
+
+**Checks:**
+1. `cat .council/<run>/MANIFEST.json | jq '.classifier'` — did the classifier detect `helm_values_change`?
+2. Does the persona's `triggers:` list in `agents/dual-deploy-reviewer.md` include the signal ID?
+3. Was the budget cap reached? `jq '.personas_skipped' .council/<run>/MANIFEST.json` lists personas dropped by the cap.
+
+### 6. Codex sandbox violation in delegation
+
+**Symptom:** `MANIFEST.personas_run[].delegation.error_code == "codex_sandbox_violation"` — Codex rejected a delegation.
+
+**Cause:** persona requested a write or network-access operation. Expected behavior per D-51 fail-loud; the persona emits a `category: delegation_failed` finding and the scorecard still ships.
+
+**Fix:** v1 is read-only sandbox by design. Widening is deferred to post-v1 threat-model review.
+
+### 7. Budget cap too low — important personas skipped
+
+**Symptom:** `jq '.personas_skipped' .council/<run>/MANIFEST.json` shows a non-empty array and you wanted those personas to run.
+
+**Fix:** `/devils-council:review <artifact> --cap-usd=1.00` (or edit `config.json` `budget.cap_usd` for a persistent change). Priority order is controllable via `config.json` `bench_priority_order`.
+
+### 8. Terminal render unreadable — too much output
+
+**Symptom:** synthesis + 4-8 scorecards fills the terminal.
+
+**Fix:** default render collapses nits. If still too much, read raw scorecards directly:
+
+```bash
+ls -t .council/ | head -1 | xargs -I{} cat ".council/{}/staff-engineer.md"
+```
+
+Or use `--show-nits` only when you want everything inline (default: top-3 blockers + major/minor one-liners + nits-collapsed summary).
+
+## Contributing
+
+PRs welcome. See the phase-artifact trail under `.planning/` (in-repo, gitignored for public users — fork to see planning docs) for the design rationale behind every shipped feature. Personas are markdown files under `agents/` with YAML frontmatter; add a new one and `scripts/validate-personas.sh` will accept it if the schema holds.
+
+Tests: `bash scripts/validate-personas.sh && claude plugin validate .` for a quick check; full suite lives in `.github/workflows/ci.yml`.
 
 ## License
 
