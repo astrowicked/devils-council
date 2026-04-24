@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - YYYY-MM-DD
+## [1.0.0] - 2026-04-24
 
 Full persona council ships. Aggregation release — every core behavior validated across 7 prior phases rolls into one installable v1.0.0 plugin.
 
