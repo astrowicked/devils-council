@@ -228,6 +228,18 @@ jobs:
             echo "hooks-gsd-guard test skipped — scripts/test-hooks-gsd-guard.sh or bin/dc-gsd-wrap.sh not yet present"
           fi
 
+      - name: Run on-plan / on-code wrapper test (Phase 8 GSDI-01, GSDI-02)
+        shell: bash
+        run: |
+          # Plan 02: exercises glob discovery + git log --diff-filter=A anchor + --from fallback
+          # against synthetic fixtures. Does NOT invoke live slash commands.
+          # Skips gracefully if scripts/test-on-plan-on-code.sh or commands/*.md not yet present.
+          if [ -x scripts/test-on-plan-on-code.sh ] && [ -f commands/on-plan.md ] && [ -f commands/on-code.md ]; then
+            ./scripts/test-on-plan-on-code.sh
+          else
+            echo "on-plan/on-code test skipped — scripts/test-on-plan-on-code.sh or commands not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
