@@ -546,10 +546,6 @@ SUPPRESSED_IDS line from stdout for the render stage below:
 
     ${CLAUDE_PLUGIN_ROOT}/bin/dc-apply-responses.sh <RUN_DIR>
 
-Do NOT use `` !`<cmd>` `` shell-inject here — `<RUN_DIR>` is resolved
-at runtime, not at parse time, so shell-inject would fail with a zsh
-parse error on the literal `<` character.
-
 The helper writes `MANIFEST.suppressed_findings[]` additively (always
 present; empty array when no suppressions) and exits 0. The Chair prompt
 below must filter its candidate set against this array per Phase 7
