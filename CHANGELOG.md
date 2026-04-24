@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - YYYY-MM-DD
+
+Full persona council ships. Aggregation release — every core behavior validated across 7 prior phases rolls into one installable v1.0.0 plugin.
+
+### Added
+
+- `/devils-council:on-plan <phase>` — GSD phase-plan auto-discovery wrapper: globs `.planning/phases/<NN>-*/<NN>-*-PLAN.md` and routes each sequentially through `/devils-council:review`. Zero GSD core-code awareness beyond the filesystem convention (GSDI-01, Plan 01-02).
+- `/devils-council:on-code <phase>` — GSD phase-diff wrapper: resolves phase-start commit via `git log --diff-filter=A` against the phase's first PLAN file, diffs anchor..HEAD, routes as code-diff. Optional `--from <ref>` fallback for projects with `.planning/` gitignored (commit_docs=false) (GSDI-02, Plan 01-02).
+- `/devils-council:dig <persona> <run-id> [question]` — interactive follow-up scoped to one persona's scorecard; single Agent() spawn with `<previous-scorecard>` context block; ephemeral (no MANIFEST writes, no new run dir, no Chair spawn). `<run-id>` accepts full directory name or sentinel `latest` (RESP-02, Plan 01-03).
+- `userConfig.gsd_integration` in `.claude-plugin/plugin.json` — boolean opt-in (default false) for PostToolUse wrapping of `gsd-plan-checker` and `gsd-code-reviewer` Agent output. Hook appends a one-line `[devils-council: ...]` pointer; additive, never mutates GSD output. Hook silently no-ops when GSD is absent (GSDI-03 + GSDI-04, Plan 01-01).
+- `hooks/hooks.json` PostToolUse matcher on `Agent` tool with `if: "Agent(gsd-plan-checker)"` / `if: "Agent(gsd-code-reviewer)"` filters gated by env-var `$CLAUDE_PLUGIN_OPTION_GSD_INTEGRATION` (Plan 01-01).
+- `bin/dc-gsd-wrap.sh` — PostToolUse helper implementing the two-layer gate (userConfig opt-in + filesystem presence check) + path extraction for delegation pointer (Plan 01-01).
+- `scripts/test-hooks-gsd-guard.sh`, `scripts/test-on-plan-on-code.sh`, `scripts/test-dig-spawn.sh` — three new CI-wired integration tests covering all Phase 8 shell logic (Plan 01-01/02/03).
+- README.md full rewrite to v1.0.0 state: install, uninstall, quickstart, 10-persona roster, 16-signal trigger table, command reference, configuration, Codex setup, responses workflow, 8-item troubleshooting (DOCS-01, Plan 01-04).
+
+### Changed
+
+- `.claude-plugin/plugin.json` version bumped 0.6.0 → 1.0.0 (Plan 01-06).
+- `.claude-plugin/marketplace.json` version bumped 0.6.0 → 1.0.0 (Plan 01-06).
+- `.github/workflows/ci.yml` gains 3 Phase 8 test steps following the Phase 7 existence-gate skip-graceful pattern.
+
+### Breaking changes
+
+None. v1.0.0 is an aggregation release, not a redesign. All v0.6.0 behavior is preserved byte-identical (commands/review.md untouched by Phase 8; responses.md schema unchanged; finding ID format unchanged; synthesis contract unchanged).
+
+### Migration
+
+If upgrading from a pre-v1.0.0 install:
+
+```bash
+/plugin uninstall devils-council@devils-council
+/plugin install devils-council@devils-council
+```
+
+The uninstall step is required — Claude Code's plugin cache does not invalidate on in-place version bumps, so the new commands (`on-plan`, `on-code`, `dig`) and the `userConfig.gsd_integration` key will not appear without a fresh install. This is documented Claude Code behavior; a v1.1 ticket tracks adding an upstream first-class cache-invalidation mechanism.
+
+### Full feature set at v1.0.0
+
+- **Personas:** 4 always-on core (Staff Engineer, SRE, Product Manager, Devil's Advocate) + 4 auto-triggered bench (Security Reviewer, FinOps Auditor, Air-Gap Reviewer, Dual-Deploy Reviewer) + Council Chair synthesis + Haiku artifact classifier fallback.
+- **Classification:** 16 structural signals (filename patterns, AST signatures, Helm values keys, Chart.yaml presence, AWS SDK imports, etc.) in `lib/signals.json`; Haiku fallback for zero-signal artifacts.
+- **Review engine:** parallel fan-out, per-run isolated `.council/<ts>-<slug>/` directories, evidence-validated scorecards (no vague verbs, verbatim quotes required), XML-nonce injection defense, single-pass architecture (no refinement loops).
+- **Synthesis:** contradictions-first Chair output; top-3 blockers with persona attribution; no scalar verdict; stable finding IDs (sha256 of persona + target + claim, evidence excluded).
+- **Cost:** Codex-backed deep scans for Security + Dual-Deploy; hard budget cap (default $0.50 / 30s, configurable); prompt caching with observable reduction measured per-run.
+- **Response workflow:** `.council/responses.md` with `accepted | dismissed | deferred` enum; dismissals suppress from Chair on re-run; severity-tier render collapses nits by default; `--show-nits` expands.
+- **Safety:** ASVS L1 threat-secured across all 7 prior phases + Phase 8 (7 new threats closed); 9-fixture prompt-injection corpus in CI; coexistence verified with GSD + Superpowers; dropped-scorecard path for malformed persona output.
+- **GSD integration:** three new commands (`on-plan`, `on-code`, `dig`) + opt-in PostToolUse wrapping; zero collision surface with `/gsd:*` or `/superpowers:*`.
+
+### Requirements closed
+
+Phase 8: GSDI-01, GSDI-02, GSDI-03, GSDI-04, DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05, DOCS-06, RESP-02.
+Running total: 63/63 v1 requirements delivered across 8 phases.
+
 ## [0.6.0] - 2026-04-24
 
 ### Added
@@ -123,7 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/astrowicked/devils-council/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/astrowicked/devils-council/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/astrowicked/devils-council/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/astrowicked/devils-council/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/astrowicked/devils-council/compare/v0.3.0...v0.4.0
