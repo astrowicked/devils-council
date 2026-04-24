@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-04-24
+
+### Fixed
+
+- Incomplete v1.0.1 hotfix: the cautionary note added in v1.0.1 contained a backticked `` !`<cmd>` `` example that Claude Code's shell-inject parser interpreted as a live directive, reproducing the same parse error the note was warning against. Removed the explanatory anti-example; the Bash-tool-based instruction that follows already conveys the correct pattern without the meta-warning.
+  - Symptom post-1.0.1: `(eval):1: parse error near \`>'` still fires on `/devils-council:review`.
+  - Root cause: shell-inject runs regardless of surrounding markdown context (inline-code spans do not escape it for Claude Code's pre-parse).
+  - Fix scope: 4-line deletion in `commands/review.md`.
+
 ## [1.0.1] - 2026-04-24
 
 ### Fixed
@@ -184,7 +193,8 @@ Running total: 63/63 v1 requirements delivered across 8 phases.
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/astrowicked/devils-council/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/astrowicked/devils-council/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/astrowicked/devils-council/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/astrowicked/devils-council/compare/v0.5.0...v0.6.0
