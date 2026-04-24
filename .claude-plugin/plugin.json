@@ -17,5 +17,13 @@
     "code-review",
     "gsd",
     "claude-code-plugin"
-  ]
+  ],
+  "userConfig": {
+    "gsd_integration": {
+      "type": "boolean",
+      "title": "GSD integration",
+      "description": "Enable PostToolUse wrapping of gsd-plan-checker and gsd-code-reviewer agent outputs with a one-line devils-council pointer. Off by default. Requires GSD installed at ~/.claude/agents/gsd-plan-checker.md or ~/.claude/agents/gsd-code-reviewer.md (the hook is a no-op if GSD is absent). Toggle via /plugin config devils-council or by editing ~/.claude/settings.json.",
+      "default": false
+    }
+  }
 }
