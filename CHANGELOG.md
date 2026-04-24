@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-24
+
+### Fixed
+
+- `/devils-council:review` parse error on every invocation in v1.0.0 (`commands/review.md:546`) — the suppression hook used `` !`${CLAUDE_PLUGIN_ROOT}/bin/dc-apply-responses.sh <RUN_DIR>` `` shell-inject where `<RUN_DIR>` was a runtime-resolved placeholder. Shell-inject runs at parse time before the model sees the prompt, so `<RUN_DIR>` reached zsh as a literal and the shell interpreted `<` as input redirection with no filename. Fixed by using the Bash tool with runtime substitution (same pattern the Chair spawn section already uses).
+  - Error seen: `(eval):1: parse error near \`>'`
+  - Caught by UAT against a real PLAN.md artifact.
+  - All 15 automated test suites remain green; the bug was only observable through the `!` shell-inject expansion path, which the Bash-tool-based scripts do not exercise.
+
 ## [1.0.0] - 2026-04-24
 
 Full persona council ships. Aggregation release — every core behavior validated across 7 prior phases rolls into one installable v1.0.0 plugin.
@@ -175,7 +184,8 @@ Running total: 63/63 v1 requirements delivered across 8 phases.
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/astrowicked/devils-council/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/astrowicked/devils-council/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/astrowicked/devils-council/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/astrowicked/devils-council/compare/v0.4.0...v0.5.0
