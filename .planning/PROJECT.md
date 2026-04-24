@@ -2,90 +2,91 @@
 
 ## What This Is
 
-A Claude Code plugin that provides a persona-driven adversarial review layer for plans, code, and design artifacts. Multiple personas (Staff Engineer, SRE, PM, Devil's Advocate, plus context-triggered specialists like Security, FinOps, Air-Gap Reviewer) critique work from their perspective, producing a structured scorecard that surfaces pushback, anti-overengineering signals, operational gaps, and business misalignment before work lands.
+A Claude Code plugin that provides a persona-driven adversarial review layer for plans, code, and design artifacts. 10 personas (4 always-on core: Staff Engineer, SRE, PM, Devil's Advocate + 4 signal-triggered bench: Security Reviewer, FinOps Auditor, Air-Gap Reviewer, Dual-Deploy Reviewer + Council Chair synthesizer + Haiku artifact-classifier) critique work from their perspective, producing structured scorecards with enforced evidence, deterministic classifier-driven selection, hard budget caps, Codex-delegated deep scans for Security + Dual-Deploy, prompt-injection defense, response-suppression workflow (dismissed findings don't re-raise), severity-tiered render, and opt-in GSD hook integration.
 
 ## Core Value
 
 Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give, in a form the author can respond to.
 
+**Still correct after v1.0:** Yes. 08-UAT.md real-artifact run (reviewing Phase 3 03-00-PLAN.md) produced 13 findings across 4 personas with voice-differentiated output — the anti-generic property holds.
+
+## Current State
+
+**Shipped:** v1.0.2 (2026-04-24) — release chain v1.0.0 → v1.0.1 → v1.0.2, all tagged + GitHub Releases live.
+**Installable:** `/plugin marketplace add astrowicked/devils-council && /plugin install devils-council@devils-council`
+**CI:** 5-step pipeline green on every push (`claude plugin validate`, persona validation, injection corpus, fixture-based quality tests, coexistence matrix with GSD + Superpowers).
+**Proven in production:** Andy's 08-UAT against real Phase 3 plan; one P0 slipped through v1.0.0 (shell-inject via `!<cmd>` block), caught + hotfixed in 35 minutes.
+
 ## Requirements
 
-### Validated
+### Validated (v1.0)
 
-- Plugin scaffolding + installable from GitHub (Phase 1, 2026-04-22)
-- Persona file format loaded dynamically (Phase 2, 2026-04-22)
-- Staff Engineer persona produces validated scorecard end-to-end with evidence enforcement and injection defense (Phase 3, 2026-04-22 — `/devils-council:review` verified live against plan-sample.md and injection-basic.md canary)
-- All four always-on core personas (Staff Engineer, SRE, Product Manager, Devil's Advocate) authored with distinct concern lenses and parallel-fan-out conductor; static verification complete, live runtime verification pending (Phase 4, 2026-04-23)
+- ✓ Plugin scaffolding + installable from GitHub — v1.0
+- ✓ Persona file format + voice/scorecard schemas + validator — v1.0
+- ✓ `/devils-council:review` end-to-end with isolation + evidence enforcement + injection defense — v1.0
+- ✓ All 4 always-on core personas in parallel — v1.0 (blinded-reader + order-swap isolation proven via downstream + Phase 8 UAT)
+- ✓ Council Chair contradictions-first synthesis (no scalar verdict, deterministic finding IDs) — v1.0
+- ✓ Signal-driven classifier (16 structural detectors) + 4 bench personas + Codex delegation for Security/Dual-Deploy — v1.0
+- ✓ Hard budget cap + prompt-cache observability — v1.0
+- ✓ Injection corpus (9 fixtures) + schema-enforced drops + coexistence matrix — v1.0
+- ✓ Response workflow (accepted/dismissed/deferred) + severity-tiered render with `--show-nits` — v1.0
+- ✓ `/devils-council:on-plan`, `/devils-council:on-code`, `/devils-council:dig` + opt-in GSD hook wrappers — v1.0
+- ✓ README + CHANGELOG + v1.0.0 GitHub Release — v1.0
 
-### Active
+### Active (v1.0.3 / v1.1 candidates — will be scoped in next milestone)
 
-- [ ] Live-runtime verification of Phase 4: `/devils-council:review` 4-persona fan-out + blinded-reader 8/8 + order-swap isolation (pending in 04-HUMAN-UAT.md)
-- [ ] Bench personas for v1: Security Reviewer, FinOps Auditor, Air-Gap Reviewer, Dual-Deploy Reviewer
-- [ ] Auto-trigger logic: bench personas join based on artifact signals (auth code → Security, new AWS resources → FinOps, Helm values → Dual-Deploy, etc.)
-- [ ] `/devils-council review <artifact>` standalone command
-- [ ] Council Chair persona that synthesizes scorecards and flags contradictions
-- [ ] Output: structured scorecard (raw per-persona) + Chair synthesis, both visible, with option to dig into any persona
-- [ ] Supports reviewing plans, code diffs, and design/RFC documents
-- [ ] Codex CLI integration: personas (especially Security) can delegate deep code scans to Codex
-- [ ] GSD hook points wired but opt-in (extend `gsd-plan-checker` and `gsd-code-reviewer`)
-- [ ] Personas critique both Claude and the user, per artifact
+- [ ] Slash-command shell-inject dry-run pre-parser smoke test (TD-04 → v1.1)
+- [ ] Chair Top-3 target-field strictness (TD-05 → v1.0.3)
+- [ ] Rename `agents/README.md` → `agents/AUTHORING.md` to avoid plugin-loader mis-classification (TD-06 → v1.1)
+- [ ] README troubleshooting: `/plugin marketplace update` step before reinstall (TD-07 → v1.0.3)
+- [ ] Formal Phase 1 + Phase 4 VERIFICATION flips + Phase 5 Nyquist pass (TD-02/03 → housekeeping)
 
-### Out of Scope (v1)
+### Out of Scope (still)
 
-- Gemini integration — deferred; `consulting-design-skill` already covers this path
-- Remaining bench personas (Compliance, Junior Eng, Performance, Test Lead, Executive Sponsor, Competing Team Lead, etc.) — v1.1
-- Custom persona authoring UX — v1.1
-- Non-Claude-Code runtimes (Codex CLI, Gemini CLI, OpenCode as *hosts*) — v1 targets Claude Code plugin only
+- Gemini integration — `consulting-design-skill` already covers this path
+- Remaining bench personas (Compliance, Junior Eng, Performance, Test Lead, Executive Sponsor, Competing Team Lead) — candidates for future milestones, not v1.0.x
+- Custom persona authoring UX (scaffolder skill) — deferred past v1.1
+- Non-Claude-Code runtimes as *hosts* (Codex CLI, Gemini CLI, OpenCode) — v1 targets Claude Code plugin only
 
 ## Context
 
-- Andy is a Principal Platform Development Engineer working across self-hosted enterprise and SaaS deployments at Anaconda, plus homelab infrastructure.
-- Existing tooling in Andy's environment that this must compose with:
-  - **GSD plugin** — spec-driven development workflow with plan-checker, code-reviewer, verifier agents
-  - **Superpowers plugin** — brainstorming, TDD, verification skills
-  - **consulting-design-skill** — Gemini AI for design alternatives (already installed)
-  - **reviewing-code-skill** — Codex AI for code review (present as skill, but Codex CLI itself is NOT yet configured on this machine — setup is in scope for this project)
-  - **Claude-Mem** — persistent cross-session memory
-- Andy's domain constraints frequently include: air-gapped/self-hosted deployments, dual SaaS+self-hosted support, Helm chart portability, AWS CDK + Terraform, Kubernetes on both EKS and OpenShift, zero-trust networking.
-- The persona set reflects real stakeholders and failure modes Andy has encountered; bench personas are weighted toward his domain (Air-Gap, Dual-Deploy) rather than generic roles.
+- Andy is a Principal Platform Development Engineer at Anaconda, working across self-hosted enterprise/air-gapped and SaaS deployments, plus homelab infrastructure.
+- This plugin was designed for Andy's domain: bench personas weighted toward Air-Gap, Dual-Deploy, FinOps, Security (not generic roles).
+- Composes with GSD plugin (spec-driven development) + Superpowers plugin (TDD, brainstorming) + consulting-design-skill (Gemini) + Claude-Mem (cross-session memory). Coexistence verified in CI.
+- Codex CLI is configured on Andy's machine (Phase 1 CDEX-01/02/06); deep scans for Security + Dual-Deploy personas delegate via `codex exec --json`.
+- **Known quirks discovered in v1.0:**
+  - Claude Code's plugin loader treats any `agents/*.md` as a subagent — `agents/README.md` is mis-classified (TD-06)
+  - `/plugin marketplace add` caches the marketplace descriptor; users need `/plugin marketplace update` before reinstall picks up new tags (TD-07)
+  - `!<cmd>` explanatory backtick blocks in `commands/*.md` are parsed as shell-injection (caused v1.0.0 → v1.0.1 hotfix; TD-04 targets a dry-run pre-parser)
 
 ## Constraints
 
-- **Tech stack**: Claude Code plugin format (markdown skills + commands + optional subagents). Personas implemented as subagents or skill-invoked prompts, loaded dynamically from markdown files with YAML frontmatter.
-- **Distribution**: Public GitHub repo at `~/dev/devils-council`, installable as a Claude Code plugin. No secrets, no internal customer names in examples.
-- **Dependencies**: Codex CLI must be set up as part of v1 (auth, config, smoke test). Gemini CLI deferred.
-- **Composability**: Must coexist with GSD and Superpowers without conflicting command names or overriding their hooks unless opted in.
-- **Quality**: Personas should produce *non-generic* critique — domain-specific, actionable, with evidence. Generic "have you considered security?" output is a failure mode to actively prevent.
+- **Tech stack:** Claude Code plugin format — markdown skills + commands + subagents with YAML frontmatter. Personas as plugin-shipped subagents (`agents/*.md`). Entrypoint via `commands/review.md`.
+- **Distribution:** Public GitHub repo `astrowicked/devils-council`, single-repo marketplace. No secrets, no internal customer names.
+- **Dependencies:** Codex CLI (`@openai/codex`) for Security + Dual-Deploy deep scans; `jq` + `yq` documented as prerequisites.
+- **Composability:** No command/hook/MCP collisions with GSD or Superpowers — verified via `scripts/test-coexistence.sh` in CI.
+- **Quality:** Non-generic critique is the failure mode to prevent. Enforced structurally: banned-phrase validator, verbatim-quote evidence requirement, per-persona voice kits with characteristic-objection lists.
 
 ## Key Decisions
 
+Representative subset from ~81 decisions logged across phase CONTEXT files (full log in `.planning/milestones/v1.0-ROADMAP.md`):
+
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Separate Claude Code plugin (not skill, not inside GSD) | Installable + shareable; clean composition with existing tools | — Pending |
-| Always-on core = 4 personas (Staff Eng, SRE, PM, Devil's Advocate), rest on-call | Covers simplicity, operational, business, red-team categories without noise | — Pending |
-| Auto-trigger bench personas from artifact signals | Selective per artifact; avoids full-panel fatigue | — Pending |
-| Council Chair synthesis + raw scorecards both visible | Andy wants synthesis *and* ability to dig into dissent | — Pending |
-| Personas critique both Claude and user | Pre-filter weak objections before user sees, but don't hide pushback directed at user | — Pending |
-| Codex CLI integration in v1; Gemini deferred | Codex covers critical code-review delegation; Gemini duplicates existing consulting-design-skill | — Pending |
-| Name: `devils-council` | User preference from shortlist (council, agora, roundtable, devils-council, panel) | — Pending |
-| GSD hook points wired but opt-in in v1 | Standalone command proves concept; hooks don't force adoption | — Pending |
+| Separate Claude Code plugin (not skill, not inside GSD) | Installable + shareable; clean composition | ✓ Good — v1.0.2 shipped |
+| Core = 4 always-on personas, rest on-call | Simplicity + operational + business + red-team lens without noise | ✓ Good — 08-UAT confirmed non-generic output |
+| Signal-driven classifier (pure functions, 16 detectors) + Haiku fallback | Deterministic persona selection; no LLM dependency for routing | ✓ Good — classifier tests 17/17 green |
+| Council Chair synthesis + raw scorecards both visible | User gets synthesis + ability to dig into dissent | ✓ Good — 05-05 test suite verifies |
+| Codex delegation for Security + Dual-Deploy only | Targets personas that benefit most from deep scan; avoids Codex as universal dependency | ✓ Good — `--sandbox read-only` proven |
+| GSD hooks wired but opt-in (userConfig flag) | Standalone command proves concept; hooks don't force adoption | ✓ Good — no matcher fires when disabled |
+| Finding-ID stamping as hash(persona + target + claim) | Stable IDs across runs enable dismiss-and-persist response workflow | ✓ Good — RESP-03 working |
+| Severity-tiered render with `--show-nits` | Collapses noise, inlines blockers, lets user expand on demand | ✓ Good — D-71 note discipline working |
+| Shell-inject `!<cmd>` for signal detection | Deterministic pre-prompt data injection, not LLM tool-call | ⚠️ Revisit — shipped working but same pattern caused v1.0.0 P0 in an explanatory block (TD-04 tightens this) |
+| Phase 7 dedup: delete HARD-03/04 as BNCH-09/10 duplicates; relocate RESP-02 → Phase 8 | Drift caught during execution; amend rather than carry duplicates | ✓ Good — D-62/63/64 |
 
 ## Evolution
 
-This document evolves at phase transitions and milestone boundaries.
-
-**After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
+Document evolves at phase transitions (`/gsd-transition`) and milestone boundaries (`/gsd-complete-milestone`). Pre-v1.0 content archived in `.planning/milestones/v1.0-ROADMAP.md`.
 
 ---
-*Last updated: 2026-04-22 after Phase 3 completion*
+*Last updated: 2026-04-24 after v1.0 MVP milestone shipped*
