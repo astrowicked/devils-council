@@ -1,0 +1,29 @@
+# scripts/shell-inject-allowlist.txt — file-based allowlist for shell-inject sites
+#
+# Format:  <relative-path>:<line-number>:<command-prefix-or-pattern>
+#
+# Lines beginning with # are comments. Empty lines are ignored.
+# The parser matches path + line; the command-prefix column is documentation
+# for PR review (so a reviewer knows WHY this line is allowlisted).
+#
+# Per D-02: entries here authorize the exact <path>:<line> pairing. Alternative
+# allowlist mechanism is the inline <!-- dc-shell-inject-ok: reason --> HTML
+# comment placed directly above the intentional injection (no allowlist entry
+# needed in that case).
+#
+# Adding entries: include the file path, line number, and the first ~40 chars
+# of the injection command for traceability.
+#
+# Current authorized injection sites in commands/review.md (v1.0.2):
+
+commands/review.md:22:${CLAUDE_PLUGIN_ROOT}/bin/dc-prep.sh $ARGUMENTS
+commands/review.md:24:${CLAUDE_PLUGIN_ROOT}/bin/dc-classify.sh
+commands/review.md:70:case " $ARGUMENTS " in *" --show-nits "*
+commands/review.md:94:if [ "${SHOW_NITS:-0}" -eq 1 ]
+
+# Fixture baseline (byte-identical snapshot of commands/review.md — required
+# to keep the known-good fixture in sync with the live parser contract):
+tests/fixtures/shell-inject/known-good-01.md:22:${CLAUDE_PLUGIN_ROOT}/bin/dc-prep.sh $ARGUMENTS
+tests/fixtures/shell-inject/known-good-01.md:24:${CLAUDE_PLUGIN_ROOT}/bin/dc-classify.sh
+tests/fixtures/shell-inject/known-good-01.md:70:case " $ARGUMENTS " in *" --show-nits "*
+tests/fixtures/shell-inject/known-good-01.md:94:if [ "${SHOW_NITS:-0}" -eq 1 ]

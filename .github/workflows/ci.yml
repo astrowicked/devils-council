@@ -82,6 +82,29 @@ jobs:
           # to catch regressions in the validator itself (not just in agents/*.md).
           ./scripts/test-validate-personas.sh
 
+      - name: Run shell-inject pre-parser (Phase 1 TD-04)
+        shell: bash
+        run: |
+          # Phase 1 TD-04: dry-run pre-parser for !`<cmd>` shell-inject patterns
+          # in commands/*.md. Regression target: v1.0.0 P0 (git commit da45340).
+          # Runs on every push; mirror of the PreToolUse hook for CI backstop.
+          if [ -x scripts/validate-shell-inject.sh ]; then
+            scripts/validate-shell-inject.sh commands/*.md
+          else
+            echo "shell-inject parser skipped — scripts/validate-shell-inject.sh not yet present"
+          fi
+
+      - name: Run shell-inject fixture suite (Phase 1 TD-04)
+        shell: bash
+        run: |
+          # Runs the 6-fixture corpus under tests/fixtures/shell-inject/
+          # Asserts parser exits match expected per fixture (P0 regression MUST fail parser).
+          if [ -x scripts/test-shell-inject.sh ] && [ -d tests/fixtures/shell-inject ]; then
+            ./scripts/test-shell-inject.sh
+          else
+            echo "shell-inject fixture suite skipped — scripts/test-shell-inject.sh or fixtures not yet present"
+          fi
+
       - name: Run engine smoke test (Phase 3 — bin/dc-prep.sh + bin/dc-validate-scorecard.sh)
         shell: bash
         run: |
