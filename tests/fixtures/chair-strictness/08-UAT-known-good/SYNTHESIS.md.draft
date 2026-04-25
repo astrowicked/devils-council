@@ -1,0 +1,27 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-a1b2c3d5): «Error handling assumes responses.md exists but never bootstraps.»
+  **Product Manager** (product-manager-c3d4e5f8): «Missing-file path should bootstrap, not fail — matches user mental model.»
+  *Tension:* Staff Eng frames the missing file as a correctness bug; PM frames it as a UX expectation. Same target, different remediation lens.
+
+- **Staff Engineer** (staff-engineer-a1b2c3d6): «Template renders but runtime-off behavior is not clearly documented.»
+  **Devil's Advocate** (devils-advocate-d4e5f6a8): «Runtime-off framing is four-persona agreement and therefore suspicious; examine the premise.»
+  *Tension:* Staff Eng treats the framing as a docs task; Devil's Advocate treats the framing itself as a premise that four personas agreed on too easily.
+
+## Top-3 Blocking Concerns
+
+1. **SRE** (sre-b2c3d4e5): Parse-error regression shipped twice inside v1.0.x; need a pre-parser gate so this class cannot reach release. sev=blocker. Candidate by severity and by >=2 personas raising it.
+2. **Product Manager** (product-manager-c3d4e5f6): Two hotfixes inside 35 minutes is a trust-eroding release signature; UX polish on the install path matters for paying customers. sev=blocker.
+3. **Devil's Advocate** (devils-advocate-d4e5f6a7): The premise "this template was obviously safe" failed in production; the release gate assumed the wrong default. sev=blocker.
+
+## Agreements
+
+- All four personas agree that `commands/review.md:546` needs a structural guard, not another hotfix.
+- Staff Engineer (staff-engineer-a1b2c3d7) and SRE (sre-b2c3d4e7) agree `hooks/hooks.json` should emit named-check diagnostics.
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)
+- [product-manager.md](./product-manager.md)
+- [devils-advocate.md](./devils-advocate.md)

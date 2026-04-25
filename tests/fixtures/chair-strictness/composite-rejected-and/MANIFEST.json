@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "run_id": "td05-fixture-composite-rejected-and",
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "staff-engineer-aaaa0001",
+          "target": "session token storage and refresh rotation",
+          "claim": "Composite concern spanning storage layer and rotation policy.",
+          "severity": "blocker",
+          "category": "complexity"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "sre-bbbb0002",
+          "target": "session token storage and refresh rotation",
+          "claim": "Runbook gaps across both storage and rotation.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        }
+      ]
+    }
+  ]
+}

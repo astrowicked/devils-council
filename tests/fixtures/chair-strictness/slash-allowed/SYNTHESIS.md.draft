@@ -1,0 +1,18 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-aaaa0001): «Trust boundary not explicit in design.»
+  **SRE** (sre-bbbb0002): «Failure mode crosses the boundary without breaker.»
+  *Tension:* Same target, different perspectives on the boundary's contract.
+
+## Top-3 Blocking Concerns
+
+1. **Staff Engineer** (staff-engineer-aaaa0001): Slash separator denotes one logical edge, must pass. sev=blocker.
+
+## Agreements
+
+- Fixture exercises the `/` allow case (single logical edge).
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)

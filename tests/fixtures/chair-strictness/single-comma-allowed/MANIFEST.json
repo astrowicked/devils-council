@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "run_id": "td05-fixture-single-comma-allowed",
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "staff-engineer-aaaa0001",
+          "target": "Foo, the descriptor",
+          "claim": "Descriptive apposition target; single concept.",
+          "severity": "blocker",
+          "category": "complexity"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "sre-bbbb0002",
+          "target": "Foo, the descriptor",
+          "claim": "Operational impact scoped to the same descriptor.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        }
+      ]
+    }
+  ]
+}

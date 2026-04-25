@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "run_id": "td05-fixture-composite-rejected-3comma",
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "staff-engineer-aaaa0001",
+          "target": "auth, session, token handling",
+          "claim": "Three concepts bundled into one target.",
+          "severity": "blocker",
+          "category": "complexity"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "sre-bbbb0002",
+          "target": "auth, session, token handling",
+          "claim": "Runbook spans three subsystems.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        }
+      ]
+    }
+  ]
+}
