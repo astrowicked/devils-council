@@ -247,7 +247,7 @@ responses:
 
 On re-run: dismissed findings are suppressed from Chair synthesis; a one-line `Suppressed N findings per .council/responses.md (dismissed: N1, deferred: N2)` note renders above top-3.
 
-See [Troubleshooting #3](#3-dismissals-not-suppressing-on-re-run-resp-03-llm-variance) for a known limitation.
+See [Troubleshooting #4](#4-dismissals-not-suppressing-on-re-run-resp-03-llm-variance) for a known limitation.
 
 ## Troubleshooting
 
@@ -264,7 +264,31 @@ See [Troubleshooting #3](#3-dismissals-not-suppressing-on-re-run-resp-03-llm-var
 
 A v1.1 ticket tracks adding a first-class cache-invalidation mechanism upstream.
 
-### 2. Codex unavailable
+### 2. Install picks up old version after tag bump
+
+**Symptom:** After a new tag ships (e.g. v1.0.1 → v1.0.2, or v1.0.x → v1.1.0),
+`/plugin install devils-council@devils-council` still installs the OLD version
+because the marketplace descriptor is cached locally.
+
+**Fix:** refresh the marketplace descriptor first, THEN reinstall:
+
+```bash
+/plugin marketplace update devils-council
+/plugin uninstall devils-council@devils-council
+/plugin install devils-council@devils-council
+```
+
+Confirm the new version is loaded:
+
+```bash
+claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
+```
+
+This is Claude Code marketplace-caching behavior, not a devils-council bug.
+Run the `marketplace update` step any time you expect a newer tag to be
+available (e.g. after this plugin publishes a v1.1 release).
+
+### 3. Codex unavailable
 
 **Symptom:** Security or Dual-Deploy scorecard includes a finding with `category: delegation_failed`; `[devils-council: Codex unavailable, persona proceeded without deep scan]` in command output.
 
@@ -272,7 +296,7 @@ A v1.1 ticket tracks adding a first-class cache-invalidation mechanism upstream.
 
 Per D-51 the plugin is fail-loud by design — it does NOT silently degrade.
 
-### 3. Dismissals not suppressing on re-run (RESP-03 LLM variance)
+### 4. Dismissals not suppressing on re-run (RESP-03 LLM variance)
 
 **Symptom:** you dismissed a finding in `.council/responses.md`, but it re-appears on re-run with a slightly different `claim` and a different finding ID.
 
@@ -282,7 +306,7 @@ Per D-51 the plugin is fail-loud by design — it does NOT silently degrade.
 
 **v1.1 fix tracked:** normalize `claim` before hashing (lowercase + stopword-strip + whitespace-collapse). See `.planning/phases/07-hardening-injection-defense-response-workflow/07-UAT.md` finding #2 for the full rationale.
 
-### 4. GSD hook integration not firing
+### 5. GSD hook integration not firing
 
 **Symptom:** after `gsd-plan-checker` runs, no `[devils-council: ...]` pointer appears.
 
@@ -293,7 +317,7 @@ Per D-51 the plugin is fail-loud by design — it does NOT silently degrade.
 
 If all three look right and the pointer still doesn't appear, check `bin/dc-gsd-wrap.sh` extraction — the `tool_input.prompt` field might not contain an extractable PLAN.md path. Run the guard test locally: `./scripts/test-hooks-gsd-guard.sh`.
 
-### 5. Bench persona not spawning despite artifact match
+### 6. Bench persona not spawning despite artifact match
 
 **Symptom:** reviewing a Helm values diff, but dual-deploy-reviewer didn't join.
 
@@ -302,7 +326,7 @@ If all three look right and the pointer still doesn't appear, check `bin/dc-gsd-
 2. Does the persona's `triggers:` list in `agents/dual-deploy-reviewer.md` include the signal ID?
 3. Was the budget cap reached? `jq '.personas_skipped' .council/<run>/MANIFEST.json` lists personas dropped by the cap.
 
-### 6. Codex sandbox violation in delegation
+### 7. Codex sandbox violation in delegation
 
 **Symptom:** `MANIFEST.personas_run[].delegation.error_code == "codex_sandbox_violation"` — Codex rejected a delegation.
 
@@ -310,13 +334,13 @@ If all three look right and the pointer still doesn't appear, check `bin/dc-gsd-
 
 **Fix:** v1 is read-only sandbox by design. Widening is deferred to post-v1 threat-model review.
 
-### 7. Budget cap too low — important personas skipped
+### 8. Budget cap too low — important personas skipped
 
 **Symptom:** `jq '.personas_skipped' .council/<run>/MANIFEST.json` shows a non-empty array and you wanted those personas to run.
 
 **Fix:** `/devils-council:review <artifact> --cap-usd=1.00` (or edit `config.json` `budget.cap_usd` for a persistent change). Priority order is controllable via `config.json` `bench_priority_order`.
 
-### 8. Terminal render unreadable — too much output
+### 9. Terminal render unreadable — too much output
 
 **Symptom:** synthesis + 4-8 scorecards fills the terminal.
 
