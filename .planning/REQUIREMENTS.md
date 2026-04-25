@@ -24,7 +24,7 @@
 
 ### Codex Schema Spike (CODX)
 
-- [ ] **CODX-01**: Phase 2 spike produces `.planning/research/CODEX-SCHEMA-MEMO.md` with measured results: 5 test delegations × JSON schema validation-rate + latency delta vs baseline; go/no-go verdict + rubric for wrapper-validation middle-ground path
+- [x] **CODX-01**: Phase 2 spike produces `.planning/research/CODEX-SCHEMA-MEMO.md` with measured results: 5 test delegations × JSON schema validation-rate + latency delta vs baseline; go/no-go verdict + rubric for wrapper-validation middle-ground path
 - [ ] **CODX-02** *(conditional on CODX-01 = GO)*: `lib/codex-schemas/security.json` ships; `bin/dc-codex-delegate.sh` invokes `codex exec --output-schema <path>` when available (version-detected); strict JSON parsing in Security persona scorecard emission
 - [ ] **CODX-03** *(conditional on CODX-01 = GO)*: Feature-detected fallback: when Codex version lacks `--output-schema` support or schema validation fails, falls back to v1.0 wrapper-validation path; CI fixture covers both paths
 - [ ] **CODX-04**: New error class `codex_schema_validation_error` added to MANIFEST.json error enum (D-51 extension); logged but never silently degrades Security persona output

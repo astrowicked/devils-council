@@ -57,7 +57,7 @@
   4. If GO or WRAPPER, the memo includes a rubric for Phase 6 wiring (feature-detect pattern, fallback path, error-class definition)
 **Plans:** 1 plan in 1 wave
 
-- [ ] 02-01-PLAN.md — Spike harness + v1 schema + 21-invocation measurement + verdict memo (CODX-01)
+- [x] 02-01-PLAN.md — Spike harness + v1 schema + 21-invocation measurement + verdict memo (CODX-01)
 
 ### Phase 3: Classifier Extension
 
@@ -156,7 +156,7 @@
 | ----- | --------- | -------------- | ----------- | ---------- |
 | 1-8   | v1.0      | 48/48          | Complete    | 2026-04-24 |
 | 1     | v1.1      | 1/4 | Complete    | 2026-04-25 |
-| 2     | v1.1      | 0/1            | Not started | —          |
+| 2     | v1.1      | 1/1 | Complete    | 2026-04-25 |
 | 3     | v1.1      | 0/TBD          | Not started | —          |
 | 4     | v1.1      | 0/TBD          | Not started | —          |
 | 5     | v1.1      | 0/TBD          | Not started | —          |
