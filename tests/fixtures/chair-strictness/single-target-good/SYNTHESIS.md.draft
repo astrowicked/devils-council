@@ -1,0 +1,18 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-aaaa0001): «Storage layer lacks rotation hook.»
+  **SRE** (sre-bbbb0002): «Operational runbook missing for key-compromise.»
+  *Tension:* Engineering wants a new code path; SRE wants documented recovery before any change lands.
+
+## Top-3 Blocking Concerns
+
+1. **Staff Engineer** (staff-engineer-aaaa0001): Storage design cannot support rotation without refactor. sev=blocker.
+
+## Agreements
+
+- Both personas converge on the same target with compatible remediation asks.
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)

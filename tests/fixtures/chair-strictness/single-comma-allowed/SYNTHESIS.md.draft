@@ -1,0 +1,18 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-aaaa0001): «Descriptive apposition target; single concept.»
+  **SRE** (sre-bbbb0002): «Operational impact scoped to the same descriptor.»
+  *Tension:* Fixture: single descriptive comma should not trigger 3-comma pattern.
+
+## Top-3 Blocking Concerns
+
+1. **Staff Engineer** (staff-engineer-aaaa0001): Single comma (apposition) target must pass. sev=blocker.
+
+## Agreements
+
+- Fixture exercises the single-comma allow case.
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)

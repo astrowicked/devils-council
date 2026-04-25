@@ -1,0 +1,18 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-aaaa0001): «Three concepts bundled into one target.»
+  **SRE** (sre-bbbb0002): «Runbook spans three subsystems.»
+  *Tension:* Fixture-level illustration of a 3+ comma-separated target.
+
+## Top-3 Blocking Concerns
+
+1. **Staff Engineer** (staff-engineer-aaaa0001): 3-comma composite target shape expected to be rejected. sev=blocker.
+
+## Agreements
+
+- Fixture: personas share the 3-comma target by construction.
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)

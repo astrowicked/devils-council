@@ -127,6 +127,18 @@ jobs:
           # bin/dc-validate-synthesis.sh + commands/review.md render wiring.
           ./scripts/test-chair-synthesis.sh
 
+      - name: Run Chair strictness test (Phase 1 TD-05)
+        shell: bash
+        run: |
+          # Phase 1 TD-05: Chair Top-3 composite-target strictness regression gate.
+          # Exercises bin/dc-validate-synthesis.sh against 6 fixtures including
+          # 08-UAT-known-good (D-08 regression gate per PITFALLS.md P-08).
+          if [ -x scripts/test-chair-strictness.sh ] && [ -d tests/fixtures/chair-strictness ]; then
+            ./scripts/test-chair-strictness.sh
+          else
+            echo "chair-strictness test skipped — scripts/test-chair-strictness.sh or fixtures not yet present"
+          fi
+
       - name: Run classifier tests (Phase 6 BNCH-01, BNCH-08)
         shell: bash
         run: |

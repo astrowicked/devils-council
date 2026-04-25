@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0",
+  "run_id": "td05-fixture-08-UAT-known-good",
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "staff-engineer-a1b2c3d4",
+          "target": "commands/review.md:546",
+          "claim": "Shell-inject anti-example was unguarded in prose; caused v1.0.0 parse error.",
+          "severity": "blocker",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-a1b2c3d5",
+          "target": "bin/dc-apply-responses.sh",
+          "claim": "Error handling assumes responses.md exists but never bootstraps.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-a1b2c3d6",
+          "target": ".council/responses.md",
+          "claim": "Template renders but runtime-off behavior is not clearly documented.",
+          "severity": "major",
+          "category": "clarity"
+        },
+        {
+          "id": "staff-engineer-a1b2c3d7",
+          "target": "hooks/hooks.json",
+          "claim": "Hook JSON lacks fail-message for author debugging.",
+          "severity": "minor",
+          "category": "ux"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "sre-b2c3d4e5",
+          "target": "commands/review.md:546",
+          "claim": "Release hotfix chain showed the parse-error blast radius; need regression test.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-b2c3d4e6",
+          "target": "bin/dc-apply-responses.sh",
+          "claim": "Silent failures on missing responses.md make on-call diagnosis harder.",
+          "severity": "major",
+          "category": "observability"
+        },
+        {
+          "id": "sre-b2c3d4e7",
+          "target": "hooks/hooks.json",
+          "claim": "PreToolUse hook exits 1 without naming the check that failed.",
+          "severity": "minor",
+          "category": "ux"
+        }
+      ]
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "product-manager-c3d4e5f6",
+          "target": "commands/review.md:546",
+          "claim": "Two hotfixes in 35 minutes is a trust-eroding release signature for paying customers.",
+          "severity": "blocker",
+          "category": "customer-impact"
+        },
+        {
+          "id": "product-manager-c3d4e5f7",
+          "target": ".council/responses.md",
+          "claim": "Template-renders-runtime-off framing needs to be surfaced in README onboarding.",
+          "severity": "major",
+          "category": "onboarding"
+        },
+        {
+          "id": "product-manager-c3d4e5f8",
+          "target": "bin/dc-apply-responses.sh",
+          "claim": "Missing-file path should bootstrap, not fail — matches user mental model.",
+          "severity": "major",
+          "category": "ux"
+        },
+        {
+          "id": "product-manager-c3d4e5f9",
+          "target": "hooks/hooks.json",
+          "claim": "Guard wording for authors should name the check (not just exit code).",
+          "severity": "minor",
+          "category": "ux"
+        }
+      ]
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "outcome": "green",
+      "findings": [
+        {
+          "id": "devils-advocate-d4e5f6a7",
+          "target": "commands/review.md:546",
+          "claim": "Shipping without a parse-error smoke test assumed the template was obviously safe; it was not.",
+          "severity": "blocker",
+          "category": "premise"
+        },
+        {
+          "id": "devils-advocate-d4e5f6a8",
+          "target": ".council/responses.md",
+          "claim": "Runtime-off framing is four-persona agreement and therefore suspicious; examine the premise.",
+          "severity": "major",
+          "category": "premise"
+        }
+      ]
+    }
+  ]
+}

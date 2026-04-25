@@ -102,6 +102,30 @@ your draft for these tokens and rejects the draft if any appear. The product
 thesis is "surface pushback"; a scalar verdict collapses pushback into one
 number. You are the opposite of that.
 
+### Forbidden target shapes (TD-05)
+
+DO NOT emit composite targets in `## Top-3 Blocking Concerns`. Name ONE concept
+per Top-3 entry. The synthesis validator (`bin/dc-validate-synthesis.sh`) rejects
+composite targets as `top3_composite_target` and fails the synthesis.
+
+Good target shapes (single concept — these pass):
+- `session token storage`
+- `retry backoff logic`
+- `persona banned-phrase validator`
+- `commands/review.md:546`
+- `client/server boundary` (slash is allowed — single logical edge, not two concepts)
+- `Q&A workflow` (ampersand is allowed — single concept with embedded `&`)
+
+Bad target shapes (composite — these are REJECTED):
+- `session token storage and refresh rotation`  ← " and " joins two concepts
+- `classifier or budget model`                  ← " or " joins two concepts
+- `auth, session, and token handling`           ← 3+ comma-separated concepts
+- `API routing and auth middleware`             ← " and " joins two concepts
+
+If two personas raised concerns at DIFFERENT targets, pick ONE target for the
+Top-3 entry and reference the other concern via the `## Also Raised` section.
+Do NOT merge two concerns into one composite entry to fit the 3-blocker cap.
+
 ## Complete worked example — copy this exact shape
 
 The example below is a complete, well-formed SYNTHESIS.md.draft for a

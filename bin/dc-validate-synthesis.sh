@@ -258,6 +258,36 @@ if survivor_count > 0 and 'Top-3 Blocking Concerns' in sections and not zero_blo
         if off_candidate:
             errors.append(('top3_off_candidate_set',
                            ','.join(off_candidate)))
+        # -------------------------------------------------------------
+        # TD-05: top3_composite_target strictness check (D-05, D-06, D-07).
+        # Reject Top-3 entries whose cited finding target matches composite
+        # shape: " and "/" or " separator, or 3+ comma-separated tokens.
+        # Medium threshold per D-06: allows "/" (client/server), single
+        # descriptive commas ("Foo, the bar"), and "&" (Q&A workflow).
+        # Error key emitted on match: 'top3_composite_target'.
+        # -------------------------------------------------------------
+        COMPOSITE_PATTERNS = [
+            re.compile(r'\s+(and|or)\s+\w+', re.IGNORECASE),
+            re.compile(r',\s*\w+,\s*\w+'),
+        ]
+        # Track (cid, target) tuples for every citation whose target matched a
+        # composite pattern. The diagnostic must report the target of the FIRST
+        # composite match (the cid that actually triggered rejection), NOT the
+        # first resolvable citation's target — those can differ when a Top-3
+        # entry cites multiple IDs and only a later one is composite. Reporting
+        # resolvable[0]'s target when resolvable[1] is the offender misleads
+        # authors debugging rejected synthesis.
+        composite_hits = []
+        for cid in resolvable:
+            tgt = id_to_finding.get(cid, {}).get('target') or ''
+            for pat in COMPOSITE_PATTERNS:
+                if pat.search(tgt):
+                    composite_hits.append((cid, tgt))
+                    break
+        if composite_hits:
+            offending_cid, offending_target = composite_hits[0]
+            errors.append(('top3_composite_target',
+                           f"Top-3 entry #{top3_count + 1} rejected: composite target '{offending_target}'. Chair must name one concept per entry. Re-run or amend."))
         top3_count += 1
 
 # -----------------------------------------------------------------------
