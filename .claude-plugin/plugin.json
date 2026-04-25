@@ -24,6 +24,12 @@
       "title": "GSD integration",
       "description": "Enable PostToolUse wrapping of gsd-plan-checker and gsd-code-reviewer agent outputs with a one-line devils-council pointer. Off by default. Requires GSD installed at ~/.claude/agents/gsd-plan-checker.md or ~/.claude/agents/gsd-code-reviewer.md (the hook is a no-op if GSD is absent). Toggle via /plugin config devils-council or by editing ~/.claude/settings.json.",
       "default": false
+    },
+    "shell_inject_guard": {
+      "type": "boolean",
+      "title": "Shell-inject guard",
+      "description": "Enable PreToolUse dry-run pre-parser on commands/*.md edits. Blocks Write/Edit operations that introduce unauthorized inline !`<cmd>` or fenced ``` ! shell-inject patterns (class of bug that shipped as v1.0.0 P0). Allowlist: scripts/shell-inject-allowlist.txt + inline <!-- dc-shell-inject-ok: reason --> markers. Set to false to disable the hook (not recommended; CI step still enforces on push).",
+      "default": true
     }
   }
 }

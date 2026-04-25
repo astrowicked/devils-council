@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'set -e; file=$(jq -r .tool_input.file_path); case \"$file\" in */agents/*.md) \"${CLAUDE_PLUGIN_ROOT}/scripts/validate-personas.sh\" \"$file\" ;; *) exit 0 ;; esac'"
+            "command": "bash -c 'set -e; file=$(jq -r .tool_input.file_path); case \"$file\" in */agents/*.md) \"${CLAUDE_PLUGIN_ROOT}/scripts/validate-personas.sh\" \"$file\" ;; */commands/*.md) \"${CLAUDE_PLUGIN_ROOT}/scripts/validate-shell-inject.sh\" \"$file\" ;; *) exit 0 ;; esac'"
           }
         ]
       }
