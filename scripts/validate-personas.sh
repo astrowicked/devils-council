@@ -629,13 +629,13 @@ if [ -n "$TARGET_FILE" ]; then
   fi
   FILES=("$TARGET_FILE")
 else
-  # Default: validate every agents/*.md except README.md / .gitkeep.
-  # Use `find` with -print0 for robustness; exclude README.md by name.
+  # Default: validate every agents/*.md except AUTHORING.md / .gitkeep.
+  # Use `find` with -print0 for robustness; exclude AUTHORING.md by name.
   if [ -d "agents" ]; then
     while IFS= read -r -d '' f; do
       base=$(basename "$f")
       case "$base" in
-        README.md|.gitkeep) continue ;;
+        AUTHORING.md|.gitkeep) continue ;;
       esac
       FILES+=("$f")
     done < <(find agents -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null)
