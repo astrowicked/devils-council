@@ -35,10 +35,15 @@
 **Success Criteria** (what must be TRUE):
   1. `scripts/validate-shell-inject.sh` exits 0 on the current clean `commands/review.md` AND exits 1 on the v1.0.0 P0 regression fixture (TD-04 smoke-test gate before hook wiring)
   2. Running the Phase 8 08-UAT known-good Chair synthesis through the updated `dc-validate-synthesis.sh` still exits 0 (TD-05 does not break v1.0 passing outputs; P-08 prevention)
-  3. `agents/AUTHORING.md` exists; `agents/README.md` does not; `grep -r "agents/README" .planning/ agents/ scripts/ --include="*.md" --include="*.sh" --include="*.yml"` returns zero matches (TD-06 reference-sweep complete; P-10 prevention)
+  3. `agents/AUTHORING.md` exists; `agents/README.md` does not; `grep -r "agents/README" agents/ scripts/ bin/ hooks/ lib/ .claude-plugin/ .github/ --include="*.md" --include="*.sh" --include="*.yml" --include="*.json"` returns zero matches in live runtime code paths (TD-06 reference-sweep complete; P-10 prevention — historical references in .planning/ and v1.0 archive preserved per Plan 01-02 Task 3 authorization, narrowed scope approved 2026-04-25)
   4. README troubleshooting section documents `/plugin marketplace update` as a refresh prerequisite; CHANGELOG v1.1 entry notes this explicitly (TD-07)
   5. Phase 1 + Phase 4 VERIFICATION.md and Phase 5 VALIDATION.md files are flipped to `passed` with cited evidence (v1.0.x release chain, 08-UAT.md, CI green signals for TD-01/02/03)
-**Plans:** TBD (estimated 5 — one per TD-item; TD-02/03 are doc-only and can co-ship)
+**Plans:** 4 plans in 3 waves (batch structure per CONTEXT.md D-14)
+
+- [x] 01-01-PLAN.md — Batch 1 (Wave 1, parallel): TD-01/02/03/07 doc-only flips (Phase 1 + Phase 4 VERIFICATION, Phase 5 VALIDATION retroactive flips; README troubleshooting + CHANGELOG v1.1 entry)
+- [ ] 01-02-PLAN.md — Batch 2 (Wave 2, parallel with 01-03): TD-06 agents/README.md -> AUTHORING.md rename + validate-personas.sh edit + reference sweep
+- [ ] 01-03-PLAN.md — Batch 2 (Wave 2, parallel with 01-02): TD-04 shell-inject dry-run pre-parser + fixtures + allowlist + userConfig.shell_inject_guard + PreToolUse hook (internal smoke-test gate before hook wiring)
+- [ ] 01-04-PLAN.md — Batch 3 (Wave 3, isolated): TD-05 Chair prompt forbidden-target-shapes + dc-validate-synthesis.sh composite-target check + 08-UAT regression gate
 
 ### Phase 2: Codex `--output-schema` Spike
 
@@ -148,7 +153,7 @@
 | Phase | Milestone | Plans Complete | Status      | Completed  |
 | ----- | --------- | -------------- | ----------- | ---------- |
 | 1-8   | v1.0      | 48/48          | Complete    | 2026-04-24 |
-| 1     | v1.1      | 0/TBD          | Not started | —          |
+| 1     | v1.1      | 1/4 | Complete    | 2026-04-25 |
 | 2     | v1.1      | 0/TBD          | Not started | —          |
 | 3     | v1.1      | 0/TBD          | Not started | —          |
 | 4     | v1.1      | 0/TBD          | Not started | —          |

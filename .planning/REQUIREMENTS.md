@@ -14,13 +14,13 @@
 
 ### Tech Debt (TD) — closed out from v1.0 audit
 
-- [ ] **TD-01**: Phase 1 VERIFICATION.md status flipped from `human_needed` → `passed` with citation to v1.0.x release chain + `08-UAT.md` as retroactive live-runtime evidence
-- [ ] **TD-02**: Phase 4 VERIFICATION.md status flipped from `human_needed` → `passed`; Phase 4 `04-HUMAN-UAT.md` flipped from `partial` → `resolved-by-downstream`
-- [ ] **TD-03**: Phase 5 VALIDATION.md `nyquist_compliant` flipped to `true` with citation to green CI `test-chair-synthesis.sh` (17/17) + structural verification 5/5 and 6/6 passes
-- [ ] **TD-04**: Slash-command shell-inject dry-run pre-parser detects `` !`<cmd>` `` inline and `` ```! `` fenced patterns in `commands/*.md` at author time (PreToolUse hook on Write/Edit); mirrors Claude Code's actual parser; allowlist supported; CI step enforces on every push
-- [ ] **TD-05**: Council Chair Top-3 target-field strictness — Chair prompt forbids composite targets; `bin/dc-validate-synthesis.sh` rejects composite-target findings in `top_3_blockers`; regression test proves v1.0 known-good outputs still pass
-- [ ] **TD-06**: `agents/README.md` renamed to `agents/AUTHORING.md` (plugin-loader mis-classification fix); all references swept (validator, CI, docs); no regression in `claude plugin validate`
-- [ ] **TD-07**: README troubleshooting section documents `/plugin marketplace update` refresh step required before reinstall picks up new tags; CHANGELOG v1.1 notes this explicitly
+- [x] **TD-01**: Phase 1 VERIFICATION.md status flipped from `human_needed` → `passed` with citation to v1.0.x release chain + `08-UAT.md` as retroactive live-runtime evidence
+- [x] **TD-02**: Phase 4 VERIFICATION.md status flipped from `human_needed` → `passed`; Phase 4 `04-HUMAN-UAT.md` flipped from `partial` → `resolved-by-downstream`
+- [x] **TD-03**: Phase 5 VALIDATION.md `nyquist_compliant` flipped to `true` with citation to green CI `test-chair-synthesis.sh` (17/17) + structural verification 5/5 and 6/6 passes
+- [x] **TD-04**: Slash-command shell-inject dry-run pre-parser detects `` !`<cmd>` `` inline and `` ```! `` fenced patterns in `commands/*.md` at author time (PreToolUse hook on Write/Edit); mirrors Claude Code's actual parser; allowlist supported; CI step enforces on every push
+- [x] **TD-05**: Council Chair Top-3 target-field strictness — Chair prompt forbids composite targets; `bin/dc-validate-synthesis.sh` rejects composite-target findings in `top_3_blockers`; regression test proves v1.0 known-good outputs still pass
+- [x] **TD-06**: `agents/README.md` renamed to `agents/AUTHORING.md` (plugin-loader mis-classification fix); all references swept (validator, CI, docs); no regression in `claude plugin validate`
+- [x] **TD-07**: README troubleshooting section documents `/plugin marketplace update` refresh step required before reinstall picks up new tags; CHANGELOG v1.1 notes this explicitly
 
 ### Codex Schema Spike (CODX)
 
