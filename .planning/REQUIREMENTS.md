@@ -1,0 +1,96 @@
+# Requirements: devils-council — v1.1 Expansion + Hardening
+
+**Defined:** 2026-04-24
+**Status:** In scope for v1.1
+**Core Value (unchanged from v1.0):** Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give, in a form the author can respond to.
+
+**v1.1 theme:** Expand persona coverage from 8 → 13 personas (4 core always-on + 9 bench signal-triggered + Chair + Haiku classifier), ship a custom persona scaffolder, spike Codex `--output-schema` for Security deep scans, and close v1.0 tech debt including the v1.0.0 P0 regression class.
+
+**Continues from v1.0:** All v1.0 requirements validated and shipped (see `.planning/milestones/v1.0-REQUIREMENTS.md`). v1.1 only lists NEW requirements.
+
+---
+
+## v1.1 Requirements
+
+### Tech Debt (TD) — closed out from v1.0 audit
+
+- [ ] **TD-01**: Phase 1 VERIFICATION.md status flipped from `human_needed` → `passed` with citation to v1.0.x release chain + `08-UAT.md` as retroactive live-runtime evidence
+- [ ] **TD-02**: Phase 4 VERIFICATION.md status flipped from `human_needed` → `passed`; Phase 4 `04-HUMAN-UAT.md` flipped from `partial` → `resolved-by-downstream`
+- [ ] **TD-03**: Phase 5 VALIDATION.md `nyquist_compliant` flipped to `true` with citation to green CI `test-chair-synthesis.sh` (17/17) + structural verification 5/5 and 6/6 passes
+- [ ] **TD-04**: Slash-command shell-inject dry-run pre-parser detects `` !`<cmd>` `` inline and `` ```! `` fenced patterns in `commands/*.md` at author time (PreToolUse hook on Write/Edit); mirrors Claude Code's actual parser; allowlist supported; CI step enforces on every push
+- [ ] **TD-05**: Council Chair Top-3 target-field strictness — Chair prompt forbids composite targets; `bin/dc-validate-synthesis.sh` rejects composite-target findings in `top_3_blockers`; regression test proves v1.0 known-good outputs still pass
+- [ ] **TD-06**: `agents/README.md` renamed to `agents/AUTHORING.md` (plugin-loader mis-classification fix); all references swept (validator, CI, docs); no regression in `claude plugin validate`
+- [ ] **TD-07**: README troubleshooting section documents `/plugin marketplace update` refresh step required before reinstall picks up new tags; CHANGELOG v1.1 notes this explicitly
+
+### Codex Schema Spike (CODX)
+
+- [ ] **CODX-01**: Phase 2 spike produces `.planning/research/CODEX-SCHEMA-MEMO.md` with measured results: 5 test delegations × JSON schema validation-rate + latency delta vs baseline; go/no-go verdict + rubric for wrapper-validation middle-ground path
+- [ ] **CODX-02** *(conditional on CODX-01 = GO)*: `lib/codex-schemas/security.json` ships; `bin/dc-codex-delegate.sh` invokes `codex exec --output-schema <path>` when available (version-detected); strict JSON parsing in Security persona scorecard emission
+- [ ] **CODX-03** *(conditional on CODX-01 = GO)*: Feature-detected fallback: when Codex version lacks `--output-schema` support or schema validation fails, falls back to v1.0 wrapper-validation path; CI fixture covers both paths
+- [ ] **CODX-04**: New error class `codex_schema_validation_error` added to MANIFEST.json error enum (D-51 extension); logged but never silently degrades Security persona output
+
+### Classifier Extension (CLS)
+
+- [ ] **CLS-01**: `lib/classify.py` extended with 5 new signal detectors: `compliance_marker`, `performance_hotpath`, `test_imbalance`, `exec_keyword`, `shared_infra_change`
+- [ ] **CLS-02**: `signal_strength` field added to `lib/signals.json` entries (`strong | moderate | weak`); weak-signal personas require at least 2 distinct signal hits before triggering (prevents single-word false positives)
+- [ ] **CLS-03**: `artifact_type` parameter propagated through classify pipeline; `exec_keyword` detector only fires on `plan | rfc` artifacts, never on `code-diff` (prevents platitude-generation on code)
+- [ ] **CLS-04**: Bench persona priority order explicitly declared in `lib/signals.json` (e.g., `bench_priority_order`); budget-driven bench fan-out respects priority when budget exhausts before full fan-out
+- [ ] **CLS-05**: Negative fixture suite for each new detector under `tests/fixtures/classifier-negatives/` — 3+ benign artifacts per detector that MUST NOT trigger; CI step asserts no false positives before positive-fixture tests run (inverted TDD)
+- [ ] **CLS-06**: Haiku classifier whitelist expanded from 4 to 9 bench slugs; re-tuning fixtures added to `test-classify.sh`
+
+### New Bench Personas (BNCH2 — 5 of 6 new; Junior Eng is CORE-EXT-01)
+
+- [ ] **BNCH2-01**: `agents/compliance-reviewer.md` + `persona-metadata/compliance-reviewer.yml` — Compliance persona cites specific control IDs (GDPR Art. 5(1)(e), HIPAA §164.312(b), SOC2 CC7.2, PCI Req 10); banned from framework-level generic findings; triggered by `compliance_marker` signal
+- [ ] **BNCH2-02**: `agents/performance-reviewer.md` + `persona-metadata/performance-reviewer.yml` — Performance persona characterizes call frequency/workload before severity; banned from `premature optimization` in both directions; coexists with Dual-Deploy via algorithmic vs resource-limits lens split; triggered by `performance_hotpath` signal
+- [ ] **BNCH2-03**: `agents/test-lead.md` + `persona-metadata/test-lead.yml` — Test Lead persona catches circular tests (assert equals mock return), flaky patterns, src+test diff imbalance; banned from coverage-percentage findings and `add tests` verbs; triggered by `test_imbalance` signal
+- [ ] **BNCH2-04**: `agents/executive-sponsor.md` + `persona-metadata/executive-sponsor.yml` — Executive Sponsor findings MUST name a specific number (dollars, weeks, customers) or roadmap artifact; longest banned-phrase list in plugin (`strategic alignment`, `unlock value`, `de-risk`, `move the needle`, `north star`, etc.); triggered by `exec_keyword` signal on plan/rfc artifacts only
+- [ ] **BNCH2-05**: `agents/competing-team-lead.md` + `persona-metadata/competing-team-lead.yml` — Competing Team Lead MUST name specific consumer (team/repo/service/endpoint); banned from `downstream impact` without a named consumer; framed as shared-infra reviewer (not turf-warrior); triggered by `shared_infra_change` signal
+
+### Core-Extension Persona (CORE-EXT)
+
+- [ ] **CORE-EXT-01**: `agents/junior-engineer.md` + `persona-metadata/junior-engineer.yml` — Junior Engineer persona (bench tier, auto-triggered on any code-diff artifact). Primary signal: first-person comprehension failure ("I had to re-read this three times"), NOT docstring-nannying or style linting. Banned from Staff Engineer's simplification register; banned from style-linting framings
+
+### Persona Quality (PQUAL)
+
+- [ ] **PQUAL-01**: Voice-distinctness validator extended — `scripts/validate-personas.sh` flags when any two personas share >40% banned-phrase overlap or >30% characteristic-objection overlap; warns (not blocks) during v1.1 to allow conscious overlap decisions
+- [ ] **PQUAL-02**: Adversarial CI fixtures specifically for Executive Sponsor — tempt the persona with plan text that invites exec-speak; CI fails if output contains any banned nominalization
+- [ ] **PQUAL-03**: Blinded-reader evaluation on a real multi-persona run: evaluator correctly attributes scorecards to personas ≥ 80% for 9-bench fan-out on a complex artifact (proves voice differentiation scaled)
+
+### Scaffolder Skill (SCAF)
+
+- [ ] **SCAF-01**: `skills/create-persona/SKILL.md` — interactive scaffolder using `AskUserQuestion` first-party tool; collects persona name, tier, primary concern, 3+ characteristic objections, 3+ banned phrases, 2 good-finding + 1 bad-finding examples; refuses to write without all fields
+- [ ] **SCAF-02**: Scaffolder writes to `${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/` with `agents/` and `persona-metadata/` as siblings; workspace layout makes `validate-personas.sh` sidecar resolution work without changes; user manually moves files to install location
+- [ ] **SCAF-03**: Scaffolder runs `scripts/validate-personas.sh` against its output before declaring success; failed validation surfaces schema errors and loops back to the relevant question
+- [ ] **SCAF-04**: Scaffolder coaches voice-rubric distinctness — if chosen banned-phrase set has >30% overlap with any shipped persona, asks user to confirm or diversify; references the voice rubric inline
+- [ ] **SCAF-05**: README documents scaffolder workflow; CHANGELOG v1.1 lists as new capability
+
+### Release (REL)
+
+- [ ] **REL-01**: 10-persona real-artifact UAT (reviewing a real `anaconda-platform-chart` or `outerbounds-data-plane` artifact): all 9 bench personas available, budget cap respected, Chair synthesis coherent with ≤ 3 Top-3 blockers, no persona produces a generic finding
+- [ ] **REL-02**: Blinded-reader pass on a 6+ persona run (PQUAL-03); voice differentiation verified at scale
+- [ ] **REL-03**: Version bump to `1.1.0` in `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json`; CHANGELOG v1.1.0 section documents all new personas, scaffolder, Codex schema verdict, and TD closeouts; v1.1.0 annotated git tag + GitHub Release
+- [ ] **REL-04**: CI preflight runs full test matrix on `1.1.0` candidate: classifier + negative fixtures + persona validation + injection corpus + coexistence + scaffolder output validity + budget cap at 9-bench scenario + Executive Sponsor adversarial fixture
+
+---
+
+## Deferred to v1.2+
+
+- `userConfig.custom_personas_dir` pointing outside plugin cache — lets users maintain a personal persona library that survives plugin updates
+- Chair `max_contradictions` cap for N=10 readability — defer unless PQUAL-03 / REL-01 UAT flags unreadable output
+- 6th new persona from deferred list (not scoped to v1.1 — was: Junior Engineer, now promoted into CORE-EXT-01)
+- Gemini integration — `consulting-design-skill` already covers this path
+
+## Out of Scope (still)
+
+- Non-Claude-Code runtimes as plugin *hosts* (Codex CLI, Gemini CLI, OpenCode) — v1.x targets Claude Code plugin only
+- Multi-tenant SaaS persona library with ratings/reviews — Claude Code plugin marketplace handles distribution
+
+---
+
+## Traceability
+
+Filled by gsd-roadmapper during Phase 4 of the new-milestone workflow.
+
+| REQ-ID | Phase | Success Criterion |
+|--------|-------|-------------------|
+| *(pending roadmap)* | | |
