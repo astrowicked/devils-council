@@ -326,6 +326,8 @@ def _detect_saas_only_assumption(text: str, filename_hint: str) -> list[str]:
     return []
 
 
+# DETECTORS: each function is _detect_<sid>(text, filename_hint, *, artifact_type=None).
+# Pre-Phase-3 detectors omit artifact_type; classify() uses try/except TypeError dispatch.
 DETECTORS = {
     "auth_code_change": _detect_auth_code_change,
     "crypto_import": _detect_crypto_import,
@@ -350,6 +352,8 @@ def classify(
     input_path: str,
     signals_path: str,
     filename_hint: str | None = None,
+    *,
+    artifact_type: str = "code-diff",
 ) -> dict:
     text = Path(input_path).read_text(encoding="utf-8")
     # filename_hint: executor passes the ORIGINAL artifact filename (not INPUT.md)
@@ -373,11 +377,24 @@ def classify(
         detector = DETECTORS.get(sid)
         if detector is None:
             continue
-        ev = detector(text, hint)
+        # artifact_type gate (D-07, D-18): signal only fires on allowed artifact types
+        allowed_types = sdef.get("artifact_type")  # None = fire regardless (v1.0 default)
+        if allowed_types is not None and artifact_type not in allowed_types:
+            continue
+        # Dispatch: detectors that accept artifact_type get it; others don't (back-compat)
+        try:
+            ev = detector(text, hint, artifact_type=artifact_type)
+        except TypeError:
+            ev = detector(text, hint)
         for df_hint in diff_file_hints:
-            ev_df = detector(text, df_hint)
+            try:
+                ev_df = detector(text, df_hint, artifact_type=artifact_type)
+            except TypeError:
+                ev_df = detector(text, df_hint)
             ev.extend(ev_df)
-        if ev:
+        # min_evidence gate (D-03, D-19): fire iff len(ev) >= min_evidence (default 1)
+        min_ev = sdef.get("min_evidence", 1)
+        if ev and len(ev) >= min_ev:
             matches[sid] = ev
 
     triggered: dict[str, set[str]] = {}
@@ -395,12 +412,14 @@ def classify(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print(
-            "usage: classify.py <input.md> <signals.json> [<filename-hint>]",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    hint = sys.argv[3] if len(sys.argv) >= 4 else None
-    result = classify(sys.argv[1], sys.argv[2], hint)
+    import argparse
+    p = argparse.ArgumentParser(description="Structural classifier for devils-council")
+    p.add_argument("input", help="Path to INPUT.md or artifact file")
+    p.add_argument("signals", help="Path to signals.json")
+    p.add_argument("hint", nargs="?", default=None, help="Original artifact filename hint")
+    p.add_argument("--artifact-type", dest="artifact_type", default="code-diff",
+                   choices=["code-diff", "plan", "rfc", "design"],
+                   help="Artifact type from MANIFEST.detected_type (default: code-diff)")
+    ns = p.parse_args()
+    result = classify(ns.input, ns.signals, ns.hint, artifact_type=ns.artifact_type)
     print(json.dumps(result, indent=2))
