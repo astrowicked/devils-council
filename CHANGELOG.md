@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Troubleshooting: `/plugin marketplace update` refresh step** (TD-07) — README Troubleshooting section #2 now documents that after a new tag ships, users must run `/plugin marketplace update devils-council` before `/plugin install devils-council@devils-council` picks up the new version. Previously, uninstall+reinstall alone was insufficient when the marketplace descriptor was cached locally.
+- **Custom persona scaffolder** (`/devils-council:create-persona`) — interactive `AskUserQuestion`-driven wizard that walks users through all voice-kit fields (name, tier, primary concern, blind spots, objections, banned phrases, worked examples), coaches voice distinctness by detecting >30% banned-phrase overlap with shipped personas, validates output against `scripts/validate-personas.sh` before writing, and outputs to `${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/` with ready-to-run install commands. (SCAF-01 through SCAF-05)
 
 ## [1.0.2] - 2026-04-24
 
