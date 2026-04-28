@@ -45,7 +45,9 @@ trap cleanup EXIT
 [ -x "$SVALID" ]  || { fail "bin/dc-validate-synthesis.sh missing/not executable"; exit 1; }
 [ -f "$FIXTURE" ] || { fail "tests/fixtures/contradiction-seed.md missing"; exit 1; }
 [ -f "$REVIEW_MD" ] || { fail "commands/review.md missing"; exit 1; }
-for persona in staff-engineer sre product-manager devils-advocate council-chair; do
+for persona in staff-engineer sre product-manager devils-advocate council-chair \
+               compliance-reviewer performance-reviewer test-lead \
+               executive-sponsor competing-team-lead junior-engineer; do
   [ -f "$REPO_ROOT/agents/${persona}.md" ] \
     || { fail "agents/${persona}.md missing"; exit 1; }
   [ -f "$REPO_ROOT/persona-metadata/${persona}.yml" ] \
@@ -411,6 +413,217 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Case F — 10-persona Chair synthesis (D-15, D-16, SC-6)
+# ---------------------------------------------------------------------------
+echo "--- Case F: 10-persona Chair synthesis (SC-6) ---"
+
+# Build a run dir with 4 core + 6 bench persona drafts.
+RUN_F=$(build_run_with_four_scorecards) || { fail "F: failed to build run dir"; exit 1; }
+
+# Add 6 bench persona drafts using same HEREDOC pattern as core personas.
+# Each draft cites evidence from contradiction-seed.md.
+
+cat > "$RUN_F/compliance-reviewer-draft.md" <<'COMP_EOF'
+---
+persona: compliance-reviewer
+run_id: chair-test
+findings:
+  - id: "sha256:placeholder"
+    target: "## Proposal"
+    claim: "The rate limiter stores per-tenant request counts with no retention schedule — GDPR Art. 5(1)(e) requires a defined deletion timeline for data that can be linked to an account."
+    evidence: |
+      No feature flag. No kill switch. No staged rollout.
+    ask: "Define a retention period for the per-tenant counter data and document the legal basis for storing it."
+    severity: major
+    category: compliance
+---
+
+## Summary
+
+Missing retention schedule on per-tenant data.
+COMP_EOF
+
+cat > "$RUN_F/performance-reviewer-draft.md" <<'PERF_EOF'
+---
+persona: performance-reviewer
+run_id: chair-test
+findings:
+  - id: "sha256:placeholder"
+    target: "## Proposal"
+    claim: "The token-bucket check runs per request but the plan states no expected request rate — at 10,000 req/s the in-memory state lookup becomes the hot path."
+    evidence: |
+      No feature flag. No kill switch. No staged rollout.
+    ask: "State the expected request rate and measure the p99 latency of the token-bucket check at that rate before shipping."
+    severity: major
+    category: performance
+---
+
+## Summary
+
+Unstated request rate makes hot-path risk unquantifiable.
+PERF_EOF
+
+cat > "$RUN_F/test-lead-draft.md" <<'TEST_EOF'
+---
+persona: test-lead
+run_id: chair-test
+findings:
+  - id: "sha256:placeholder"
+    target: "## Proposal"
+    claim: "The proposal adds middleware that modifies request flow but the diff contains zero test files — either existing tests cover this path or nothing does."
+    evidence: |
+      No feature flag. No kill switch. No staged rollout.
+    ask: "Show which existing test exercises the middleware path, or add one that proves the rate limiter fires at the configured threshold."
+    severity: major
+    category: test-coverage
+---
+
+## Summary
+
+Src changes with no test changes — coverage gap or silent reliance on integration tests.
+TEST_EOF
+
+cat > "$RUN_F/executive-sponsor-draft.md" <<'EXEC_EOF'
+---
+persona: executive-sponsor
+run_id: chair-test
+findings:
+  - id: "sha256:placeholder"
+    target: "## Proposal"
+    claim: "The plan names no budget for the rate limiter infrastructure — at the described scale (multi-tenant, per-tenant counters), Redis alone costs roughly $200/month and the engineering investment is unstated."
+    evidence: |
+      No feature flag. No kill switch. No staged rollout.
+    ask: "Add an infrastructure cost line (Redis/DynamoDB pricing at projected tenant count) and engineer-week estimate before approval."
+    severity: major
+    category: quantification-gap
+---
+
+## Summary
+
+No budget estimate for a multi-tenant infrastructure change.
+EXEC_EOF
+
+cat > "$RUN_F/competing-team-lead-draft.md" <<'CTL_EOF'
+---
+persona: competing-team-lead
+run_id: chair-test
+findings:
+  - id: "sha256:placeholder"
+    target: "## Proposal"
+    claim: "The middleware sits on the shared request path but names no downstream consumer — the Acme onboarding service calls this endpoint and a 429 at their request rate breaks their import flow."
+    evidence: |
+      No feature flag. No kill switch. No staged rollout.
+    ask: "Name every service that calls this endpoint today and confirm their expected request rates are below the proposed limit."
+    severity: major
+    category: shared-infra
+---
+
+## Summary
+
+Shared-path middleware with no consumer inventory.
+CTL_EOF
+
+cat > "$RUN_F/junior-engineer-draft.md" <<'JE_EOF'
+---
+persona: junior-engineer
+run_id: chair-test
+findings:
+  - id: "sha256:placeholder"
+    target: "## Risks"
+    claim: "I had to re-read the deploy-window risk section three times — it says 'in-memory state does not survive restart' but never explains what happens to requests in flight when the state resets."
+    evidence: |
+      In-memory state does not survive restart; limits reset on deploy.
+    ask: "Add one sentence explaining what a user sees when the limiter state resets mid-request — do they get a 429 or does the counter just start over?"
+    severity: minor
+    category: comprehension
+---
+
+## Summary
+
+The deploy-reset behavior is described but the user-facing consequence is not.
+JE_EOF
+
+# Stamp the 6 new bench persona drafts via the validator.
+# The 4 core personas are already stamped by build_run_with_four_scorecards.
+for persona in compliance-reviewer performance-reviewer test-lead \
+               executive-sponsor competing-team-lead junior-engineer; do
+  "$PVALID" "$persona" "$RUN_F" core:always-on >/dev/null 2>&1 \
+    || { fail "F: failed to stamp $persona"; }
+done
+pass "F: 10 persona scorecards validated + stamped (4 core + 6 bench)"
+
+# Extract stamped IDs for the synthesis draft.
+ID_F_SE=$(jq -r '.personas_run[] | select(.name=="staff-engineer") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_SRE=$(jq -r '.personas_run[] | select(.name=="sre") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_PM=$(jq -r '.personas_run[] | select(.name=="product-manager") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_DA=$(jq -r '.personas_run[] | select(.name=="devils-advocate") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_COMP=$(jq -r '.personas_run[] | select(.name=="compliance-reviewer") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_PERF=$(jq -r '.personas_run[] | select(.name=="performance-reviewer") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_TEST=$(jq -r '.personas_run[] | select(.name=="test-lead") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_EXEC=$(jq -r '.personas_run[] | select(.name=="executive-sponsor") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_CTL=$(jq -r '.personas_run[] | select(.name=="competing-team-lead") | .findings[0].id' "$RUN_F/MANIFEST.json")
+ID_F_JE=$(jq -r '.personas_run[] | select(.name=="junior-engineer") | .findings[0].id' "$RUN_F/MANIFEST.json")
+
+# Write a 10-persona synthesis draft with <= 5 contradictions (D-16 threshold).
+cat > "$RUN_F/SYNTHESIS.md.draft" <<DRAFT_F_EOF
+## Contradictions
+
+- **Product Manager** (${ID_F_PM}): «The Acme demo commitment was signed off on 'ship it on by default'; gating with a flag changes the contract without a re-commit.»
+  **SRE** (${ID_F_SRE}): «Shipping unflagged removes the rollback lever; a 9am PT deploy-induced 429 spike takes the demo rehearsal down.»
+  *Tension:* PM optimizes for customer-script stability; SRE optimizes for blast-radius. The plan picks PM's side without naming the trade.
+
+- **Executive Sponsor** (${ID_F_EXEC}): «The plan names no budget for the rate limiter infrastructure.»
+  **Staff Engineer** (${ID_F_SE}): «The limiter has one caller (Acme) and ships as middleware for every tenant; this is speculative generality.»
+  *Tension:* Exec Sponsor asks for budget justification on infrastructure the Staff Engineer argues should not exist yet.
+
+- **Test Lead** (${ID_F_TEST}): «The proposal adds middleware with zero test files.»
+  **Performance Reviewer** (${ID_F_PERF}): «The token-bucket check runs per request but the plan states no expected request rate.»
+  *Tension:* Both flag the middleware from different angles — untested code on a hot path with unknown load.
+
+## Top-3 Blocking Concerns
+
+1. **SRE** (${ID_F_SRE}): Shipping unflagged removes the rollback path; blocker-severity on ## Proposal.
+2. **Devil's Advocate** (${ID_F_DA}): Unexamined premise on ## Proposal — demo-simplicity vs operational-safety trade not named.
+3. **Staff Engineer** (${ID_F_SE}): Middleware generality on ## Proposal with only one caller.
+
+## Agreements
+
+- All ten personas anchored on the "No feature flag" line in ## Proposal; disagreement is about framing, not about what the text says.
+- Compliance, Performance, Test Lead, and Competing Team Lead all found distinct issues on the same middleware path — reinforcing the SRE blocker.
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)
+- [product-manager.md](./product-manager.md)
+- [devils-advocate.md](./devils-advocate.md)
+- [compliance-reviewer.md](./compliance-reviewer.md)
+- [performance-reviewer.md](./performance-reviewer.md)
+- [test-lead.md](./test-lead.md)
+- [executive-sponsor.md](./executive-sponsor.md)
+- [competing-team-lead.md](./competing-team-lead.md)
+- [junior-engineer.md](./junior-engineer.md)
+DRAFT_F_EOF
+
+"$SVALID" "$RUN_F" >/dev/null 2>&1 || { fail "F: synthesis validator exited non-zero"; }
+
+if [ -f "$RUN_F/SYNTHESIS.md" ]; then
+  pass "F: 10-persona SYNTHESIS.md created"
+else
+  fail "F: 10-persona SYNTHESIS.md missing"
+fi
+
+# D-16 assertion: <= 5 contradictions.
+if [ -f "$RUN_F/SYNTHESIS.md" ]; then
+  CONTRADICTION_COUNT=$(jq -r '.synthesis.contradiction_count // 0' "$RUN_F/MANIFEST.json")
+  if [ "$CONTRADICTION_COUNT" -le 5 ]; then
+    pass "F: D-16 — contradiction count ($CONTRADICTION_COUNT) <= 5 threshold"
+  else
+    fail "F: D-16 — contradiction count ($CONTRADICTION_COUNT) exceeds 5 threshold"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Summary + exit
 # ---------------------------------------------------------------------------
 echo ""
@@ -418,5 +631,5 @@ if [ "$FAIL" -ne 0 ]; then
   printf 'CHAIR SYNTHESIS TEST: FAILED\n' >&2
   exit 1
 fi
-printf 'CHAIR SYNTHESIS TEST: PASSED (cases A-E)\n'
+printf 'CHAIR SYNTHESIS TEST: PASSED (cases A-F)\n'
 exit 0

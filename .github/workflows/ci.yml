@@ -82,6 +82,31 @@ jobs:
           # to catch regressions in the validator itself (not just in agents/*.md).
           ./scripts/test-validate-personas.sh
 
+      - name: Adversarial Exec Sponsor fixture
+        shell: bash
+        run: |
+          # Phase 4 PQUAL-02: validates fixture integrity (zero quantification + banned-phrase coverage).
+          # Does NOT invoke live LLM output — that is Phase 7.
+          if [ -x tests/fixtures/exec-sponsor-adversarial/test-exec-sponsor-adversarial.sh ] \
+              && [ -f tests/fixtures/exec-sponsor-adversarial/temptation-plan.md ] \
+              && [ -f persona-metadata/executive-sponsor.yml ]; then
+            bash tests/fixtures/exec-sponsor-adversarial/test-exec-sponsor-adversarial.sh
+          else
+            echo "exec-sponsor-adversarial test skipped — fixture or sidecar not yet present"
+          fi
+
+      - name: Blinded-reader readiness
+        shell: bash
+        run: |
+          # Phase 4 PQUAL-03: validates structural prerequisites for LLM-as-judge attribution.
+          # Checks sidecar uniqueness, voice-kit minimums, and fixture existence.
+          if [ -x scripts/test-blinded-reader.sh ] \
+              && [ -d persona-metadata ]; then
+            bash scripts/test-blinded-reader.sh
+          else
+            echo "blinded-reader readiness test skipped — script or persona-metadata not yet present"
+          fi
+
       - name: Run shell-inject pre-parser (Phase 1 TD-04)
         shell: bash
         run: |
