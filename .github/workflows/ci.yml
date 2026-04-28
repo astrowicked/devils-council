@@ -139,15 +139,31 @@ jobs:
             echo "chair-strictness test skipped — scripts/test-chair-strictness.sh or fixtures not yet present"
           fi
 
-      - name: Run classifier tests (Phase 6 BNCH-01, BNCH-08)
+      - name: "Run classifier tests — NEGATIVES FIRST (Phase 3 D-16, P-02 prevention)"
         shell: bash
         run: |
-          # Tests lib/classify.py + bin/dc-classify.sh against 17 fixtures.
-          # Skips gracefully if lib/classify.py not present (e.g., partial phase).
+          # Phase 3 D-16: negative fixtures MUST run before positives to prevent
+          # positive-bias masking false-positives. This step runs ONLY negatives.
+          # If any negative fires its detector, this step exits 1 and the
+          # subsequent positives step never runs — this is the load-bearing
+          # CI-level enforcement of inverted-TDD ordering.
           if [ -f lib/classify.py ] && [ -x bin/dc-classify.sh ]; then
-            ./scripts/test-classify.sh
+            ./scripts/test-classify.sh --negatives-only
           else
-            echo "classifier tests skipped — lib/classify.py or bin/dc-classify.sh not yet present"
+            echo "classifier negatives skipped — lib/classify.py or bin/dc-classify.sh not yet present"
+          fi
+
+      - name: "Run classifier tests — POSITIVES (Phase 3 + legacy v1.0)"
+        shell: bash
+        run: |
+          # Runs the 5 new-detector positive assertions + all 17 legacy v1.0
+          # positive assertions + MANIFEST shape check. Only reached if the
+          # negatives step above passed (GH Actions default: step failure halts
+          # subsequent steps). This is the second half of D-16 enforcement.
+          if [ -f lib/classify.py ] && [ -x bin/dc-classify.sh ]; then
+            ./scripts/test-classify.sh --positives-only
+          else
+            echo "classifier positives skipped — lib/classify.py or bin/dc-classify.sh not yet present"
           fi
 
       - name: Run budget-cap tests (Phase 6 BNCH-05, BNCH-07)
