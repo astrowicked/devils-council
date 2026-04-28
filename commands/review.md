@@ -301,7 +301,7 @@ order in your response):
 3. `product-manager` -> writes `<RUN_DIR>/product-manager-draft.md`
 4. `devils-advocate` -> writes `<RUN_DIR>/devils-advocate-draft.md`
 
-<!-- Phase 6 bench fan-out: BENCH_SPAWN_LIST from the budget-plan step above -->
+<!-- Phase 4/6 bench fan-out: BENCH_SPAWN_LIST from the budget-plan step above -->
 
 For each bench persona `B` in `BENCH_SPAWN_LIST` (in order), issue an
 Agent tool call AS PART OF THE SAME PARALLEL TURN as the four core
@@ -316,11 +316,21 @@ assistant turn. Claude Code's harness parallelizes concurrent tool
 calls. Bench personas never see another persona's draft; isolation is
 architectural, not coincidental.
 
-Bench personas supported in Phase 6:
+Bench personas supported in v1.1:
 - `security-reviewer` → writes `<RUN_DIR>/security-reviewer-draft.md`
 - `finops-auditor` → writes `<RUN_DIR>/finops-auditor-draft.md`
 - `air-gap-reviewer` → writes `<RUN_DIR>/air-gap-reviewer-draft.md`
 - `dual-deploy-reviewer` → writes `<RUN_DIR>/dual-deploy-reviewer-draft.md`
+- `compliance-reviewer` → writes `<RUN_DIR>/compliance-reviewer-draft.md`
+- `performance-reviewer` → writes `<RUN_DIR>/performance-reviewer-draft.md`
+- `test-lead` → writes `<RUN_DIR>/test-lead-draft.md`
+- `executive-sponsor` → writes `<RUN_DIR>/executive-sponsor-draft.md`
+- `competing-team-lead` → writes `<RUN_DIR>/competing-team-lead-draft.md`
+
+Additionally, `junior-engineer` is auto-appended to BENCH_SPAWN_LIST when
+`artifact_type` is `code-diff` (via the `always_invoke_on` field in its
+sidecar, read by `bin/dc-budget-plan.sh`). Junior Engineer bypasses the
+budget cap and does not count against MAX_SPAWNABLE.
 
 After the parallel turn returns, the `## Reconcile Codex delegations`
 section below (added in Plan 05) runs against `security-reviewer` and
@@ -805,6 +815,12 @@ AND inside the `[major]` / `[nit]` one-liner prefixes — the file slug
 - `finops-auditor` → `FinOps Auditor`
 - `air-gap-reviewer` → `Air-Gap Reviewer`
 - `dual-deploy-reviewer` → `Dual-Deploy Reviewer`
+- `compliance-reviewer` → `Compliance Reviewer`
+- `performance-reviewer` → `Performance Reviewer`
+- `test-lead` → `Test Lead`
+- `executive-sponsor` → `Executive Sponsor`
+- `competing-team-lead` → `Competing Team Lead`
+- `junior-engineer` → `Junior Engineer`
 
 After all four core scorecards and any bench scorecards have been
 rendered under the severity-tier transform, preserve the existing
