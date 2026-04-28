@@ -4,10 +4,16 @@
     "per_persona_estimate_usd": 0.08,
     "bench_priority_order": [
       "security-reviewer",
+      "compliance-reviewer",
       "dual-deploy-reviewer",
+      "performance-reviewer",
       "finops-auditor",
-      "air-gap-reviewer"
+      "air-gap-reviewer",
+      "test-lead",
+      "executive-sponsor",
+      "competing-team-lead"
     ],
+    "_comment_bench_priority_order": "Order drives which bench personas run when budget cap is exceeded. Junior Eng is always-invokable on code-diff outside this system (D-12). Rationale: security covers broadest attack surface; compliance narrower (citable controls); dual-deploy critical for enterprise/air-gap customers; performance > finops because hot-path findings are actionable vs budget-oriented; air-gap niche (self-hosted only); test-lead broader scope but less critical; executive-sponsor + competing-team-lead are weak-signal, correctly last.",
     "wall_clock_cap_seconds": 30
   }
 }
