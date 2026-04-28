@@ -65,6 +65,7 @@ USAGE
 
 SIGNALS_PATH="${REPO_ROOT}/lib/signals.json"
 TARGET_FILE=""
+SKIP_OVERLAP=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -82,6 +83,10 @@ while [ $# -gt 0 ]; do
       ;;
     --signals=*)
       SIGNALS_PATH="${1#--signals=}"
+      shift
+      ;;
+    --skip-overlap)
+      SKIP_OVERLAP=true
       shift
       ;;
     --)
@@ -663,5 +668,153 @@ for f in "${FILES[@]}"; do
     OVERALL_STATUS=1
   fi
 done
+
+# -----------------------------------------------------------------------------
+# 7. Voice-distinctness overlap check (PQUAL-01, D-08, D-09)
+# -----------------------------------------------------------------------------
+#
+# Pairwise comparison of banned_phrases and characteristic_objections across
+# all critic personas (core + bench). Warns on overlap exceeding thresholds.
+# Warn-mode only — does NOT affect OVERALL_STATUS or exit code.
+#
+# Skipped when:
+#   - --skip-overlap flag is set (e.g., single-file validation or test harness)
+#   - Validating a single TARGET_FILE (overlap requires full roster)
+# -----------------------------------------------------------------------------
+
+# Baseline banned phrases excluded from overlap calculation per D-08.
+BASELINE_BANS=("consider" "think about" "be aware of")
+
+# check_voice_distinctness — runs pairwise overlap detection across all
+# critic sidecars in persona-metadata/. Emits warnings to stderr only.
+check_voice_distinctness() {
+  local metadata_dir="${REPO_ROOT}/persona-metadata"
+  [ -d "$metadata_dir" ] || return 0
+
+  # Collect critic sidecars (core + bench tiers only; skip chair, classifier).
+  local critic_sidecars=()
+  local sidecar_file tier_val
+  for sidecar_file in "$metadata_dir"/*.yml; do
+    [ -f "$sidecar_file" ] || continue
+    tier_val=$(yq eval '.tier // ""' "$sidecar_file" 2>/dev/null || echo "")
+    case "$tier_val" in
+      core|bench) critic_sidecars+=("$sidecar_file") ;;
+    esac
+  done
+
+  local n=${#critic_sidecars[@]}
+  [ "$n" -lt 2 ] && return 0
+
+  # Helper: get role-specific banned phrases (exclude baseline).
+  _role_specific_bans() {
+    local file=$1
+    local all_bans
+    all_bans=$(yq eval '.banned_phrases[]' "$file" 2>/dev/null || true)
+    local phrase
+    while IFS= read -r phrase; do
+      [ -z "$phrase" ] && continue
+      local is_baseline=false
+      for base in "${BASELINE_BANS[@]}"; do
+        if [ "$phrase" = "$base" ]; then
+          is_baseline=true
+          break
+        fi
+      done
+      if [ "$is_baseline" = false ]; then
+        printf '%s\n' "$phrase"
+      fi
+    done <<< "$all_bans"
+  }
+
+  # Helper: get characteristic objections.
+  _char_objections() {
+    local file=$1
+    yq eval '.characteristic_objections[]' "$file" 2>/dev/null || true
+  }
+
+  # Helper: persona slug from sidecar path.
+  _slug() { basename "$1" .yml; }
+
+  # Pairwise comparison.
+  local i j
+  for (( i=0; i<n-1; i++ )); do
+    for (( j=i+1; j<n; j++ )); do
+      local file_a="${critic_sidecars[$i]}"
+      local file_b="${critic_sidecars[$j]}"
+      local slug_a slug_b
+      slug_a=$(_slug "$file_a")
+      slug_b=$(_slug "$file_b")
+
+      # --- Banned-phrase overlap (threshold: 40%) ---
+      local bans_a bans_b
+      bans_a=$(_role_specific_bans "$file_a")
+      bans_b=$(_role_specific_bans "$file_b")
+
+      local count_a count_b
+      count_a=$(printf '%s\n' "$bans_a" | grep -c . || true)
+      count_b=$(printf '%s\n' "$bans_b" | grep -c . || true)
+
+      if [ "$count_a" -gt 0 ] && [ "$count_b" -gt 0 ]; then
+        local min_bans overlap_count=0
+        if [ "$count_a" -le "$count_b" ]; then min_bans=$count_a; else min_bans=$count_b; fi
+
+        local phrase_a
+        while IFS= read -r phrase_a; do
+          [ -z "$phrase_a" ] && continue
+          if printf '%s\n' "$bans_b" | grep -Fxq -- "$phrase_a"; then
+            overlap_count=$((overlap_count + 1))
+          fi
+        done <<< "$bans_a"
+
+        local overlap_pct=$((overlap_count * 100 / min_bans))
+        if [ "$overlap_pct" -gt 40 ]; then
+          warn "voice-distinctness: ${slug_a} and ${slug_b} share >${overlap_pct}% banned-phrase overlap (${overlap_count}/${min_bans} role-specific phrases match)"
+        fi
+      fi
+
+      # --- Characteristic-objection overlap (threshold: 30%) ---
+      local objs_a objs_b
+      objs_a=$(_char_objections "$file_a")
+      objs_b=$(_char_objections "$file_b")
+
+      local obj_count_a obj_count_b
+      obj_count_a=$(printf '%s\n' "$objs_a" | grep -c . || true)
+      obj_count_b=$(printf '%s\n' "$objs_b" | grep -c . || true)
+
+      if [ "$obj_count_a" -gt 0 ] && [ "$obj_count_b" -gt 0 ]; then
+        local min_objs obj_overlap=0
+        if [ "$obj_count_a" -le "$obj_count_b" ]; then min_objs=$obj_count_a; else min_objs=$obj_count_b; fi
+
+        # Substring match: objection from A is a substring of any objection in B (or vice versa).
+        local obj_a obj_b matched
+        while IFS= read -r obj_a; do
+          [ -z "$obj_a" ] && continue
+          matched=false
+          while IFS= read -r obj_b; do
+            [ -z "$obj_b" ] && continue
+            # Check if A is substring of B or B is substring of A.
+            if [[ "$obj_b" == *"$obj_a"* ]] || [[ "$obj_a" == *"$obj_b"* ]]; then
+              matched=true
+              break
+            fi
+          done <<< "$objs_b"
+          if [ "$matched" = true ]; then
+            obj_overlap=$((obj_overlap + 1))
+          fi
+        done <<< "$objs_a"
+
+        local obj_overlap_pct=$((obj_overlap * 100 / min_objs))
+        if [ "$obj_overlap_pct" -gt 30 ]; then
+          warn "voice-distinctness: ${slug_a} and ${slug_b} share >${obj_overlap_pct}% characteristic-objection overlap (${obj_overlap}/${min_objs} objections match)"
+        fi
+      fi
+    done
+  done
+}
+
+# Run voice-distinctness check unless skipped.
+if [ "$SKIP_OVERLAP" = false ] && [ -z "$TARGET_FILE" ]; then
+  check_voice_distinctness
+fi
 
 exit "$OVERALL_STATUS"
