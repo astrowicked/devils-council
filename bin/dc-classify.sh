@@ -48,13 +48,22 @@ fi
 
 command -v jq >/dev/null 2>&1 || { err "jq required"; exit 1; }
 
+# --- Extract artifact_type from MANIFEST (D-06) ---
+ARTIFACT_TYPE=$(jq -r '.detected_type // "code-diff"' "$MANIFEST" 2>/dev/null || printf 'code-diff')
+# Guard: if empty or null string made it through, default
+case "$ARTIFACT_TYPE" in
+  code-diff|plan|rfc|design) ;;
+  ""|null) ARTIFACT_TYPE="code-diff" ;;
+  *) err "unknown detected_type '$ARTIFACT_TYPE' in MANIFEST — defaulting to code-diff"; ARTIFACT_TYPE="code-diff" ;;
+esac
+
 # Invoke classifier; capture stdout separately from stderr
 OUT_JSON=$(mktemp)
 ERR_LOG=$(mktemp)
 trap 'rm -f "$OUT_JSON" "$ERR_LOG"' EXIT
 
 set +e
-"$PYTHON3" "${REPO_ROOT}/lib/classify.py" "$INPUT_MD" "$SIGNALS" "$HINT" > "$OUT_JSON" 2> "$ERR_LOG"
+"$PYTHON3" "${REPO_ROOT}/lib/classify.py" "$INPUT_MD" "$SIGNALS" "$HINT" --artifact-type "$ARTIFACT_TYPE" > "$OUT_JSON" 2> "$ERR_LOG"
 CLS_EXIT=$?
 set -e
 
@@ -80,7 +89,8 @@ jq --slurpfile cls "$OUT_JSON" '
   | .trigger_reasons = ($cls[0].trigger_reasons // {})
 ' "$MANIFEST" > "$TMP_MF" && mv "$TMP_MF" "$MANIFEST"
 
-printf 'dc-classify: OK — %d signals, %d personas\n' \
+printf 'dc-classify: OK — %d signals, %d personas, artifact_type=%s\n' \
   "$(jq -r '.classifier.deterministic_match_count' "$MANIFEST")" \
-  "$(jq -r '.triggered_personas | length' "$MANIFEST")" >&2
+  "$(jq -r '.triggered_personas | length' "$MANIFEST")" \
+  "$ARTIFACT_TYPE" >&2
 exit 0
