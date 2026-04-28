@@ -1,0 +1,17 @@
+diff --git a/src/users.ts b/src/users.ts
+--- a/src/users.ts
++++ b/src/users.ts
+@@ -1,3 +1,15 @@
++async function loadUserEmails(userIds: string[]) {
++  const results = [];
++  for (let i = 0; i < userIds.length; i++) {
++    const user = await db.findOne(userIds[i]);
++    results.push(user.email);
++  }
++  for (let j = 0; j < results.length; j++) {
++    const detail = await db.fetch(results[j]);
++    const arr = new Array(detail.tags);
++    console.log(arr);
++  }
++  return results;
++}

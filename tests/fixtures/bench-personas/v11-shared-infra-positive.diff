@@ -1,0 +1,7 @@
+diff --git a/shared/gateway/routes.ts b/shared/gateway/routes.ts
+--- a/shared/gateway/routes.ts
++++ b/shared/gateway/routes.ts
+@@ -1,2 +1,3 @@
+ export const routes = [
++  { path: "/api/v2/users", handler: "userHandler" },
+ ];

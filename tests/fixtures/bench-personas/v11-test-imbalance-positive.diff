@@ -1,0 +1,21 @@
+diff --git a/src/billing.py b/src/billing.py
+--- a/src/billing.py
++++ b/src/billing.py
+@@ -1,3 +1,4 @@
+ def compute_total(items):
++    return sum(i.price for i in items)
+     pass
+diff --git a/src/payments.py b/src/payments.py
+--- a/src/payments.py
++++ b/src/payments.py
+@@ -1,3 +1,4 @@
+ def process_payment(order):
++    return charge(order.total)
+     pass
+diff --git a/src/invoicing.py b/src/invoicing.py
+--- a/src/invoicing.py
++++ b/src/invoicing.py
+@@ -1,3 +1,4 @@
+ def generate_invoice(order):
++    return create_pdf(order)
+     pass
