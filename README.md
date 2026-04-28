@@ -138,6 +138,7 @@ Trigger reasons appear in `MANIFEST.trigger_reasons{}` for every bench persona t
 | `/devils-council:on-plan <phase>` | Review every `.planning/phases/<NN>-*/<NN>-*-PLAN.md` for a GSD phase | `/devils-council:on-plan 7` |
 | `/devils-council:on-code <phase>` | Review the committed diff for a GSD phase; `--from <ref>` fallback for commit_docs=false projects | `/devils-council:on-code 7 --from HEAD~10` |
 | `/devils-council:dig <persona> <run-id\|latest> [question]` | Ask a follow-up scoped to ONE persona's scorecard; single-turn, ephemeral | `/devils-council:dig security-reviewer latest "justify blocker severity"` |
+| `/devils-council:create-persona [slug]` | Interactive wizard to scaffold a custom persona with voice-kit coaching | `/devils-council:create-persona cost-hawk` |
 
 Flags on `review`:
 - `--only=<persona,persona>` — force-include (ignores triggers)
@@ -172,6 +173,57 @@ Off by default. To enable PostToolUse wrapping of `gsd-plan-checker` and `gsd-co
 ```
 
 Or edit `~/.claude/settings.json` directly. The hook is a no-op when GSD is not installed (checks `~/.claude/agents/gsd-plan-checker.md` presence).
+
+## Custom Personas
+
+Create a custom persona interactively:
+
+```
+/devils-council:create-persona
+```
+
+Or provide a slug directly:
+
+```
+/devils-council:create-persona cost-hawk
+```
+
+The scaffolder walks you through every voice-kit field:
+
+1. **Name** (kebab-case slug)
+2. **Tier** (core = always-on, bench = signal-triggered)
+3. **Primary concern** (one-sentence value-system anchor ending with `?`)
+4. **Blind spots** (what this persona does NOT care about)
+5. **Characteristic objections** (3+ verbatim phrases)
+6. **Banned phrases** (5+ phrases the persona must never use)
+7. **Worked examples** (2 good findings + 1 bad finding)
+
+The scaffolder:
+- Suggests available signal IDs for bench triggers
+- Warns if your banned phrases overlap >30% with a shipped persona
+- Flags objections that contain your own banned phrases
+- Previews the full file before writing
+- Validates against `scripts/validate-personas.sh` before declaring success
+
+Output lands in:
+
+```
+${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/
+  agents/<slug>.md
+  persona-metadata/<slug>.yml
+```
+
+To install into your plugin:
+
+```bash
+cp "${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/agents/<slug>.md" agents/
+cp "${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/persona-metadata/<slug>.yml" persona-metadata/
+./scripts/validate-personas.sh
+```
+
+Then run `/reload-plugins` to pick up the new persona.
+
+> **Note:** v1.2 will add `userConfig.custom_personas_dir` so custom personas survive plugin updates without manual copying.
 
 ## Codex Setup
 
