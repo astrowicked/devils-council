@@ -5,6 +5,10 @@
 .codex/
 *.codex-session
 
+# Python
+__pycache__/
+*.pyc
+
 # OS / editor cruft
 .DS_Store
 .idea/
