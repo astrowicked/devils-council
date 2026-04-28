@@ -54,7 +54,8 @@ image:
 def test_performance_hotpath_python_n_plus_1():
     text = """for row in rows:
     result = db.query(row.id)
-    items.append(result)
+    batch = list(result.items())
+    items.append(batch)
 """
     ev = _detect_performance_hotpath(text, "app.py")
     assert len(ev) >= 2, f"expected >=2 evidence for N+1, got {ev}"

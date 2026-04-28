@@ -326,6 +326,156 @@ def _detect_saas_only_assumption(text: str, filename_hint: str) -> list[str]:
     return []
 
 
+# --- Phase 3 new detectors (v1.1) ---
+
+
+def _detect_compliance_marker(text: str, filename_hint: str) -> list[str]:
+    """Regulatory citations + framework keywords. min_evidence=2 gated by classify()."""
+    evidence: list[str] = []
+    # Specific citation patterns (high-precision)
+    citation_patterns = [
+        r"\bGDPR\s+Art\.?\s*\d+",
+        r"\bHIPAA\s*§\s*164\.\d+",
+        r"\bSOC\s*2?\s+CC[-\s]?\d+",
+        r"\bPCI(?:-DSS)?\s+Req(?:uirement)?\s+\d+",
+        r"\bCCPA\s+§\s*\d+",
+        r"\bFedRAMP\s+(?:Low|Moderate|High)",
+    ]
+    for pat in citation_patterns:
+        for m in re.finditer(pat, text, re.I):
+            evidence.append(m.group(0))
+    # Framework keywords (moderate-precision; gated by min_evidence=2)
+    framework_patterns = [
+        r"\bdata\s+retention\b",
+        r"\bdata\s+residency\b",
+        r"\baudit[-\s]trail\b",
+        r"\bright\s+to\s+(?:erasure|be\s+forgotten)\b",
+        r"\bdata\s+subject\b",
+        r"\b(?:PII|PHI)\b",
+        r"\b(?:GDPR|HIPAA|SOC\s*2|PCI-?DSS|CCPA|HITECH|FedRAMP)\b",
+    ]
+    for pat in framework_patterns:
+        for m in re.finditer(pat, text, re.I):
+            evidence.append(m.group(0))
+    return evidence
+
+
+def _detect_performance_hotpath(text: str, filename_hint: str, *, artifact_type: str | None = None) -> list[str]:
+    """N+1 queries, nested loops, per-iteration allocations. AST (Python) + regex fallback."""
+    evidence: list[str] = []
+    # Python AST: find Call nodes referencing .query/.find/.fetch/.get inside For/While bodies
+    if filename_hint.endswith(".py"):
+        try:
+            tree = ast.parse(text)
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.For, ast.While)):
+                    for sub in ast.walk(node):
+                        if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
+                            if sub.func.attr in {"query", "find", "fetch", "get", "execute"}:
+                                evidence.append(f"{sub.func.attr}() in loop body ({filename_hint})")
+                        # Per-iteration allocations
+                        if isinstance(sub, (ast.List, ast.Dict, ast.Set)):
+                            evidence.append(f"inline {type(sub).__name__} literal in loop ({filename_hint})")
+                        if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name):
+                            if sub.func.id in {"list", "dict", "set"}:
+                                evidence.append(f"{sub.func.id}() call in loop ({filename_hint})")
+        except SyntaxError:
+            pass
+    # Regex fallback for JS/TS/other: loop + query/new Array/new Object
+    for m in re.finditer(r"for\s*\([^)]*\)[^{]*\{[^}]*(?:await\s+)?\w+\.(?:query|find|fetch|findOne|findMany)\s*\(", text):
+        evidence.append(m.group(0)[:80])
+    for m in re.finditer(r"for\s*\([^)]*\)[^{]*\{[^}]*new\s+(?:Array|Object|Map|Set)\s*\(", text):
+        evidence.append(m.group(0)[:80])
+    # Nested loops (any language)
+    for m in re.finditer(r"for\s*[\w\s(),=]+\s*\{[^{}]*for\s*[\w\s(),=]+\s*\{", text):
+        evidence.append("nested for-loop")
+    return evidence
+
+
+def _detect_test_imbalance(text: str, filename_hint: str, *, artifact_type: str | None = None) -> list[str]:
+    """File-set view: compare src/** vs tests/** paths in diff headers.
+
+    Unlike other detectors, this reasons across the full artifact, not a single file.
+    Extracts file paths from diff headers (`+++ b/<path>`) and checks src-vs-test ratio.
+    Fires on single imbalance (min_evidence=1).
+    """
+    # Only operates in diff context; if no diff headers, single-file artifacts don't produce imbalance
+    diff_paths: list[str] = []
+    for m in re.finditer(r'(?:^|\n)\+\+\+\s+b/(\S+)', text):
+        diff_paths.append(m.group(1))
+    if not diff_paths:
+        return []
+
+    def is_src(p: str) -> bool:
+        return bool(re.search(r"^(?:src|lib|app|pkg|cmd)/", p)) and not is_test(p)
+
+    def is_test(p: str) -> bool:
+        return bool(re.search(r"(?:^|/)(?:tests?|spec|__tests__)/|[._](?:test|spec)\.\w+$|test_\w+\.py$", p))
+
+    src_files = [p for p in diff_paths if is_src(p)]
+    test_files = [p for p in diff_paths if is_test(p)]
+
+    # Src-without-test: source changes with no test changes at all
+    if src_files and not test_files:
+        return [f"src-without-test imbalance: {len(src_files)} src file(s) changed, 0 test file(s)"]
+    # Test-without-src: tests modified alone (may be flake-chasing or dead tests)
+    if test_files and not src_files:
+        return [f"test-without-src imbalance: {len(test_files)} test file(s) changed, 0 src file(s)"]
+    return []
+
+
+def _detect_exec_keyword(text: str, filename_hint: str, *, artifact_type: str | None = None) -> list[str]:
+    """Executive nominalizations in plan/RFC artifacts. Classifier gates artifact_type upstream,
+    but this detector is defensive: returns [] on code-diff regardless (belt-and-suspenders)."""
+    if artifact_type == "code-diff":
+        return []
+    evidence: list[str] = []
+    # Nominalization phrases (high-precision -- rare outside exec-speak)
+    phrases = [
+        r"\bstrategic\s+alignment\b",
+        r"\bunlock\s+value\b",
+        r"\bmove\s+the\s+needle\b",
+        r"\bde-?risk\b",
+        r"\bnorth\s+star\b",
+        r"\bopportunity\s+cost\b",
+        r"\bcompetitive\s+(?:advantage|landscape|position)\b",
+        r"\blaunch\s+date\b",
+        r"\bgo-?to-?market\b",
+        r"\b(?:market|product)[-\s]market\s+fit\b",
+    ]
+    # Single-word exec-speak (lower-precision; min_evidence=2 gates)
+    single_words = [
+        r"\bROI\b",
+        r"\broadmap\b",
+        r"\brunway\b",
+        r"\bburn\s+rate\b",
+        r"\b(?:Q[1-4])\b",
+        r"\bquarter\b",
+        r"\brevenue\b",
+    ]
+    for pat in phrases + single_words:
+        for m in re.finditer(pat, text, re.I):
+            evidence.append(m.group(0))
+    return evidence
+
+
+def _detect_shared_infra_change(text: str, filename_hint: str) -> list[str]:
+    """Path-based detector: shared/, platform/, common/, api-contracts/, openapi*, graphql schema."""
+    evidence: list[str] = []
+    path_patterns = [
+        r"(?:^|/)(?:shared|platform|common)/",
+        r"(?:^|/)api-contracts/",
+        r"(?:^|/)openapi[\w.-]*\.(?:ya?ml|json)$",
+        r"(?:^|/)graphql/schema[\w.-]*",
+        r"\.proto$",
+    ]
+    for pat in path_patterns:
+        if re.search(pat, filename_hint):
+            evidence.append(f"shared-infra path: {filename_hint}")
+            break  # one match sufficient per hint
+    return evidence
+
+
 # DETECTORS: each function is _detect_<sid>(text, filename_hint, *, artifact_type=None).
 # Pre-Phase-3 detectors omit artifact_type; classify() uses try/except TypeError dispatch.
 DETECTORS = {
@@ -345,6 +495,12 @@ DETECTORS = {
     "chart_yaml_present": _detect_chart_yaml_present,
     "kots_config_change": _detect_kots_config_change,
     "saas_only_assumption": _detect_saas_only_assumption,
+    # v1.1 Phase 3 additions:
+    "compliance_marker": _detect_compliance_marker,
+    "performance_hotpath": _detect_performance_hotpath,
+    "test_imbalance": _detect_test_imbalance,
+    "exec_keyword": _detect_exec_keyword,
+    "shared_infra_change": _detect_shared_infra_change,
 }
 
 
