@@ -79,6 +79,26 @@ fi
 # Extract triggered bench personas from classifier result
 TRIGGERED_JSON=$(jq -c '.triggered_personas // []' "$MANIFEST")
 
+# --- always_invoke_on bypass (D-05, D-06) ---
+# Scan persona-metadata/*.yml for always_invoke_on fields matching the artifact_type.
+# These personas bypass both the classifier and the budget cap — they are auto-appended
+# to SPAWN_BENCH unconditionally and are NOT counted against MAX_SPAWNABLE.
+ARTIFACT_TYPE=$(jq -r '.artifact_type // ""' "$MANIFEST")
+ALWAYS_INVOKE_JSON='[]'
+if [ -n "$ARTIFACT_TYPE" ]; then
+  PERSONA_DIR="${REPO_ROOT}/persona-metadata"
+  if [ -d "$PERSONA_DIR" ]; then
+    for yml in "$PERSONA_DIR"/*.yml; do
+      [ -f "$yml" ] || continue
+      SLUG=$(basename "$yml" .yml)
+      # Check if this sidecar has always_invoke_on containing the current artifact_type
+      if yq -e ".always_invoke_on // [] | .[] | select(. == \"$ARTIFACT_TYPE\")" "$yml" >/dev/null 2>&1; then
+        ALWAYS_INVOKE_JSON=$(printf '%s' "$ALWAYS_INVOKE_JSON" | jq --arg s "$SLUG" '. + [$s]')
+      fi
+    done
+  fi
+fi
+
 # Apply --only filter (D-58: narrows bench candidates; --only is set semantics)
 CANDIDATE_JSON="$TRIGGERED_JSON"
 if [ -n "$ONLY_CSV" ]; then
@@ -149,7 +169,7 @@ SKIPPED_JSON=$(jq -n \
   )
 ')
 
-# Merge into MANIFEST
+# Merge into MANIFEST (includes always_invoked tracking per D-06)
 TMP_MF=$(mktemp)
 jq --argjson cap "$CAP_USD" \
    --argjson per "$PER_PERSONA_USD" \
@@ -157,7 +177,8 @@ jq --argjson cap "$CAP_USD" \
    --argjson spawn_count "$SPAWN_COUNT" \
    --argjson skipped "$SKIPPED_JSON" \
    --argjson over "$OVER_BUDGET" \
-   --argjson errors "$ERRORS_JSON" '
+   --argjson errors "$ERRORS_JSON" \
+   --argjson always "$ALWAYS_INVOKE_JSON" '
   .budget = {
     cap_usd: $cap,
     per_persona_estimate_usd: $per,
@@ -166,10 +187,21 @@ jq --argjson cap "$CAP_USD" \
     skipped_personas: [$skipped[].persona],
     actual_cost_usd: null,
     over_budget: $over,
-    errors: $errors
+    errors: $errors,
+    always_invoked: $always
   }
   | .personas_skipped = $skipped
 ' "$MANIFEST" > "$TMP_MF" && mv "$TMP_MF" "$MANIFEST"
+
+# Append always_invoke_on personas to spawn list (outside budget cap per D-06)
+ALWAYS_CSV=$(printf '%s' "$ALWAYS_INVOKE_JSON" | jq -r 'join(",")')
+if [ -n "$ALWAYS_CSV" ] && [ "$ALWAYS_CSV" != "" ]; then
+  if [ -n "$SPAWN_CSV" ]; then
+    SPAWN_CSV="${SPAWN_CSV},${ALWAYS_CSV}"
+  else
+    SPAWN_CSV="$ALWAYS_CSV"
+  fi
+fi
 
 # Emit plan to stdout
 printf 'SPAWN_BENCH=%s\n' "$SPAWN_CSV"
