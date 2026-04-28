@@ -92,18 +92,38 @@ def test_performance_hotpath_benign_yaml():
 # --- test_imbalance ---
 
 def test_test_imbalance_src_without_test():
+    # Requires 3+ files in diff for imbalance analysis (small diffs are too noisy)
+    text = """diff --git a/src/foo.py b/src/foo.py
++++ b/src/foo.py
++x = 1
+diff --git a/src/bar.py b/src/bar.py
++++ b/src/bar.py
++y = 2
+diff --git a/src/baz.py b/src/baz.py
++++ b/src/baz.py
++z = 3
+"""
+    ev = _detect_test_imbalance(text, "DIFF")
+    assert len(ev) == 1, f"expected 1 evidence for src-without-test, got {ev}"
+
+
+def test_test_imbalance_small_diff_ignored():
+    # 1-2 file diffs are too small for meaningful imbalance
     text = """diff --git a/src/foo.py b/src/foo.py
 +++ b/src/foo.py
 +x = 1
 """
     ev = _detect_test_imbalance(text, "DIFF")
-    assert len(ev) == 1, f"expected 1 evidence for src-without-test, got {ev}"
+    assert ev == [], f"expected no evidence for small diff, got {ev}"
 
 
 def test_test_imbalance_balanced():
     text = """diff --git a/src/foo.py b/src/foo.py
 +++ b/src/foo.py
 +x = 1
+diff --git a/src/bar.py b/src/bar.py
++++ b/src/bar.py
++y = 2
 diff --git a/tests/test_foo.py b/tests/test_foo.py
 +++ b/tests/test_foo.py
 +def test_x(): pass
@@ -113,9 +133,16 @@ diff --git a/tests/test_foo.py b/tests/test_foo.py
 
 
 def test_test_imbalance_test_without_src():
+    # Requires 3+ files for imbalance analysis
     text = """diff --git a/tests/test_foo.py b/tests/test_foo.py
 +++ b/tests/test_foo.py
 +def test_x(): pass
+diff --git a/tests/test_bar.py b/tests/test_bar.py
++++ b/tests/test_bar.py
++def test_y(): pass
+diff --git a/tests/test_baz.py b/tests/test_baz.py
++++ b/tests/test_baz.py
++def test_z(): pass
 """
     ev = _detect_test_imbalance(text, "DIFF")
     assert len(ev) == 1, f"expected 1 evidence for test-without-src, got {ev}"

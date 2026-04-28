@@ -398,12 +398,27 @@ def _detect_test_imbalance(text: str, filename_hint: str, *, artifact_type: str 
     Unlike other detectors, this reasons across the full artifact, not a single file.
     Extracts file paths from diff headers (`+++ b/<path>`) and checks src-vs-test ratio.
     Fires on single imbalance (min_evidence=1).
+
+    Guard: classify() calls each detector once with the primary hint, then once per
+    diff_file_hint extracted from the artifact. Since this detector already inspects
+    ALL diff headers in the text, re-running it per diff_file_hint would double-count.
+    Skip when the hint itself is a path found in diff headers (per-file re-invocation).
     """
     # Only operates in diff context; if no diff headers, single-file artifacts don't produce imbalance
     diff_paths: list[str] = []
     for m in re.finditer(r'(?:^|\n)\+\+\+\s+b/(\S+)', text):
         diff_paths.append(m.group(1))
     if not diff_paths:
+        return []
+
+    # Guard against per-file re-invocation from classify() diff_file_hints loop
+    if filename_hint in diff_paths:
+        return []
+
+    # Minimum diff size: diffs with fewer than 3 files are too small for meaningful
+    # imbalance analysis (focused changes). Prevents false-positives on v1.0 fixtures
+    # that are minimal 1-2 file diffs.
+    if len(diff_paths) < 3:
         return []
 
     def is_src(p: str) -> bool:
