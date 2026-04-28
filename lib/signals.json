@@ -81,6 +81,46 @@
       "description": "Code that assumes multi-tenant SaaS context (shared control plane, multi-tenant DB, org-level routing).",
       "detection_hint": "Tenant-ID routing logic added without a single-tenant mode; references to shared infra by hostname; org-scoped feature flags.",
       "target_personas": ["dual-deploy-reviewer"]
+    },
+    "compliance_marker": {
+      "description": "Regulatory or compliance-framework citations in code or plan artifacts (GDPR, HIPAA, SOC2, PCI, CCPA, FedRAMP, HITECH).",
+      "detection_hint": "Regex for citation patterns (GDPR Art. N, HIPAA §164.N, SOC2 CC-N, PCI Req N) and framework keywords (data retention, data residency, audit-trail, right to erasure, data subject, PII, PHI). Requires 2 distinct matches.",
+      "signal_strength": "moderate",
+      "min_evidence": 2,
+      "target_personas": ["compliance-reviewer"],
+      "artifact_type": ["code-diff", "plan", "rfc"]
+    },
+    "performance_hotpath": {
+      "description": "Code patterns correlated with runtime hot paths: N+1 queries, nested loops over collections, per-iteration allocations.",
+      "detection_hint": "AST/regex for database/fetch calls inside for/while loops, nested iteration over collections, allocations (list(), dict(), new Array, new Object) inside loop bodies. Requires 2 distinct matches.",
+      "signal_strength": "moderate",
+      "min_evidence": 2,
+      "target_personas": ["performance-reviewer"],
+      "artifact_type": ["code-diff"]
+    },
+    "test_imbalance": {
+      "description": "Diff adds or modifies source files without corresponding test changes, or vice versa.",
+      "detection_hint": "File-set view across the artifact: count diff file paths matching src/** vs tests/**/spec/**/__tests__/**. Fires when src-without-test or test-without-src imbalance detected. File-set-aware, not per-file.",
+      "signal_strength": "strong",
+      "min_evidence": 1,
+      "target_personas": ["test-lead"],
+      "artifact_type": ["code-diff"]
+    },
+    "exec_keyword": {
+      "description": "Strategic/executive nominalizations in plan or RFC artifacts (NOT code-diffs).",
+      "detection_hint": "Case-insensitive phrase match for nominalization patterns: 'strategic alignment', 'unlock value', 'move the needle', 'de-risk', 'north star', 'opportunity cost', 'roadmap', 'ROI', 'runway', 'burn rate', 'quarter', 'Q1|Q2|Q3|Q4', 'competitive', 'launch date'. Gated to artifact_type plan|rfc. Requires 2 distinct matches.",
+      "signal_strength": "weak",
+      "min_evidence": 2,
+      "target_personas": ["executive-sponsor"],
+      "artifact_type": ["plan", "rfc"]
+    },
+    "shared_infra_change": {
+      "description": "Changes to infrastructure consumed by multiple teams (shared services, API contracts, platform layers).",
+      "detection_hint": "Path-based regex on file hints: changes under shared/, platform/, common/, /api-contracts/, /openapi*, /graphql/schema. Single path match sufficient.",
+      "signal_strength": "strong",
+      "min_evidence": 1,
+      "target_personas": ["competing-team-lead"],
+      "artifact_type": ["code-diff"]
     }
   }
 }
