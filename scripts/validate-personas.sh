@@ -23,6 +23,7 @@
 #   R5  `characteristic_objections` present AND length >= 3       (critics only: core|bench)
 #   R6  `banned_phrases` present AND non-empty list               (critics only: core|bench)
 #   R7  if tier == bench: `triggers` non-empty AND every ID ∈ signals.json keys
+#       (exception: triggers may be empty if `always_invoke_on` is a non-empty list)
 #   R8  if tier ∈ {core, chair}: `triggers` empty or absent
 #   R9  if tier == classifier: MUST NOT have primary_concern / blind_spots /
 #       characteristic_objections / banned_phrases; triggers empty or absent
@@ -516,15 +517,23 @@ validate_one() {
 
   if [ "$tier" = "bench" ]; then
     # R7: triggers must be a non-empty list AND every ID in signals registry.
+    # Exception: if always_invoke_on is a non-empty list, empty triggers is
+    # valid (persona bypasses classifier via always_invoke_on, e.g. Junior Engineer).
+    local aio_len
+    aio_len=$(yaml_list_length "$meta" 'always_invoke_on')
     case "$tr_type" in
       missing|null)
-        errors+=("$rel: [R7] bench tier requires non-empty triggers list (was ${tr_type})")
+        if [ "${aio_len:--2}" -gt 0 ]; then
+          : # always_invoke_on present and non-empty — triggers not required
+        else
+          errors+=("$rel: [R7] bench tier requires non-empty triggers list (was ${tr_type})")
+        fi
         ;;
       list)
         tr_len=$(yaml_list_length "$meta" 'triggers')
-        if [ "$tr_len" -eq 0 ]; then
+        if [ "$tr_len" -eq 0 ] && [ "${aio_len:--2}" -le 0 ]; then
           errors+=("$rel: [R7] bench tier requires non-empty triggers list (was empty)")
-        else
+        elif [ "$tr_len" -gt 0 ]; then
           # Validate each ID against signal registry.
           local id
           while IFS= read -r id; do
