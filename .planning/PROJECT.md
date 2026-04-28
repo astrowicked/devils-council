@@ -21,13 +21,14 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - Codex `--output-schema` spike for Security persona (go/no-go memo in Phase 1; rollout or document negative result)
 - Tech debt bundle from v1.0 audit: TD-02, TD-03, TD-04, TD-05, TD-06, TD-07 (folded in; no separate v1.0.3 line)
 
-## Current State (as of Phase 4 completion)
+## Current State (as of Phase 5 completion)
 
 **Shipped:** v1.0.2 (2026-04-24) — release chain v1.0.0 → v1.0.1 → v1.0.2, all tagged + GitHub Releases live.
 **Installable:** `/plugin marketplace add astrowicked/devils-council && /plugin install devils-council@devils-council`
 **CI:** 7-step pipeline green on every push (plugin validate, persona validation, injection corpus, fixture-based quality tests, coexistence matrix, exec-sponsor adversarial, blinded-reader readiness).
 **Personas:** 4 core + 10 bench (6 new in Phase 4: Compliance, Performance, Test Lead, Executive Sponsor, Competing Team Lead, Junior Engineer). Conductor wired 4→9 bench whitelist + always_invoke_on for Junior Engineer.
-**Phase 4 complete:** 2026-04-28 — voice-distinctness validator, adversarial fixtures, 10-persona Chair synthesis all passing.
+**Scaffolder:** `skills/create-persona/SKILL.md` — 475-line interactive AskUserQuestion wizard with voice-kit coaching, >30% overlap detection, validate-personas.sh integration. Test harness (3 groups: pass/reject/overlap) all green.
+**Phase 5 complete:** 2026-04-28 — scaffolder skill + test harness + README/CHANGELOG docs.
 
 ## Requirements
 
@@ -56,7 +57,7 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - [x] Competing Team Lead — shared-infra + API-contract change signals; blast radius, coordination cost — Validated in Phase 4
 
 **Authoring UX:**
-- [ ] `skills/create-persona/SKILL.md` — interactive scaffolder writing schema-valid `agents/*.md` passing `validate-personas.sh` on first run
+- [x] `skills/create-persona/SKILL.md` — interactive scaffolder writing schema-valid `agents/*.md` passing `validate-personas.sh` on first run — Validated in Phase 5
 
 **Codex hardening:**
 - [ ] Codex `--output-schema` spike for Security (Phase 1 deliverable: go/no-go memo; if green, rollout + CI fixture)
