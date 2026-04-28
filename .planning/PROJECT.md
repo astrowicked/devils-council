@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Claude Code plugin that provides a persona-driven adversarial review layer for plans, code, and design artifacts. 10 personas (4 always-on core: Staff Engineer, SRE, PM, Devil's Advocate + 4 signal-triggered bench: Security Reviewer, FinOps Auditor, Air-Gap Reviewer, Dual-Deploy Reviewer + Council Chair synthesizer + Haiku artifact-classifier) critique work from their perspective, producing structured scorecards with enforced evidence, deterministic classifier-driven selection, hard budget caps, Codex-delegated deep scans for Security + Dual-Deploy, prompt-injection defense, response-suppression workflow (dismissed findings don't re-raise), severity-tiered render, and opt-in GSD hook integration.
+A Claude Code plugin that provides a persona-driven adversarial review layer for plans, code, and design artifacts. 16 personas (4 always-on core: Staff Engineer, SRE, PM, Devil's Advocate + 10 signal-triggered bench: Security Reviewer, FinOps Auditor, Air-Gap Reviewer, Dual-Deploy Reviewer, Compliance Reviewer, Performance Reviewer, Test Lead, Executive Sponsor, Competing Team Lead, Junior Engineer + Council Chair synthesizer + Haiku artifact-classifier) critique work from their perspective, producing structured scorecards with enforced evidence, deterministic classifier-driven selection, hard budget caps, Codex-delegated deep scans for Security + Dual-Deploy, prompt-injection defense, response-suppression workflow (dismissed findings don't re-raise), severity-tiered render, and opt-in GSD hook integration.
 
 ## Core Value
 
@@ -21,12 +21,13 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - Codex `--output-schema` spike for Security persona (go/no-go memo in Phase 1; rollout or document negative result)
 - Tech debt bundle from v1.0 audit: TD-02, TD-03, TD-04, TD-05, TD-06, TD-07 (folded in; no separate v1.0.3 line)
 
-## Current State (as of v1.0 ship)
+## Current State (as of Phase 4 completion)
 
 **Shipped:** v1.0.2 (2026-04-24) — release chain v1.0.0 → v1.0.1 → v1.0.2, all tagged + GitHub Releases live.
 **Installable:** `/plugin marketplace add astrowicked/devils-council && /plugin install devils-council@devils-council`
-**CI:** 5-step pipeline green on every push (`claude plugin validate`, persona validation, injection corpus, fixture-based quality tests, coexistence matrix with GSD + Superpowers).
-**Proven in production:** Andy's 08-UAT against real Phase 3 plan; one P0 slipped through v1.0.0 (shell-inject via `!<cmd>` block), caught + hotfixed in 35 minutes.
+**CI:** 7-step pipeline green on every push (plugin validate, persona validation, injection corpus, fixture-based quality tests, coexistence matrix, exec-sponsor adversarial, blinded-reader readiness).
+**Personas:** 4 core + 10 bench (6 new in Phase 4: Compliance, Performance, Test Lead, Executive Sponsor, Competing Team Lead, Junior Engineer). Conductor wired 4→9 bench whitelist + always_invoke_on for Junior Engineer.
+**Phase 4 complete:** 2026-04-28 — voice-distinctness validator, adversarial fixtures, 10-persona Chair synthesis all passing.
 
 ## Requirements
 
@@ -47,12 +48,12 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 ### Active (v1.1 — in scope)
 
 **New bench personas (6):**
-- [ ] Compliance Reviewer — policy/audit/regulation signals (GDPR/HIPAA/SOC2, data retention/residency)
-- [ ] Junior Engineer — always-invokable (no signal); readability, naming, "I don't understand this" flags
-- [ ] Performance Reviewer — N+1 patterns, hot-path allocation, loops-over-collections signals
-- [ ] Test Lead — src-without-test + test-without-src imbalance, flaky patterns, coverage gaps
-- [ ] Executive Sponsor — cost/budget/timeline/roadmap keywords; ROI, opportunity cost, strategic alignment
-- [ ] Competing Team Lead — shared-infra + API-contract change signals; blast radius, coordination cost
+- [x] Compliance Reviewer — policy/audit/regulation signals (GDPR/HIPAA/SOC2, data retention/residency) — Validated in Phase 4
+- [x] Junior Engineer — always-invokable (no signal); readability, naming, "I don't understand this" flags — Validated in Phase 4
+- [x] Performance Reviewer — N+1 patterns, hot-path allocation, loops-over-collections signals — Validated in Phase 4
+- [x] Test Lead — src-without-test + test-without-src imbalance, flaky patterns, coverage gaps — Validated in Phase 4
+- [x] Executive Sponsor — cost/budget/timeline/roadmap keywords; ROI, opportunity cost, strategic alignment — Validated in Phase 4
+- [x] Competing Team Lead — shared-infra + API-contract change signals; blast radius, coordination cost — Validated in Phase 4
 
 **Authoring UX:**
 - [ ] `skills/create-persona/SKILL.md` — interactive scaffolder writing schema-valid `agents/*.md` passing `validate-personas.sh` on first run
@@ -118,4 +119,4 @@ Representative subset from ~81 decisions logged across phase CONTEXT files (full
 Document evolves at phase transitions (`/gsd-transition`) and milestone boundaries (`/gsd-complete-milestone`). Pre-v1.0 content archived in `.planning/milestones/v1.0-ROADMAP.md`.
 
 ---
-*Last updated: 2026-04-24 — v1.1 Expansion + Hardening milestone started*
+*Last updated: 2026-04-28 — Phase 4 complete (6 new personas + conductor wiring + validation suite)*
