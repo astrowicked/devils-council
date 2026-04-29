@@ -1,0 +1,30 @@
+{
+  "classifier": {
+    "version": 1,
+    "deterministic_match_count": 21,
+    "needs_haiku": false
+  },
+  "triggered_personas": [
+    "security-reviewer",
+    "compliance-reviewer",
+    "dual-deploy-reviewer",
+    "performance-reviewer",
+    "finops-auditor",
+    "air-gap-reviewer",
+    "test-lead",
+    "executive-sponsor",
+    "competing-team-lead"
+  ],
+  "trigger_reasons": {
+    "security-reviewer": ["auth_code_change", "crypto_import"],
+    "compliance-reviewer": ["compliance_marker"],
+    "dual-deploy-reviewer": ["helm_values_change", "kots_config_change"],
+    "performance-reviewer": ["performance_hotpath"],
+    "finops-auditor": ["aws_sdk_import", "new_cloud_resource"],
+    "air-gap-reviewer": ["dependency_update", "external_image_pull"],
+    "test-lead": ["test_imbalance"],
+    "executive-sponsor": ["exec_keyword"],
+    "competing-team-lead": ["shared_infra_change"]
+  },
+  "personas_run": []
+}
