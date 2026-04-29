@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test-codex-delegation.sh — Exercises bin/dc-codex-delegate.sh against all
-# 6 error classes + success, using PATH-injected shell stubs.
+# 8 error classes + success + schema paths, using PATH-injected shell stubs.
 #
 # Each case:
 #   1. Sets up a temp run dir with a copy of the security-draft fixture and
@@ -15,8 +15,12 @@
 #      - MANIFEST.personas_run[0].delegation.error_code matches expectation.
 #      - draft frontmatter gained a finding with category: delegation_failed
 #        (on failure cases) OR category: codex-delegate (on success).
+#      - (Phase 6 cases 8-10) MANIFEST schema fields: codex_schema_version
+#        present, schema_used matches expectation.
 #
-# Each case runs in <5s. Timeout case uses timeout_seconds: 2 from the fixture.
+# Cases 1-7: v1.0 error classes + success.
+# Cases 8-10: Phase 6 CODX-02/03/04 schema-enforced, fallback, and validation error.
+# Each case runs in <5s (except timeout which uses the fixture's timeout_seconds: 2).
 
 set -uo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -43,6 +47,8 @@ run_case() {
   local expected_status="$3"   # succeeded | failed
   local expected_code="$4"     # null | codex_<class>
   local expected_category="$5" # codex-delegate | delegation_failed
+  local expected_extra_category="${6:-}"  # optional: additional category or delegation_failed YAML key
+  local expected_schema_used="${7:-}"    # optional: "true" | "false" — assert MANIFEST schema_used
 
   local tmpdir
   tmpdir=$(mktemp -d)
@@ -119,6 +125,56 @@ print(",".join(cats))
   else
     fail "$name: expected category=$expected_category in draft, got [$got_cat]"
   fi
+
+  # Optional: check delegation_failed YAML key in draft frontmatter (Phase 6).
+  # Section 8b writes to the delegation_failed array (not findings), so we
+  # check the YAML key directly rather than the findings category list.
+  if [ -n "$expected_extra_category" ] && [ "$expected_extra_category" = "delegation_failed" ]; then
+    local got_deleg_failed_class
+    got_deleg_failed_class=$(python3 -c '
+import yaml, sys
+text = open(sys.argv[1]).read().split("---", 2)
+fm = yaml.safe_load(text[1]) or {}
+classes = [e.get("class", "") for e in fm.get("delegation_failed", [])]
+print(",".join(classes))
+' "$tmpdir/run/security-reviewer-draft.md")
+    if echo "$got_deleg_failed_class" | grep -q 'codex_schema_validation_error'; then
+      pass "$name: draft delegation_failed[] contains codex_schema_validation_error"
+    else
+      fail "$name: expected delegation_failed[].class=codex_schema_validation_error, got [$got_deleg_failed_class]"
+    fi
+  elif [ -n "$expected_extra_category" ]; then
+    if echo "$got_cat" | grep -q "$expected_extra_category"; then
+      pass "$name: draft also contains category=$expected_extra_category"
+    else
+      fail "$name: expected extra category=$expected_extra_category in draft, got [$got_cat]"
+    fi
+  fi
+
+  # Phase 6 MANIFEST schema field assertions (for succeeded cases only).
+  # Validates codex_schema_version is present and non-null on success.
+  if [ "$expected_status" = "succeeded" ]; then
+    local got_schema_ver
+    got_schema_ver=$(jq -r '.personas_run[0].delegation.codex_schema_version // "null"' "$tmpdir/run/MANIFEST.json")
+    if [ "$got_schema_ver" != "null" ] && [ "$got_schema_ver" != "" ]; then
+      pass "$name: codex_schema_version=$got_schema_ver"
+    else
+      fail "$name: expected codex_schema_version in MANIFEST, got null"
+    fi
+  fi
+
+  # Phase 6 MANIFEST schema_used field assertion (when expected value specified).
+  # NOTE: jq's // operator treats false as falsy, so we use `if ... == null`
+  # to distinguish false from null (absent).
+  if [ -n "$expected_schema_used" ]; then
+    local got_schema_used
+    got_schema_used=$(jq -r '.personas_run[0].delegation.schema_used | if . == null then "null" else tostring end' "$tmpdir/run/MANIFEST.json")
+    if [ "$got_schema_used" = "$expected_schema_used" ]; then
+      pass "$name: schema_used=$got_schema_used"
+    else
+      fail "$name: expected schema_used=$expected_schema_used, got $got_schema_used"
+    fi
+  fi
 }
 
 # The 7 test cases mirror the 6 error classes in SKILL.md §Error Taxonomy + success.
@@ -129,5 +185,20 @@ run_case "json-parse-error"    "tests/fixtures/bench-personas/codex-stub-json-pa
 run_case "sandbox-violation"   "tests/fixtures/bench-personas/codex-stub-sandbox-violation.sh"  failed    codex_sandbox_violation  delegation_failed
 run_case "unknown"             "tests/fixtures/bench-personas/codex-stub-unknown.sh"            failed    codex_unknown            delegation_failed
 run_case "not-installed"       ""                                                               failed    codex_not_installed      delegation_failed
+
+# ---- Phase 6 CODX-02/03/04 schema test cases ----
+
+# Case 8: schema-enforced success — stub supports --output-schema, schema file exists,
+# output conforms to schema. Assert schema_used=true and codex_schema_version present.
+run_case "schema-success"          "tests/fixtures/bench-personas/codex-stub-success.sh"                    succeeded null  codex-delegate  ""  true
+
+# Case 9: schemaless fallback — stub does NOT support --output-schema (old codex version).
+# Delegation still succeeds via schemaless path. Assert schema_used=false.
+run_case "schema-fallback"         "tests/fixtures/bench-personas/codex-stub-schema-invalid.sh"             succeeded null  codex-delegate  ""  false
+
+# Case 10: schema validation error — stub supports --output-schema but returns non-conforming output.
+# Delegation succeeds (findings merged from raw output) but delegation_failed entry also logged.
+# Assert status=succeeded AND codex-delegate findings + delegation_failed YAML key + schema_used=true.
+run_case "schema-validation-err"   "tests/fixtures/bench-personas/codex-stub-schema-validation-error.sh"    succeeded null  codex-delegate  delegation_failed  true
 
 exit "$FAIL"

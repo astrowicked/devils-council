@@ -205,12 +205,37 @@ jobs:
       - name: Run codex-delegation tests (Phase 6 CDEX-03, CDEX-05)
         shell: bash
         run: |
-          # Tests bin/dc-codex-delegate.sh against all 6 error classes + success
-          # using PATH-injected shell stubs. Does NOT invoke live codex CLI.
+          # Tests bin/dc-codex-delegate.sh against all 8 error classes + success
+          # + 3 schema path cases using PATH-injected shell stubs.
+          # Does NOT invoke live codex CLI.
           if [ -x bin/dc-codex-delegate.sh ]; then
             ./scripts/test-codex-delegation.sh
           else
             echo "codex-delegation tests skipped — bin/dc-codex-delegate.sh not yet present"
+          fi
+
+      - name: Codex schema delegation tests (Phase 6 CODX-02/03/04)
+        shell: bash
+        run: |
+          # Phase 6 SC-5: schema-enforced + fallback paths tested via stub-injected
+          # delegation tests (scripts/test-codex-delegation.sh cases 8-10).
+          # Live Codex schema spike (scripts/test-codex-schema-spike.sh) requires
+          # Codex auth and is not run in CI; the stub tests provide equivalent
+          # coverage for the dc-codex-delegate.sh code paths.
+          #
+          # Codex version capture is validated indirectly: stubs emit version
+          # strings (e.g. "codex-cli 0.122.0") that dc-codex-delegate.sh writes
+          # to MANIFEST.delegation.codex_schema_version. The test harness asserts
+          # this field is present and non-null on succeeded cases. Live version
+          # capture (from a real codex --version call) is only possible with Codex
+          # auth and is covered by the manual spike script.
+          if [ -x bin/dc-codex-delegate.sh ] && [ -f lib/codex-schemas/security.json ]; then
+            # Verify schema file is valid JSON and has required structure
+            jq -e '.required == ["findings"]' lib/codex-schemas/security.json
+            jq -e '.properties.findings.items.required | length == 6' lib/codex-schemas/security.json
+            echo "Schema structure validated"
+          else
+            echo "Codex schema validation skipped — lib/codex-schemas/security.json or bin/dc-codex-delegate.sh not yet present"
           fi
 
       - name: Run cache-reduction test (Phase 6 BNCH-06, D-61)
