@@ -1,43 +1,33 @@
 #!/usr/bin/env bash
-# Mocks `codex exec` succeeding with a well-formed JSON message.
-# Supports --output-schema flag for Phase 6 schema-enforced path.
+# Mocks a Codex version that does NOT support --output-schema.
+# --help output omits the flag, so feature-detect falls back to schemaless.
 # Consumed by scripts/test-codex-delegation.sh via PATH injection.
 set -euo pipefail
 if [ "${1:-}" = "--version" ]; then
-  echo "codex-cli 0.122.0"; exit 0
+  echo "codex-cli 0.100.0"; exit 0
 fi
 if [ "${1:-}" = "--help" ]; then
   echo "Usage: codex [options] <command>"
   echo "  exec          Execute a prompt"
-  echo "  --output-schema <path>  Enforce JSON schema on output"
   echo "  --json        Output JSON"
+  # NOTE: --output-schema intentionally ABSENT
   exit 0
 fi
 if [ "${1:-}" = "login" ] && [ "${2:-}" = "status" ]; then
   echo "Logged in as test-user"; exit 0
 fi
-# Parse exec args
 OUT_FILE=""
-SCHEMA_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -o) OUT_FILE="$2"; shift 2 ;;
-    --output-schema) SCHEMA_FILE="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
 [ -n "$OUT_FILE" ] || { echo "stub: missing -o" >&2; exit 2; }
 # Drain stdin so the pipeline producer doesn't SIGPIPE.
 cat >/dev/null
-if [ -n "$SCHEMA_FILE" ]; then
-  # Schema-enforced path: emit output conforming to the schema
-  cat > "$OUT_FILE" <<'JSON'
-{"findings":[{"target":"src/auth/login.ts:42","claim":"skipVerify branch is reachable via request body","evidence":"if (opts.skipVerify) return jwt.decode(token);","ask":"Remove the skipVerify shortcut","severity":"major","category":"auth-bypass"}]}
-JSON
-else
-  # Schemaless path: emit message envelope (v1.0 format)
-  cat > "$OUT_FILE" <<'JSON'
+# Always emit message envelope (no schema support)
+cat > "$OUT_FILE" <<'JSON'
 {"type":"message","content":[{"type":"text","text":"Found 1 issue in src/auth/login.ts:42 - skipVerify branch is reachable via request body. Severity high. Fix: remove the branch."}]}
 JSON
-fi
 exit 0
