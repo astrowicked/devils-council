@@ -143,9 +143,12 @@ user-facing and MUST be actionable.
 | Sandbox violation | request asks for non-`read-only` sandbox, or Codex attempts write/net | `codex_sandbox_violation` | "Codex was invoked with or requested a non-read-only sandbox. Widening the sandbox is out of scope for v1 and requires a dedicated threat-model review." |
 | JSON parse error | `codex exec --json` output unparseable | `codex_json_parse_error` | "Codex returned malformed JSON. Raw output logged to `.council/<run>/codex-errors.log` for inspection." |
 | Unknown | any other non-zero exit | `codex_unknown` | "Codex exited with code {N}. See `.council/<run>/codex-errors.log` for details." |
+| Schema invalid | Schema rejected at Codex/OpenAI submit (HTTP 400) -- disallowed JSON Schema keywords | `codex_schema_invalid` | "Schema at {path} contains OpenAI strict-mode disallowed keywords. Falling back to schemaless delegation." |
+| Schema validation error | Schema submittable but model output failed validation | `codex_schema_validation_error` | "Codex output failed schema validation: {error}. Findings still merged from raw output." |
 
-These six classes are the v1 minimum per D-11. Adding a class is a schema
-change and MUST be documented; removing or renaming one is a breaking change.
+These eight classes are the v1.1 minimum per D-11 + CODX-04. Adding a class
+is a schema change and MUST be documented; removing or renaming one is a
+breaking change.
 
 ## Failure Handling Contract
 
@@ -210,6 +213,30 @@ designed to be convertible without schema churn: MCP would fulfill the same
 request shape and return the same response shape; only the transport
 changes. If Phase 6 measurement shows shell is a bottleneck, MCP is the
 documented upgrade path.
+
+## Schema Enforcement (v1.1 WRAPPER Path)
+
+Per Phase 2 spike verdict (WRAPPER), `bin/dc-codex-delegate.sh` invokes
+`codex exec --output-schema <path>` when:
+
+1. A schema file exists at `lib/codex-schemas/<persona-stem>.json` (e.g.,
+   `security.json` for `security-reviewer`)
+2. The installed Codex version supports `--output-schema` (feature-detected
+   via `codex --help | grep '--output-schema'`)
+3. The schema passes a strict-mode pre-check (no `oneOf`/`anyOf`/`allOf`,
+   no `minLength`/`format`/`pattern`/`default`, all properties required)
+
+When any condition fails, delegation silently falls back to the v1.0
+schemaless path. Schema validation failures on model output are logged
+as `codex_schema_validation_error` but findings are still merged from
+raw output -- the persona never loses its deep scan results.
+
+**Schema authoring rules** (OpenAI strict structured-outputs subset):
+- Every property in `required` (no optional fields)
+- No `oneOf`/`anyOf`/`allOf` inside `properties`
+- No `minLength`/`minimum`/`pattern`/`format`/`default`
+- Use `enum` for constrained string sets (enum IS supported)
+- Nested objects: all children in `required`, `additionalProperties: false`
 
 ## Sandbox Default
 
