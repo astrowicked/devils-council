@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# test-budget-cap.sh — Exercises bin/dc-budget-plan.sh against 5 cap scenarios.
+# test-budget-cap.sh — Exercises bin/dc-budget-plan.sh against 6 cap scenarios.
 # Uses pre-baked classifier fixtures so the test doesn't depend on live classify.py.
 #
-# Scenarios (per D-58):
+# Scenarios (per D-58, D-04, D-05):
 #   1. under-cap-all-fit         — 4 triggered, cap=$0.50 / $0.08 = 6 max → all 4 spawn
 #   2. over-cap-priority-selection — 4 triggered, tight cap=$0.08 → only security spawns (priority)
 #   3. --only filter              — narrows to subset of triggered
 #   4. --exclude filter           — removes from triggered set
 #   5. --cap-usd override + over-budget → cap_exceeded error in MANIFEST.budget.errors[]
-#   6. (bonus) --cap-usd=unlimited → exit 2 (non-numeric rejected)
+#   6. 9bench-all-triggered      — 9 triggered, cap=$0.50 / $0.08 = 6 max → top 6 by priority, 3 skipped
+#
+# Bonus validation (not a numbered scenario):
+#   - --cap-usd=unlimited → exit 2 (non-numeric rejected)
 
 set -euo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -133,7 +136,21 @@ assert_manifest_field "cap-usd-override-over-budget" "$mf" '.budget.errors[0].co
 assert_manifest_field "cap-usd-override-over-budget" "$mf" '.budget.errors[0].requested_personas' '4'
 assert_manifest_field "cap-usd-override-over-budget" "$mf" '.budget.errors[0].allowed' '1'
 
-# Case 6 (bonus): --cap-usd non-numeric → exit 2 (D-58 no-sentinel rule)
+# Case 6: 9bench-all-triggered — cap=0.50, per=0.08, max=6; triggered=9; top-6 by priority_order (D-04, D-05, REL-01)
+out=$(run_case "9bench-all-triggered" "budget-classifier-9bench-all.json" "$REPO_ROOT/config.json")
+spawn=$(extract_spawn "$out")
+mf=$(extract_mf "$out")
+# Top-6 by priority_order: security-reviewer, compliance-reviewer, dual-deploy-reviewer, performance-reviewer, finops-auditor, air-gap-reviewer
+assert_spawn_equals "9bench-all-triggered" "$spawn" "security-reviewer,compliance-reviewer,dual-deploy-reviewer,performance-reviewer,finops-auditor,air-gap-reviewer"
+assert_manifest_field "9bench-all-triggered" "$mf" '.budget.over_budget' 'true'
+assert_manifest_field "9bench-all-triggered" "$mf" '.budget.max_spawnable_bench' '6'
+assert_manifest_field "9bench-all-triggered" "$mf" '.budget.spawned_bench_count' '6'
+# At least 3 personas skipped with reason: budget_cap (D-05)
+assert_manifest_field "9bench-all-triggered" "$mf" '.personas_skipped | map(select(.reason == "budget_cap")) | length' '3'
+# Verify the 3 skipped are the bottom-3 by priority: test-lead, executive-sponsor, competing-team-lead
+assert_manifest_field "9bench-all-triggered" "$mf" '.personas_skipped | map(.persona) | sort | join(",")' 'competing-team-lead,executive-sponsor,test-lead'
+
+# Bonus validation: --cap-usd non-numeric → exit 2 (D-58 no-sentinel rule)
 set +e
 bash "$REPO_ROOT/bin/dc-budget-plan.sh" "/tmp" --cap-usd=unlimited --config="$REPO_ROOT/config.json" >/dev/null 2>&1
 rc=$?
