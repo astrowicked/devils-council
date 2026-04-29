@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/andywoodard/devils-council/templates/codex-security-schema.json",
+  "title": "devils-council Codex delegation scorecard (v1)",
+  "description": "Strict schema enforced via `codex exec --output-schema` for Security / Dual-Deploy / Air-Gap persona deep-scan delegation. Mirrors skills/scorecard-schema/SKILL.md §Finding Fields — the six canonical required fields per finding (target, claim, evidence, ask, severity, category). `id` is stamped by the conductor (Phase 5 / CHAIR-06) post-merge; Codex is not asked to emit it. OpenAI strict structured-outputs compatibility: every property listed is required; additionalProperties is false at every level; minLength / format / pattern / default are OMITTED (rejected by OpenAI strict mode). Length/content enforcement is the conductor validator's job.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["findings"],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "description": "Zero or more findings. Empty is valid (persona had no observations worth surfacing via deep scan).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "claim", "evidence", "ask", "severity", "category"],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Line reference (path:line or path:start-end) for code, heading anchor (## Heading) for plans/RFCs, or short quote-anchor phrase for prose."
+          },
+          "claim": {
+            "type": "string",
+            "description": "One-sentence statement of the specific failure mode. No generic 'consider edge cases' language (conductor validator enforces banned-phrase drop)."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Verbatim substring of the reviewed artifact, minimum 8 characters enforced by the conductor validator (OpenAI strict mode rejects minLength)."
+          },
+          "ask": {
+            "type": "string",
+            "description": "Concrete remediation the author can act on in a single line or short block."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["blocker", "major", "minor", "nit"],
+            "description": "Canonical 4-tier severity enum. No `praise` tier; no `high`/`medium`/`low` (those are Codex-native and must be mapped by the conductor per scorecard-schema SKILL §Relationship to Codex Deep-Scan)."
+          },
+          "category": {
+            "type": "string",
+            "description": "Free-text persona-suggested tag. Examples: complexity, observability, cost, business, auth-bypass, race-condition, iam-wildcard, air-gap, egress, blast-radius."
+          }
+        }
+      }
+    }
+  }
+}
