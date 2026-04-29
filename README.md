@@ -2,7 +2,7 @@
 
 > Persona-driven adversarial review for plans, code, and design artifacts. Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give.
 
-**Status:** v1.0.0 — 10 personas shipped (4 core + 4 bench + Chair + classifier), Codex-backed deep scans for Security + Dual-Deploy, hard budget cap, stable finding IDs, response-workflow suppression, severity-tier render, and prompt-injection corpus in CI.
+**Status:** v1.1.0 — 16 personas shipped (4 core + 9 bench + Chair + classifier + Junior Engineer always-invokable on code-diff), custom persona scaffolder, Codex `--output-schema` enforcement (WRAPPER verdict), 9-entry bench priority order with budget cap, and all v1.0 tech debt closed.
 
 **Repo:** <https://github.com/astrowicked/devils-council> · **License:** MIT · **Claude Code:** v2.1.63+
 
@@ -31,7 +31,7 @@ Verify:
 
 ```bash
 claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
-# Expected: "1.0.0"
+# Expected: "1.1.0"
 ```
 
 After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-bump) if new commands don't appear):
@@ -73,7 +73,7 @@ Output renders synthesis-first: top-3 blockers with persona attribution, contrad
 
 ## Persona Roster
 
-Ten personas ship in v1.0.0. Core tier always runs; bench tier auto-triggers on artifact signals.
+Sixteen personas ship in v1.1.0. Core tier always runs; bench tier auto-triggers on artifact signals.
 
 | Persona | Tier | Primary Concern | Trigger / always-on |
 |---------|------|-----------------|---------------------|
@@ -85,6 +85,12 @@ Ten personas ship in v1.0.0. Core tier always runs; bench tier auto-triggers on 
 | [FinOps Auditor](agents/finops-auditor.md) | bench | Cloud cost, storage/compute efficiency | AWS SDK, new cloud resource, autoscaling, storage class |
 | [Air-Gap Reviewer](agents/air-gap-reviewer.md) | bench | Self-hosted, no-egress, pinned deps | network egress, external image pull, unpinned dep, license phone-home |
 | [Dual-Deploy Reviewer](agents/dual-deploy-reviewer.md) | bench | SaaS + self-hosted parity, Helm/KOTS surface | Helm values change, Chart.yaml, KOTS config, SaaS-only assumption |
+| [Compliance Reviewer](agents/compliance-reviewer.md) | bench | Regulatory control citations (GDPR, HIPAA, SOC2, PCI) | compliance_marker signal |
+| [Performance Reviewer](agents/performance-reviewer.md) | bench | Hot-path characterization, workload profiling | performance_hotpath signal |
+| [Test Lead](agents/test-lead.md) | bench | Circular tests, flaky patterns, coverage gaps | test_imbalance signal |
+| [Executive Sponsor](agents/executive-sponsor.md) | bench | Quantified business impact (dollars, weeks, customers) | exec_keyword signal (plan/rfc only) |
+| [Competing Team Lead](agents/competing-team-lead.md) | bench | Shared-infra consumer impact | shared_infra_change signal |
+| [Junior Engineer](agents/junior-engineer.md) | bench | First-person comprehension failure | always-invokable on code-diff |
 | [Council Chair](agents/council-chair.md) | chair | Contradiction synthesis, top-3 blockers | always-on; runs sequentially after core + bench |
 | [Artifact Classifier](agents/artifact-classifier.md) | classifier | Ambiguous artifact type routing | Haiku fallback when structural signals are zero |
 
@@ -95,7 +101,7 @@ Each persona has a distinct value-system anchor, characteristic-objection list, 
 Bench personas auto-join the review when the classifier detects structural signals in the artifact. Signal detection is pure-function filename + AST + Helm-key + Chart.yaml + AWS-SDK-import matching — NOT keyword matching (per BNCH-01). Ambiguous artifacts fall back to a Haiku-classifier subagent.
 
 <details>
-<summary>16 signals (expand)</summary>
+<summary>21 signals (expand)</summary>
 
 Source of truth: [`lib/signals.json`](lib/signals.json).
 
@@ -156,7 +162,7 @@ Flags on `review`:
   "budget": {
     "cap_usd": 0.50,
     "per_persona_estimate_usd": 0.05,
-    "bench_priority_order": ["security-reviewer", "dual-deploy-reviewer", "finops-auditor", "air-gap-reviewer"]
+    "bench_priority_order": ["security-reviewer", "compliance-reviewer", "dual-deploy-reviewer", "performance-reviewer", "finops-auditor", "air-gap-reviewer", "test-lead", "executive-sponsor", "competing-team-lead"]
   }
 }
 ```

@@ -7,10 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [1.1.0] - 2026-04-29
 
-- **Troubleshooting: `/plugin marketplace update` refresh step** (TD-07) — README Troubleshooting section #2 now documents that after a new tag ships, users must run `/plugin marketplace update devils-council` before `/plugin install devils-council@devils-council` picks up the new version. Previously, uninstall+reinstall alone was insufficient when the marketplace descriptor was cached locally.
-- **Custom persona scaffolder** (`/devils-council:create-persona`) — interactive `AskUserQuestion`-driven wizard that walks users through all voice-kit fields (name, tier, primary concern, blind spots, objections, banned phrases, worked examples), coaches voice distinctness by detecting >30% banned-phrase overlap with shipped personas, validates output against `scripts/validate-personas.sh` before writing, and outputs to `${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/` with ready-to-run install commands. (SCAF-01 through SCAF-05)
+v1.1 Expansion + Hardening release. Persona roster grows from 10 to 16 (4 core + 9 bench + Chair + classifier + Junior Engineer as always-invokable bench on code-diff). Custom persona scaffolder ships. Codex `--output-schema` wired behind feature-detect (WRAPPER verdict). All 7 v1.0 tech-debt items closed.
+
+### New Personas
+
+- **Compliance Reviewer** (`agents/compliance-reviewer.md`) — cites specific control IDs (GDPR Art. 5(1)(e), HIPAA SS 164.312(b), SOC2 CC7.2, PCI Req 10); banned from framework-level generic findings; triggered by `compliance_marker` signal (BNCH2-01)
+- **Performance Reviewer** (`agents/performance-reviewer.md`) — characterizes call frequency/workload before severity; banned from `premature optimization` in both directions; triggered by `performance_hotpath` signal (BNCH2-02)
+- **Test Lead** (`agents/test-lead.md`) — catches circular tests, flaky patterns, src+test diff imbalance; banned from coverage-percentage findings; triggered by `test_imbalance` signal (BNCH2-03)
+- **Executive Sponsor** (`agents/executive-sponsor.md`) — findings MUST name a specific number (dollars, weeks, customers) or roadmap artifact; longest banned-phrase list in plugin (18 phrases); triggered by `exec_keyword` signal on plan/rfc only (BNCH2-04)
+- **Competing Team Lead** (`agents/competing-team-lead.md`) — MUST name specific consumer (team/repo/service/endpoint); framed as shared-infra reviewer; triggered by `shared_infra_change` signal (BNCH2-05)
+- **Junior Engineer** (`agents/junior-engineer.md`) — bench tier, auto-triggered on any `code-diff` artifact via `always_invoke_on`; primary signal is first-person comprehension failure; banned from Staff Engineer's simplification register (CORE-EXT-01)
+
+### Scaffolder
+
+- **Custom persona scaffolder** (`/devils-council:create-persona`) — interactive `AskUserQuestion`-driven wizard that walks users through all voice-kit fields (name, tier, primary concern, blind spots, objections, banned phrases, worked examples), coaches voice distinctness by detecting >30% banned-phrase overlap with shipped personas, validates output against `scripts/validate-personas.sh` before writing, and outputs to `${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/` with ready-to-run install commands (SCAF-01 through SCAF-05)
+
+### Codex Schema (WRAPPER Verdict)
+
+- **`--output-schema` enforcement** — `bin/dc-codex-delegate.sh` invokes `codex exec --output-schema lib/codex-schemas/security.json` when Codex version supports it (feature-detected); strict JSON parsing with schemaless fallback preserved when version is below minimum or schema validation fails (CODX-02, CODX-03)
+- **Production schema** at `lib/codex-schemas/security.json` — 6-field findings array enforced by Codex structured output; `MANIFEST.delegation.codex_schema_version` captured per delegation (CODX-04)
+- **New error class** `codex_schema_validation_error` in MANIFEST error enum — logged but never silently degrades Security persona output; persona proceeds via schemaless fallback path
+
+### Classifier Extension
+
+- **5 new signal detectors** in `lib/classify.py`: `compliance_marker`, `performance_hotpath`, `test_imbalance`, `exec_keyword`, `shared_infra_change` (CLS-01)
+- **`signal_strength` field** (`strong | moderate | weak`) in `lib/signals.json`; weak-signal personas require 2+ distinct hits before triggering (CLS-02)
+- **`artifact_type` propagation** through classify pipeline; `exec_keyword` only fires on `plan | rfc`, never on `code-diff` (CLS-03)
+- **9-entry `bench_priority_order`** in `config.json` — explicit ordering drives budget-cap selection (CLS-04)
+- **17 negative fixtures** under `tests/fixtures/classifier-negatives/` — CI asserts no false positives before positive tests run (inverted TDD, CLS-05)
+- **Haiku whitelist expanded** from 4 to 8 bench slugs in `agents/artifact-classifier.md` (CLS-06)
+
+### Tech Debt Closeouts
+
+- **TD-01/02/03**: VERIFICATION.md and VALIDATION.md statuses flipped to `passed` with citation evidence
+- **TD-04**: Shell-inject dry-run pre-parser (`scripts/validate-shell-inject.sh`) — PreToolUse hook blocks unauthorized `` !`<cmd>` `` in `commands/*.md`; CI backstop on every push; 6-fixture regression suite including the v1.0.0 P0 case
+- **TD-05**: Chair Top-3 composite-target strictness — `bin/dc-validate-synthesis.sh` rejects composite targets; 08-UAT known-good regression gate passes
+- **TD-06**: `agents/README.md` renamed to `agents/AUTHORING.md` (plugin-loader mis-classification fix); all references swept
+- **TD-07**: README troubleshooting section documents `/plugin marketplace update` refresh prerequisite
+
+### Testing + Quality Infrastructure
+
+- **Voice-distinctness validator** in `validate-personas.sh` — flags persona pairs with >40% banned-phrase or >30% characteristic-objection overlap (PQUAL-01)
+- **Adversarial Executive Sponsor fixture** — temptation-plan with zero quantification; CI fails if persona emits banned nominalization (PQUAL-02)
+- **Blinded-reader readiness** — structural prerequisites for LLM-as-judge attribution validated in CI (PQUAL-03 infrastructure)
+- **9-bench budget-cap scenario** (Case 6) in `scripts/test-budget-cap.sh` — asserts correct top-6 selection when all 9 signals fire simultaneously
+- **UAT verification wrapper** (`scripts/verify-uat-live-run.sh`) — validates synthesis, scorecard count, and budget enforcement post-review
+
+### Changed
+
+- `.claude-plugin/plugin.json` version bumped 1.0.2 -> 1.1.0
+- `.claude-plugin/marketplace.json` version bumped 1.0.2 -> 1.1.0
+- `commands/review.md` bench whitelist expanded from 4 to 9 entries (atomic conductor wiring)
+- `bin/dc-budget-plan.sh` reads `always_invoke_on` from persona sidecars for Junior Engineer path
+- `.github/workflows/ci.yml` gains classifier negatives-first split, budget-cap test, Codex schema validation, adversarial Exec Sponsor fixture, blinded-reader readiness, shell-inject fixture suite, and Chair strictness steps
+
+### Requirements closed
+
+- **Phase 1 (Tech Debt):** TD-01, TD-02, TD-03, TD-04, TD-05, TD-06, TD-07
+- **Phase 2 (Codex Spike):** CODX-01
+- **Phase 3 (Classifier):** CLS-01, CLS-02, CLS-03, CLS-04, CLS-05, CLS-06
+- **Phase 4 (Personas):** BNCH2-01, BNCH2-02, BNCH2-03, BNCH2-04, BNCH2-05, CORE-EXT-01, PQUAL-01, PQUAL-02, PQUAL-03
+- **Phase 5 (Scaffolder):** SCAF-01, SCAF-02, SCAF-03, SCAF-04, SCAF-05
+- **Phase 6 (Codex Schema):** CODX-02, CODX-03, CODX-04
+- **Phase 7 (UAT):** REL-01, REL-02, REL-03, REL-04
+- Running total: 35/35 v1.1 requirements delivered across 7 phases
 
 ## [1.0.2] - 2026-04-24
 
@@ -198,7 +260,8 @@ Running total: 63/63 v1 requirements delivered across 8 phases.
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/astrowicked/devils-council/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/astrowicked/devils-council/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/astrowicked/devils-council/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/astrowicked/devils-council/compare/v0.6.0...v1.0.0
