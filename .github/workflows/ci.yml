@@ -355,6 +355,19 @@ jobs:
             echo "dig-spawn test skipped — scripts/test-dig-spawn.sh, commands/dig.md, or fixture not yet present"
           fi
 
+      - name: Run scaffolder test (Phase 5 SCAF-01..05)
+        shell: bash
+        run: |
+          # Phase 5: exercises create-persona SKILL.md structure, AskUserQuestion flow,
+          # validate-personas.sh integration, and voice-rubric coaching against fixtures.
+          # Skips gracefully if scripts/test-persona-scaffolder.sh or skill not present.
+          if [ -x scripts/test-persona-scaffolder.sh ] \
+              && [ -f skills/create-persona/SKILL.md ]; then
+            ./scripts/test-persona-scaffolder.sh
+          else
+            echo "scaffolder test skipped — scripts/test-persona-scaffolder.sh or skills/create-persona/SKILL.md not yet present"
+          fi
+
       - name: Confirm no settings.json hijack (PLUG-05)
         shell: bash
         run: |
