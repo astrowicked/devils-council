@@ -53,19 +53,18 @@ else
 fi
 
 # Check primary_concern uniqueness (key attribution signal)
-declare -A CONCERN_MAP
+# Portable: no associative arrays (bash 3.2 on macOS lacks declare -A)
 CONCERNS_UNIQUE=true
+SEEN_CONCERNS=""
 for p in "${BENCH_PERSONAS[@]}"; do
   SIDECAR="$REPO_ROOT/persona-metadata/${p}.yml"
   [ -f "$SIDECAR" ] || continue
   CONCERN=$(yq '.primary_concern' "$SIDECAR" 2>/dev/null || echo "")
-  for existing_persona in "${!CONCERN_MAP[@]}"; do
-    if [ "${CONCERN_MAP[$existing_persona]}" = "$CONCERN" ]; then
-      fail "Duplicate primary_concern: $p shares with $existing_persona"
-      CONCERNS_UNIQUE=false
-    fi
-  done
-  CONCERN_MAP["$p"]="$CONCERN"
+  if echo "$SEEN_CONCERNS" | grep -qF "|${CONCERN}|"; then
+    fail "Duplicate primary_concern: $p shares concern with another persona"
+    CONCERNS_UNIQUE=false
+  fi
+  SEEN_CONCERNS="${SEEN_CONCERNS}|${CONCERN}|"
 done
 if [ "$CONCERNS_UNIQUE" = true ]; then
   pass "All 9 bench personas have unique primary_concern values"
