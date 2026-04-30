@@ -214,6 +214,91 @@ Source files modified in this migration:
 
 No corresponding test files created yet. Test plan deferred to sprint 2.
 
+## AWS Infrastructure Changes
+
+```python
+# src/infra/session_store.py — new Boto3 client for Secrets Manager rotation
+import boto3
+from botocore.config import Config
+
+secrets_client = boto3.client('secretsmanager', config=Config(retries={'max_attempts': 3}))
+
+def rotate_db_credentials(secret_arn: str) -> dict:
+    response = secrets_client.rotate_secret(SecretId=secret_arn, RotationLambdaARN=ROTATION_LAMBDA)
+    return response
+```
+
+```hcl
+# infra/main.tf — new cloud resources for session store
+resource "aws_rds_instance" "session_db" {
+  engine         = "postgres"
+  instance_class = "db.r6g.large"
+  allocated_storage = 100
+}
+
+resource "aws_elasticache_cluster" "session_cache" {
+  engine       = "redis"
+  node_type    = "cache.r6g.large"
+  num_cache_nodes = 2
+}
+```
+
+## Autoscaling Changes
+
+```yaml
+# k8s/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-gateway-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-gateway
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+## Migration Diff (src vs test imbalance)
+
+```diff
++++ b/src/auth/gateway.ts
++++ b/src/auth/session.ts
++++ b/src/auth/verify.ts
++++ b/src/infra/rds-stack.ts
++++ b/src/infra/session_store.py
++++ b/src/middleware/validate.ts
++++ b/shared/api-contracts/platform-auth.openapi.yaml
+```
+
+No test files in this diff. Full test plan deferred to sprint 2.
+
+## Storage Class Migration
+
+```yaml
+# k8s/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: session-data
+spec:
+  storageClassName: gp3-encrypted
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 50Gi
+```
+
+Previous storage class was `gp2`. Migrating to `gp3-encrypted` for IOPS baseline and encryption at rest.
+
 ## Deployment Timeline
 
 - Week 1-2: Enterprise self-hosted customers (air-gapped bundle generation)
