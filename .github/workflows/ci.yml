@@ -68,9 +68,9 @@ jobs:
           fi
           yq --version
 
-      - name: Install PyYAML (python3 YAML parser fallback)
+      - name: Install Python dependencies (PyYAML + jsonschema)
         shell: bash
-        run: pip3 install pyyaml --quiet --break-system-packages 2>/dev/null || pip3 install pyyaml --quiet
+        run: pip3 install pyyaml jsonschema --quiet --break-system-packages 2>/dev/null || pip3 install pyyaml jsonschema --quiet
 
       - name: Validate personas
         shell: bash
