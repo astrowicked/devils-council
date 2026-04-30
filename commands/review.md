@@ -133,6 +133,21 @@ Then fall through to the normal fresh-run pipeline. The `SHOW_NITS=1`
 variable still flips the render block's nit-expansion branch when control
 eventually reaches it.
 
+## Ensure classifier ran (shell-injection fallback)
+
+Shell-injection on line 24 runs `dc-classify.sh` at parse time. Due to
+Claude Code timing issues between sequential shell-injections, the
+classifier may not have executed. Use the Bash tool to check and recover:
+
+    HAS_CLASSIFIER=$(jq -e '.classifier' <RUN_DIR>/MANIFEST.json >/dev/null 2>&1 && echo "true" || echo "false")
+
+If `HAS_CLASSIFIER` is `false`, invoke the classifier explicitly:
+
+    ${CLAUDE_PLUGIN_ROOT}/bin/dc-classify.sh "<RUN_DIR>/INPUT.md" "<RUN_DIR>/MANIFEST.json"
+
+If that exits non-zero, proceed with degrade-to-core (zero bench personas)
+per RESEARCH.md Pitfall 6. Log the error but do not abort.
+
 ## Invoke Haiku classifier when needed (BNCH-02, D-53)
 
 Read `<RUN_DIR>/MANIFEST.json .classifier.needs_haiku`. If `true` AND
@@ -152,8 +167,10 @@ contract in `agents/artifact-classifier.md`:
 ```
 
 Validate `suggested_personas` against the whitelist `{security-reviewer,
-finops-auditor, air-gap-reviewer, dual-deploy-reviewer}`. Reject any
-slug not in the whitelist. Use the Bash tool to merge the validated
+finops-auditor, air-gap-reviewer, dual-deploy-reviewer, compliance-reviewer,
+performance-reviewer, test-lead, executive-sponsor, competing-team-lead}`.
+Reject any slug not in the whitelist (junior-engineer is excluded because it
+uses `always_invoke_on`, not signal-triggered classification). Use the Bash tool to merge the validated
 result into MANIFEST:
 
     TMP_MF=$(mktemp)
