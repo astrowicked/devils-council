@@ -70,7 +70,7 @@ jobs:
 
       - name: Install PyYAML (python3 YAML parser fallback)
         shell: bash
-        run: pip3 install pyyaml --quiet
+        run: pip3 install pyyaml --quiet --break-system-packages 2>/dev/null || pip3 install pyyaml --quiet
 
       - name: Validate personas
         shell: bash
