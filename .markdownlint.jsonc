@@ -2,8 +2,14 @@
   // markdownlint-cli2 config; see https://github.com/DavidAnson/markdownlint
   "default": true,
 
-  // Line length: relaxed because planning docs have long prose and code blocks.
-  "MD013": { "line_length": 200, "code_blocks": false, "tables": false, "headings": false },
+  // Line length: relaxed. Persona prompts and README have long command examples.
+  "MD013": false,
+
+  // Blanks around lists: too strict for mixed-content docs with inline code.
+  "MD032": false,
+
+  // Code block style: allow both fenced and indented.
+  "MD046": false,
 
   // Allow inline HTML — README and SKILL.md use <details>, <img>, etc.
   "MD033": false,
@@ -32,6 +38,11 @@
     "**/fixtures/**",
     "node_modules/**",
     ".claude/**",
+    ".council/**",
+    "agents/**",
+    "skills/**",
+    "commands/**",
+    "CLAUDE.md",
     "CHANGELOG.md"
   ]
 }
