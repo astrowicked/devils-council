@@ -111,15 +111,15 @@ fi
 # -----------------------------------------------------------------------------
 
 YAML_PARSER=""
-if command -v yq >/dev/null 2>&1; then
-  if yq --version >/dev/null 2>&1; then
-    YAML_PARSER="yq"
+if command -v python3 >/dev/null 2>&1; then
+  if python3 -c 'import yaml' >/dev/null 2>&1; then
+    YAML_PARSER="python3"
   fi
 fi
 
-if [ -z "$YAML_PARSER" ] && command -v python3 >/dev/null 2>&1; then
-  if python3 -c 'import yaml' >/dev/null 2>&1; then
-    YAML_PARSER="python3"
+if [ -z "$YAML_PARSER" ] && command -v yq >/dev/null 2>&1; then
+  if yq --version >/dev/null 2>&1; then
+    YAML_PARSER="yq"
   fi
 fi
 

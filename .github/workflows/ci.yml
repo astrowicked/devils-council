@@ -68,6 +68,10 @@ jobs:
           fi
           yq --version
 
+      - name: Install PyYAML (python3 YAML parser fallback)
+        shell: bash
+        run: pip3 install pyyaml --quiet
+
       - name: Validate personas
         shell: bash
         run: |
