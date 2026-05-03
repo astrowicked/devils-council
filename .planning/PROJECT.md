@@ -8,27 +8,22 @@ A Claude Code plugin that provides a persona-driven adversarial review layer for
 
 Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give, in a form the author can respond to.
 
-**Still correct after v1.0:** Yes. 08-UAT.md real-artifact run (reviewing Phase 3 03-00-PLAN.md) produced 13 findings across 4 personas with voice-differentiated output — the anti-generic property holds.
+**Still correct after v1.1:** Yes. Phase 7 UAT live run (reviewing anaconda-platform-chart fixture) produced 10 persona scorecards with voice-differentiated output, budget-cap enforcement, and Chair synthesis validation. The anti-generic property holds at 16-persona scale.
 
-## Current Milestone: v1.1 Expansion + Hardening
+## Current State (as of v1.1.0)
 
-**Goal:** Expand persona coverage to 10 bench personas (6 new), give users a path to author their own via a scaffolder skill, tighten the injection-defense class that slipped v1.0.0, and spike Codex `--output-schema` enforcement for Security deep scans.
-
-**Target features:**
-
-- 6 new bench personas: Compliance, Junior Eng, Performance, Test Lead, Executive Sponsor, Competing Team Lead (5 with new classifier signals; Junior Eng always-invokable)
-- `skills/create-persona/SKILL.md` — interactive scaffolder that writes schema-valid `agents/*.md` passing `validate-personas.sh` on first run
-- Codex `--output-schema` spike for Security persona (go/no-go memo in Phase 1; rollout or document negative result)
-- Tech debt bundle from v1.0 audit: TD-02, TD-03, TD-04, TD-05, TD-06, TD-07 (folded in; no separate v1.0.3 line)
-
-## Current State (as of Phase 5 completion)
-
-**Shipped:** v1.0.2 (2026-04-24) — release chain v1.0.0 → v1.0.1 → v1.0.2, all tagged + GitHub Releases live.
+**Shipped:** v1.1.0 (2026-05-01) — release chain v1.0.0 → v1.0.1 → v1.0.2 → v1.1.0, all tagged + GitHub Releases live.
 **Installable:** `/plugin marketplace add astrowicked/devils-council && /plugin install devils-council@devils-council`
-**CI:** 7-step pipeline green on every push (plugin validate, persona validation, injection corpus, fixture-based quality tests, coexistence matrix, exec-sponsor adversarial, blinded-reader readiness).
-**Personas:** 4 core + 10 bench (6 new in Phase 4: Compliance, Performance, Test Lead, Executive Sponsor, Competing Team Lead, Junior Engineer). Conductor wired 4→9 bench whitelist + always_invoke_on for Junior Engineer.
-**Scaffolder:** `skills/create-persona/SKILL.md` — 475-line interactive AskUserQuestion wizard with voice-kit coaching, >30% overlap detection, validate-personas.sh integration. Test harness (3 groups: pass/reject/overlap) all green.
-**Phase 5 complete:** 2026-04-28 — scaffolder skill + test harness + README/CHANGELOG docs.
+**CI:** 34-step pipeline green on Ubuntu + macOS (plugin validate, persona validation, injection corpus, classifier positive/negative, budget-cap, codex delegation + schema, scaffolder, coexistence, engine smoke, Chair synthesis + strictness, blinded-reader, shell-inject, severity render, responses suppression, GSD hooks, on-plan/on-code, dig-spawn, exec-sponsor adversarial).
+**Personas:** 4 core + 10 bench + Chair + classifier = 16 total. 21 classifier signals. 9-entry bench priority order with hard budget cap.
+**Scaffolder:** `/devils-council:create-persona` — interactive AskUserQuestion wizard with voice-kit coaching.
+**Codex:** `--output-schema` WRAPPER verdict — schema-enforced delegation with feature-detect + schemaless fallback.
+
+## Next Milestone: v1.2 (not started)
+
+**Deferred items:**
+- `userConfig.custom_personas_dir` — user-maintained persona library outside plugin cache (survives updates)
+- Non-Claude-Code runtime support — Codex CLI, Gemini CLI, OpenCode as plugin hosts
 
 ## Requirements
 
@@ -46,29 +41,14 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - ✓ `/devils-council:on-plan`, `/devils-council:on-code`, `/devils-council:dig` + opt-in GSD hook wrappers — v1.0
 - ✓ README + CHANGELOG + v1.0.0 GitHub Release — v1.0
 
-### Active (v1.1 — in scope)
+### Validated (v1.1)
 
-**New bench personas (6):**
-- [x] Compliance Reviewer — policy/audit/regulation signals (GDPR/HIPAA/SOC2, data retention/residency) — Validated in Phase 4
-- [x] Junior Engineer — always-invokable (no signal); readability, naming, "I don't understand this" flags — Validated in Phase 4
-- [x] Performance Reviewer — N+1 patterns, hot-path allocation, loops-over-collections signals — Validated in Phase 4
-- [x] Test Lead — src-without-test + test-without-src imbalance, flaky patterns, coverage gaps — Validated in Phase 4
-- [x] Executive Sponsor — cost/budget/timeline/roadmap keywords; ROI, opportunity cost, strategic alignment — Validated in Phase 4
-- [x] Competing Team Lead — shared-infra + API-contract change signals; blast radius, coordination cost — Validated in Phase 4
-
-**Authoring UX:**
-- [x] `skills/create-persona/SKILL.md` — interactive scaffolder writing schema-valid `agents/*.md` passing `validate-personas.sh` on first run — Validated in Phase 5
-
-**Codex hardening:**
-- [ ] Codex `--output-schema` spike for Security (Phase 1 deliverable: go/no-go memo; if green, rollout + CI fixture)
-
-**Tech debt bundle (all folded into v1.1):**
-- [ ] TD-02: Phase 1 + Phase 4 VERIFICATION.md formal flip (cite v1.0.x release chain + 08-UAT evidence)
-- [ ] TD-03: Phase 5 Nyquist retroactive validation
-- [ ] TD-04: Slash-command shell-inject dry-run pre-parser (the v1.0.0 P0 class)
-- [ ] TD-05: Chair Top-3 target-field strictness (dc-validate-synthesis.sh composite-target fix)
-- [ ] TD-06: Rename `agents/README.md` → `agents/AUTHORING.md`
-- [ ] TD-07: README troubleshooting — `/plugin marketplace update` refresh step
+- ✓ 6 new bench personas (Compliance, Junior Eng, Performance, Test Lead, Executive Sponsor, Competing Team Lead) — v1.1 Phase 4
+- ✓ Interactive persona scaffolder (`/devils-council:create-persona`) — v1.1 Phase 5
+- ✓ Codex `--output-schema` WRAPPER verdict + rollout — v1.1 Phases 2+6
+- ✓ TD-01 through TD-07 tech debt closeouts — v1.1 Phase 1
+- ✓ 5 new classifier signals + 9-bench budget-cap enforcement — v1.1 Phases 3+4
+- ✓ Integration UAT + v1.1.0 release — v1.1 Phase 7
 
 ### Deferred (v1.2+)
 
@@ -85,10 +65,12 @@ Catch weak plans, overengineered designs, and business misalignment *before* exe
 - This plugin was designed for Andy's domain: bench personas weighted toward Air-Gap, Dual-Deploy, FinOps, Security (not generic roles).
 - Composes with GSD plugin (spec-driven development) + Superpowers plugin (TDD, brainstorming) + consulting-design-skill (Gemini) + Claude-Mem (cross-session memory). Coexistence verified in CI.
 - Codex CLI is configured on Andy's machine (Phase 1 CDEX-01/02/06); deep scans for Security + Dual-Deploy personas delegate via `codex exec --json`.
-- **Known quirks discovered in v1.0:**
-  - Claude Code's plugin loader treats any `agents/*.md` as a subagent — `agents/README.md` is mis-classified (TD-06)
-  - `/plugin marketplace add` caches the marketplace descriptor; users need `/plugin marketplace update` before reinstall picks up new tags (TD-07)
-  - `!<cmd>` explanatory backtick blocks in `commands/*.md` are parsed as shell-injection (caused v1.0.0 → v1.0.1 hotfix; TD-04 targets a dry-run pre-parser)
+- **Known quirks (all resolved in v1.1):**
+  - ~~`agents/README.md` mis-classified as subagent~~ — renamed to `AUTHORING.md` (TD-06)
+  - ~~marketplace cache stale after tag push~~ — README documents `/plugin marketplace update` step (TD-07)
+  - ~~shell-injection in explanatory code blocks~~ — dry-run pre-parser + allowlist in CI (TD-04)
+- **Known quirk discovered in v1.1:**
+  - Claude Code shell-injection timing: sequential `!`backtick blocks may not see filesystem changes from prior blocks. Workaround: conductor fallback invokes `dc-classify.sh` via Bash tool when shell-injection didn't populate MANIFEST
 
 ## Constraints
 
