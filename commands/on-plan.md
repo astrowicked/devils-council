@@ -29,12 +29,17 @@ case "$PHASE" in
   ''|*[!0-9]*) exit 2 ;;
 esac
 PADDED=$(printf '%02d' "$PHASE")
-shopt -s nullglob
-PLANS=(.planning/phases/${PADDED}-*/${PADDED}-*-PLAN.md)
-printf 'PLAN_COUNT=%d\n' "${#PLANS[@]}"
-for p in "${PLANS[@]}"; do
-  printf 'PLAN=%s\n' "$p"
-done`
+PLANS=$(find .planning/phases -maxdepth 2 -path ".planning/phases/${PADDED}-*/${PADDED}-*-PLAN.md" 2>/dev/null | sort)
+PLAN_COUNT=0
+if [ -n "$PLANS" ]; then
+  PLAN_COUNT=$(printf '%s\n' "$PLANS" | wc -l | tr -d ' ')
+fi
+printf 'PLAN_COUNT=%d\n' "$PLAN_COUNT"
+if [ "$PLAN_COUNT" -gt 0 ]; then
+  printf '%s\n' "$PLANS" | while IFS= read -r p; do
+    printf 'PLAN=%s\n' "$p"
+  done
+fi`
 
 ## Dispatch
 
