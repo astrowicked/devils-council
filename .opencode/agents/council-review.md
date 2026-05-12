@@ -169,6 +169,19 @@ Use this exact section format:
 - [Persona]: [target] — [severity]
 ```
 
+### Validation Checklist (MANDATORY before emitting synthesis)
+
+Before writing your synthesis, verify each persona's scorecard above. For each finding in each persona scorecard:
+
+1. **Evidence is verbatim** — The `evidence:` value must appear as a literal substring in the artifact text provided by the user. If it does not, flag: "⚠️ [Persona] finding [N]: evidence not found in artifact — INVALID, excluding from synthesis."
+2. **Severity is valid** — Must be exactly one of: `blocker`, `major`, `minor`, `nit`. Any other value → exclude finding.
+3. **No banned phrases in claim/ask** — Cross-reference each persona's banned-phrase list. If a banned phrase appears in `claim:` or `ask:`, flag: "⚠️ [Persona] finding [N]: contains banned phrase '[phrase]' — INVALID, excluding from synthesis."
+4. **Target is specific** — `target:` must reference a specific section, line, code block, or sentence from the artifact. Generic targets like "the plan" or "overall" → exclude finding.
+
+Only synthesize findings that pass all 4 checks. Report excluded findings in an "## Excluded Findings" section after "## Also Raised" with the reason for exclusion.
+
+---
+
 **Forbidden language:** Do NOT write APPROVE, REJECT, "overall verdict", "on balance", "recommend approval", "recommend rejection", or numeric scores like "5/10" or "7/10". Surface the pushback — do not collapse it into a verdict.
 
 If no persona produced valid findings, write: `No synthesis possible — all personas returned empty scorecards.`
