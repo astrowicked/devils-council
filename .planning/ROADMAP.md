@@ -51,7 +51,7 @@
   - Depends on: Phase 4
   - **Plans:** 1 plan
   - Plans:
-    - [ ] 05-01-PLAN.md — Speckit hook detection + extension config + plugin wiring
+    - [x] 05-01-PLAN.md — Speckit hook detection + extension config + plugin wiring
 
 - [ ] **Phase 6: Dual-Runtime CI** — Extend existing CI pipeline to test OpenCode plugin path alongside Claude Code. Shared persona fixtures, golden-file scorecard comparison, coexistence verification.
   - Requirements: OC-CI-01

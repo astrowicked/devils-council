@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — OpenCode Compatibility
 status: verifying
-last_updated: "2026-05-12T18:20:55.790Z"
+last_updated: "2026-05-12T18:32:32.210Z"
 last_activity: 2026-05-12
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
@@ -65,7 +65,7 @@ v1.1 shipped as v1.1.0 on 2026-05-01. Full 16-persona suite working in Claude Co
 
 ## Session Continuity
 
-Last session: 2026-05-12T18:20:55.786Z
+Last session: 2026-05-12T18:32:32.205Z
 
 ### Performance Metrics
 
@@ -75,6 +75,7 @@ Last session: 2026-05-12T18:20:55.786Z
 | Phase 02 P01 | 9m | 3 tasks | 7 files |
 | Phase 03 P01 | 591 | 2 tasks | 8 files |
 | Phase 04 P01 | 377 | 2 tasks | 4 files |
+| Phase 05 P01 | 272 | 2 tasks | 6 files |
 
 ### Decisions
 
@@ -85,3 +86,5 @@ Last session: 2026-05-12T18:20:55.786Z
 - [Phase 03]: Signal detection as LLM-driven natural language rules (not regex) — matches soft detection strategy
 - [Phase 04]: Performance Reviewer uses split N+1 detection (loop+db and SQL-in-loop) counting as 2 signals
 - [Phase 04]: Scorecard validation gate added to Chair synthesis with 4 enforcement rules
+- [Phase 05]: Speckit tool detection via case-insensitive prefix match (startsWith speckit + contains plan)
+- [Phase 05]: Dual extension config: .specify/ for dogfooding, .opencode/extensions/ for npm distribution
