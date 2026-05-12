@@ -27,7 +27,7 @@ python3 -c "import yaml" 2>/dev/null || {
 
 # Personas transformed from agents/ source. Files in .opencode/agents/ NOT in this
 # array are simply left alone — not validated, not deleted, not categorized.
-PERSONAS=(staff-engineer sre product-manager devils-advocate council-chair)
+PERSONAS=(staff-engineer sre product-manager devils-advocate council-chair security-reviewer finops-auditor air-gap-reviewer performance-reviewer)
 
 # --- Atomic write: build to temp dir, move on success ---
 TEMP_DIR="$(mktemp -d)"
@@ -165,6 +165,115 @@ trap - EXIT
 
 echo ""
 echo "Build complete: ${#PERSONAS[@]} personas transformed from agents/"
+echo ""
+
+# --- Post-build cleanup: strip Codex delegation and persona-metadata sidecar refs ---
+# Codex CLI integration deferred to v1.3. Remove all delegation_request sections,
+# Codex references, and persona-metadata sidecar references from bench agents.
+# Core personas don't have these, so this is safe to run on all.
+
+for persona in "${PERSONAS[@]}"; do
+  target_file="$TARGET_DIR/${persona}.md"
+
+  python3 - "$target_file" << 'CLEANUP_SCRIPT'
+import sys
+import re
+
+path = sys.argv[1]
+with open(path, 'r') as f:
+    content = f.read()
+
+original = content
+
+# 1. Remove "Delegating a deep scan to Codex" section entirely (security-reviewer)
+content = re.sub(
+    r'\n## Delegating a deep scan to Codex.*?(?=\n## )',
+    '\n',
+    content,
+    flags=re.DOTALL
+)
+
+# 2. Remove "Do NOT emit delegation_request" paragraphs (finops, air-gap)
+content = re.sub(
+    r'\nDo NOT emit `delegation_request:`[^\n]*\n(?:[^\n]*\n)*?(?=\nThe `findings:` array)',
+    '\n',
+    content
+)
+content = re.sub(
+    r'\nNo `delegation_request:`[^\n]*\n(?:[^\n]*\n)*?(?=\nThe `findings:` array)',
+    '\n',
+    content
+)
+
+# 3. Remove "MAY delegate deep scans to Codex via delegation_request." from description
+content = re.sub(
+    r'( +MAY delegate\n\s+deep scans to Codex via delegation_request\.)', '', content
+)
+content = re.sub(
+    r' MAY delegate\s+deep scans to Codex via delegation_request\.', '', content
+)
+
+# 4. Remove "Does not delegate to Codex in v1." from description
+content = re.sub(r'\s*Does not delegate to Codex in v1\.', '', content)
+
+# 5. Strip delegation_request from output contract instructions
+content = re.sub(
+    r'\s*If you are delegating, `delegation_request:` lives here as well, as a\n\s+top-level sibling of `findings:`\.',
+    '',
+    content
+)
+content = re.sub(
+    r' \(and, if\n\s*present, `delegation_request:`\)',
+    '',
+    content
+)
+
+# 6. Clean worked example: remove delegation_request block from example YAML
+content = re.sub(
+    r'delegation_request:\n(?:  [^\n]*\n)*',
+    '',
+    content
+)
+
+# 7. Fix worked example intro text referencing delegation
+content = re.sub(
+    r'findings AND one delegation_request\. The findings live inside the YAML\nfrontmatter `findings:` array; the delegation_request is a top-level\nsibling\. The body below the frontmatter contains only prose\.',
+    'findings. The findings live inside the YAML\nfrontmatter `findings:` array. The body below the frontmatter contains only prose.',
+    content
+)
+
+# 8. Remove "delegated to Codex" references in worked example Summary
+content = re.sub(
+    r' A third question —\nhow far the `skipVerify` flag reaches into the request-handler tree —\nis delegated to Codex because the answer requires reading files\nbeyond this persona\'s immediate context\.',
+    '',
+    content
+)
+
+# 9. Replace persona-metadata sidecar references with "listed below"
+# Handles multiple patterns: single-line and multi-line with newlines
+content = re.sub(
+    r'without the banned phrases\s+listed\s+in your persona-metadata sidecar\s*\n?\s*\(`persona-metadata/[^`]+`\)[.:]\s*',
+    'without the banned phrases\nlisted below: ',
+    content
+)
+content = re.sub(
+    r'without the banned phrases listed\s+in your persona-metadata sidecar\s*\n?\s*\(`persona-metadata/[^`]+`\)[.:]\s*',
+    'without the banned phrases listed\nbelow: ',
+    content
+)
+content = re.sub(
+    r'without the banned phrases listed in your persona-metadata sidecar\s*\(`persona-metadata/[^`]+`\)\.',
+    'without the banned phrases listed below.',
+    content
+)
+
+if content != original:
+    with open(path, 'w') as f:
+        f.write(content)
+    print(f"  ⚡ Cleaned: {path.split('/')[-1]}")
+CLEANUP_SCRIPT
+done
+
 echo ""
 
 # --- Post-transform validation ---
