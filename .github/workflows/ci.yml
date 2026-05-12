@@ -279,6 +279,32 @@ jobs:
             echo "coexistence test skipped — scripts/test-coexistence.sh not yet present"
           fi
 
+      - name: Run OpenCode TypeScript tests + build validation (Phase 6 OC-CI-01)
+        shell: bash
+        run: |
+          # v1.2 Phase 6: Validates the OpenCode plugin path — TS unit tests,
+          # build script, agent structure, package.json, coexistence.
+          if [ -x scripts/test-opencode.sh ] \
+              && [ -f .opencode/plugins/signals.test.ts ] \
+              && [ -f .opencode/build.sh ]; then
+            ./scripts/test-opencode.sh
+          else
+            echo "OpenCode tests skipped — scripts/test-opencode.sh or .opencode/ not yet present"
+          fi
+
+      - name: Run signal classifier parity test (Phase 6 OC-CI-01)
+        shell: bash
+        run: |
+          # v1.2 Phase 6: Verifies Python and TypeScript classifiers produce
+          # equivalent triggered_personas for shared fixture inputs.
+          if [ -x scripts/test-signal-parity.sh ] \
+              && [ -f .opencode/plugins/signals.ts ] \
+              && [ -f .opencode/test-fixtures/aws-plan.md ]; then
+            ./scripts/test-signal-parity.sh
+          else
+            echo "Signal parity test skipped — scripts/test-signal-parity.sh or fixtures not yet present"
+          fi
+
       - name: Run injection corpus test (Phase 7 HARD-01)
         shell: bash
         env:
