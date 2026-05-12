@@ -6,7 +6,8 @@
   "files": [
     "plugins/",
     "agents/",
-    "commands/"
+    "commands/",
+    "extensions/"
   ],
   "keywords": [
     "opencode",

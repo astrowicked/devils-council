@@ -1,0 +1,8 @@
+# Speckit extension configuration for devils-council
+# Auto-triggers adversarial review after /speckit.plan completes
+extensions:
+  - name: devils-council
+    trigger: after:plan
+    agent: "@council-review"
+    description: "Run adversarial review council on generated plans"
+    optional: true
