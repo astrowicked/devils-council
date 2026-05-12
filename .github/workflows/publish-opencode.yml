@@ -49,8 +49,6 @@ jobs:
           grep -q "agents/staff-engineer.md" /tmp/pack-output.txt
           echo "✓ Package contents verified"
 
-      - name: Publish to npm
+      - name: Publish to npm (OIDC Trusted Publishing)
         working-directory: .opencode
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
