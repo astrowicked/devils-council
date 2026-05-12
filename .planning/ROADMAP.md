@@ -37,11 +37,14 @@
   - Depends on: Phase 2
   - **Plans:** 1 plan
   - Plans:
-    - [ ] 03-01-PLAN.md — Port 4 bench personas, create TypeScript signal classifier, add signal rules to council-review
+    - [x] 03-01-PLAN.md — Port 4 bench personas, create TypeScript signal classifier, add signal rules to council-review
 
 - [ ] **Phase 4: Review Command + Scorecard Output** — `/review` command in `.opencode/commands/`. Structured scorecard identical to Claude Code format. Evidence enforcement and banned-phrase validation.
   - Requirements: OC-REVIEW-01, OC-SCORE-01
   - Depends on: Phase 3
+  - **Plans:** 1 plan
+  - Plans:
+    - [ ] 04-01-PLAN.md — TypeScript signal classifier, scorecard validation enforcement in Chair synthesis, plugin export wiring
 
 - [ ] **Phase 5: Speckit Integration Hook** — Wire as `/speckit.analyze` extension via `.specify/extensions.yml`. Auto-trigger devils-council after `/speckit.plan` completes.
   - Requirements: OC-SPECKIT-01

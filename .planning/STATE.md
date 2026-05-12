@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — OpenCode Compatibility
 status: verifying
-last_updated: "2026-05-12T17:28:11.059Z"
+last_updated: "2026-05-12T18:04:04.692Z"
 last_activity: 2026-05-12
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 2
-  completed_plans: 2
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -65,7 +65,7 @@ v1.1 shipped as v1.1.0 on 2026-05-01. Full 16-persona suite working in Claude Co
 
 ## Session Continuity
 
-Last session: 2026-05-12T17:28:11.055Z
+Last session: 2026-05-12T18:04:04.686Z
 
 ### Performance Metrics
 
@@ -73,9 +73,12 @@ Last session: 2026-05-12T17:28:11.055Z
 |-------|------|----------|-------|-------|
 | 01 | 01 | ~3m | 2 | 10 |
 | Phase 02 P01 | 9m | 3 tasks | 7 files |
+| Phase 03 P01 | 591 | 2 tasks | 8 files |
 
 ### Decisions
 
 - Heredoc pattern: `python3 -` (stdin) with positional args before the heredoc delimiter for combined heredoc+args
 - [Phase 02]: Hand-written persona bodies are canonical; build.sh provides automated starting point
 - [Phase 02]: council-review.md is experimental convenience tool; standalone persona agents are primary workflow
+- [Phase 03]: Post-build cleanup in build.sh for Codex/sidecar stripping — ensures idempotent builds
+- [Phase 03]: Signal detection as LLM-driven natural language rules (not regex) — matches soft detection strategy
