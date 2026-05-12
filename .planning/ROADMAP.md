@@ -18,20 +18,26 @@
 
 ## v1.2 Phases
 
-- [ ] **Phase 1: OpenCode Plugin Scaffold** — Create `.opencode/` directory structure, npm package scaffold, plugin entry point (TypeScript), resolve persona file sharing strategy (symlinks vs build step vs dual-read)
+- [x] **Phase 1: OpenCode Plugin Scaffold** — Create `.opencode/` directory structure, npm package scaffold, plugin entry point (TypeScript), resolve persona file sharing strategy (symlinks vs build step vs dual-read)
   - Requirements: OC-SCAFFOLD-01, OC-SCAFFOLD-02
   - Depends on: none
-  - **Plans:** 1 plan
+  - **Plans:** 1 plan (1 complete)
   - Plans:
-    - [ ] 01-01-PLAN.md — npm package scaffold, plugin entry point, agent build script, publishability validation
+    - [x] 01-01-PLAN.md — npm package scaffold, plugin entry point, agent build script, publishability validation
 
 - [ ] **Phase 2: Persona Adaptation** — Port core 4 personas + Chair as OpenCode agents (`.opencode/agents/*.md`). Adapt multi-persona orchestration for OpenCode's single-agent invocation model (no nested subagent spawning).
   - Requirements: OC-PERSONA-01, OC-PERSONA-02
   - Depends on: Phase 1
+  - **Plans:** 1 plan
+  - Plans:
+    - [x] 02-01-PLAN.md — Adapt persona bodies for OpenCode runtime, create council-review orchestrator agent, update build script
 
 - [ ] **Phase 3: Signal Detection + Persona Selection** — Implement signal detection as OpenCode `tool.execute.before` TypeScript plugin hook. Deterministic signal→persona mapping. Port top 4 bench personas (Security, FinOps, Air-Gap, Performance, Dual-Deploy).
   - Requirements: OC-SIGNAL-01, OC-BENCH-01
   - Depends on: Phase 2
+  - **Plans:** 1 plan
+  - Plans:
+    - [ ] 03-01-PLAN.md — Port 4 bench personas, create TypeScript signal classifier, add signal rules to council-review
 
 - [ ] **Phase 4: Review Command + Scorecard Output** — `/review` command in `.opencode/commands/`. Structured scorecard identical to Claude Code format. Evidence enforcement and banned-phrase validation.
   - Requirements: OC-REVIEW-01, OC-SCORE-01
