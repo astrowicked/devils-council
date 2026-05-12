@@ -44,9 +44,9 @@ describe("handleToolAfter() — speckit plan detection", () => {
   })
 
   it("extracts artifact from object result via JSON.stringify", () => {
-    const objResult = { plan: "some plan text", tasks: ["a", "b"] }
+    const objResult = { plan: "Build authentication with JWT tokens and refresh rotation", tasks: ["login", "validate"] }
     const result = handleToolAfter({ tool: "speckit.plan", result: objResult })
-    assert.ok(result !== null)
+    assert.ok(result !== null, "Object result should be stringified and treated as artifact")
     assert.equal(result!.artifact, JSON.stringify(objResult))
   })
 
