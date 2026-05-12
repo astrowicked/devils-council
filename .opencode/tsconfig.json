@@ -4,7 +4,12 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ES2022",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "typeRoots": ["types"]
   },
-  "include": ["plugins/**/*.ts"]
+  "include": ["plugins/**/*.ts", "types/**/*.d.ts"],
+  "exclude": ["plugins/**/*.test.ts"]
 }

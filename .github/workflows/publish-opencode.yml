@@ -1,0 +1,56 @@
+name: Publish OpenCode Plugin
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    name: Build & Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup Python (for build.sh persona transform)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Install dependencies
+        working-directory: .opencode
+        run: npm install --legacy-peer-deps
+
+      - name: Run build
+        working-directory: .opencode
+        run: bash build.sh
+
+      - name: Run tests
+        working-directory: .opencode
+        run: npx tsx --test plugins/signals.test.ts plugins/speckit-hook.test.ts
+
+      - name: Verify package contents
+        working-directory: .opencode
+        run: |
+          npm pack --dry-run 2>&1 | tee /tmp/pack-output.txt
+          grep -q "plugins/devils-council.js" /tmp/pack-output.txt
+          grep -q "agents/staff-engineer.md" /tmp/pack-output.txt
+          echo "✓ Package contents verified"
+
+      - name: Publish to npm
+        working-directory: .opencode
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

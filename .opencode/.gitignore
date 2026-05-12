@@ -1,0 +1,5 @@
+node_modules/
+dist/
+plugins/*.js
+plugins/*.d.ts
+package-lock.json

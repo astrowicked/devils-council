@@ -1,0 +1,11 @@
+tsconfig.json
+build.sh
+types/
+dist/
+plugins/*.test.ts
+plugins/*.ts
+!plugins/*.js
+!plugins/*.d.ts
+test-fixtures/
+node_modules/
+.gitignore

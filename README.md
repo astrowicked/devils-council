@@ -20,7 +20,9 @@ Four always-on core personas (Staff Engineer, SRE, Product Manager, Devil's Advo
 
 ## Install
 
-From the GitHub marketplace (recommended):
+### Claude Code (recommended for Claude Code users)
+
+From the GitHub marketplace:
 
 ```bash
 /plugin marketplace add astrowicked/devils-council
@@ -39,6 +41,36 @@ After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-
 ```bash
 /plugin uninstall devils-council@devils-council
 /plugin install devils-council@devils-council
+```
+
+### OpenCode
+
+Add to your project's `opencode.json`:
+
+```json
+{
+  "plugin": ["devils-council-opencode"]
+}
+```
+
+OpenCode auto-installs npm plugins at startup — no `npm install` needed. The plugin ships 10 agents:
+
+- `@staff-engineer`, `@sre`, `@product-manager`, `@devils-advocate` — standalone persona reviews
+- `@council-chair` — synthesizes findings from multiple persona scorecards
+- `@council-review` — full council (4 core + dynamic bench activation + Chair synthesis) in one invocation
+- `@security-reviewer`, `@finops-auditor`, `@air-gap-reviewer`, `@performance-reviewer` — bench personas activated by signal detection
+
+**Quickstart (OpenCode):**
+
+```bash
+# Full council review (single invocation)
+@council-review <paste your plan or diff here>
+
+# Single persona lens
+@staff-engineer <paste artifact>
+
+# Speckit integration (auto-triggers after /speckit.plan)
+# Just add "devils-council-opencode" to your opencode.json plugin array
 ```
 
 ## Uninstall
@@ -415,6 +447,41 @@ Or use `--show-nits` only when you want everything inline (default: top-3 blocke
 PRs welcome. See the phase-artifact trail under `.planning/` (in-repo, gitignored for public users — fork to see planning docs) for the design rationale behind every shipped feature. Personas are markdown files under `agents/` with YAML frontmatter; add a new one and `scripts/validate-personas.sh` will accept it if the schema holds.
 
 Tests: `bash scripts/validate-personas.sh && claude plugin validate .` for a quick check; full suite lives in `.github/workflows/ci.yml`.
+
+## Publishing (OpenCode npm package)
+
+The OpenCode plugin is published to npm as `devils-council-opencode` via GitHub Actions on tag push.
+
+**Release workflow:**
+
+```bash
+# 1. Bump version in both manifests
+#    .claude-plugin/plugin.json → "version": "X.Y.Z"
+#    .opencode/package.json    → "version": "X.Y.Z"
+# 2. Update CHANGELOG.md
+# 3. Commit & tag
+git add -A && git commit -m "chore: bump version to X.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+The `publish-opencode.yml` workflow automatically builds and publishes to npm when a `v*` tag is pushed.
+
+**Setup (one-time):**
+
+1. Create an npm access token at <https://www.npmjs.com/settings/tokens> (type: Automation)
+2. Add it as a repository secret: Settings → Secrets → Actions → `NPM_TOKEN`
+3. First publish requires the npm account to own the `devils-council-opencode` package name
+
+**Local build/test:**
+
+```bash
+cd .opencode
+npm install --legacy-peer-deps
+bash build.sh          # transforms agents + compiles TypeScript
+npm test               # runs signal + speckit-hook tests
+npm pack --dry-run     # verify tarball contents
+```
 
 ## License
 

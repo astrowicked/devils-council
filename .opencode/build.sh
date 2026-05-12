@@ -324,3 +324,39 @@ fi
 
 echo "All ${#PERSONAS[@]} personas validated successfully."
 echo "Files in .opencode/agents/ not in PERSONAS array: left untouched."
+
+# --- TypeScript compilation (for npm publish) ---
+# OpenCode loads plugins via `await import()` on a compiled binary —
+# raw .ts files won't load. Compile plugins/*.ts → plugins/*.js using tsc.
+
+echo ""
+echo "=== TypeScript compilation ==="
+
+if ! command -v npx &>/dev/null; then
+  echo "WARNING: npx not found — skipping TypeScript compilation." >&2
+  echo "  npm-published package will NOT work without compiled .js files." >&2
+  echo "  Install Node.js 18+ to enable compilation." >&2
+  exit 0
+fi
+
+# Compile with tsc (uses tsconfig.json in .opencode/)
+cd "$SCRIPT_DIR"
+npx --yes tsc --outDir dist --declaration --declarationDir dist 2>&1 || {
+  echo "ERROR: TypeScript compilation failed." >&2
+  exit 1
+}
+
+# Move compiled files alongside source (npm publish ships plugins/ directory)
+for jsfile in dist/plugins/*.js; do
+  [ -f "$jsfile" ] && cp "$jsfile" plugins/
+done
+for dtsfile in dist/plugins/*.d.ts; do
+  [ -f "$dtsfile" ] && cp "$dtsfile" plugins/
+done
+
+# Clean up dist/
+rm -rf dist
+
+echo "✓ TypeScript compiled: plugins/*.js + plugins/*.d.ts"
+echo ""
+echo "Build complete."

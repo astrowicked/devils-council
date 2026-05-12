@@ -2,11 +2,18 @@
   "name": "devils-council-opencode",
   "version": "1.2.0",
   "description": "Adversarial review council for plans, code, and RFCs — OpenCode plugin",
-  "main": "plugins/devils-council.ts",
+  "type": "module",
+  "main": "plugins/devils-council.js",
+  "exports": {
+    ".": {
+      "import": "./plugins/devils-council.js",
+      "types": "./plugins/devils-council.d.ts"
+    }
+  },
   "files": [
-    "plugins/",
+    "plugins/*.js",
+    "plugins/*.d.ts",
     "agents/",
-    "commands/",
     "extensions/"
   ],
   "keywords": [
@@ -19,13 +26,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/andywoodard/devils-council.git"
+    "url": "https://github.com/astrowicked/devils-council.git"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "^0.1.0"
   },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
   "scripts": {
     "build": "./build.sh",
-    "prepublishOnly": "./build.sh"
+    "prepublishOnly": "./build.sh",
+    "test": "npx tsx --test plugins/signals.test.ts plugins/speckit-hook.test.ts"
   }
 }
