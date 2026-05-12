@@ -1,0 +1,30 @@
+{
+  "name": "devils-council-opencode",
+  "version": "0.1.0",
+  "description": "Adversarial review council for plans, code, and RFCs — OpenCode plugin",
+  "main": "plugins/devils-council.ts",
+  "files": [
+    "plugins/",
+    "agents/",
+    "commands/"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "review",
+    "adversarial-review"
+  ],
+  "author": "Andy Woodard",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andywoodard/devils-council.git"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^0.1.0"
+  },
+  "scripts": {
+    "build": "./build.sh",
+    "prepublishOnly": "./build.sh"
+  }
+}

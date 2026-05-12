@@ -3,9 +3,62 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1-8, 63/63 requirements shipped (2026-04-22 → 2026-04-24 as v1.0.0/1/2)
-- 📋 **v1.1 Expansion + Hardening** — Phases 1-7 (this milestone; phase numbering reset)
+- ✅ **v1.1 Expansion + Hardening** — Phases 1-7, 35/35 requirements shipped (2026-04-24 → 2026-05-01 as v1.1.0)
+- 📋 **v1.2 OpenCode Compatibility** — Phases 1-6 (this milestone; phase numbering reset)
 
-## Milestone v1.1 — Expansion + Hardening
+## Milestone v1.2 — OpenCode Compatibility
+
+**Goal:** Ship devils-council as a dual-runtime plugin — pragmatic port to OpenCode with core 4 + Chair + 4 high-value bench personas, structured scorecard output, signal-driven selection via TypeScript plugin hooks, and speckit integration.
+
+**Granularity:** standard
+**Requirement coverage:** 8/8 mapped (0 orphans)
+**Structure:** 6 phases, plans TBD
+
+**Key constraint:** Claude Code plugin remains unchanged and fully functional. OpenCode support is additive. Shared persona markdown is the source of truth for both runtimes.
+
+## v1.2 Phases
+
+- [ ] **Phase 1: OpenCode Plugin Scaffold** — Create `.opencode/` directory structure, npm package scaffold, plugin entry point (TypeScript), resolve persona file sharing strategy (symlinks vs build step vs dual-read)
+  - Requirements: OC-SCAFFOLD-01, OC-SCAFFOLD-02
+  - Depends on: none
+  - **Plans:** 1 plan
+  - Plans:
+    - [ ] 01-01-PLAN.md — npm package scaffold, plugin entry point, agent build script, publishability validation
+
+- [ ] **Phase 2: Persona Adaptation** — Port core 4 personas + Chair as OpenCode agents (`.opencode/agents/*.md`). Adapt multi-persona orchestration for OpenCode's single-agent invocation model (no nested subagent spawning).
+  - Requirements: OC-PERSONA-01, OC-PERSONA-02
+  - Depends on: Phase 1
+
+- [ ] **Phase 3: Signal Detection + Persona Selection** — Implement signal detection as OpenCode `tool.execute.before` TypeScript plugin hook. Deterministic signal→persona mapping. Port top 4 bench personas (Security, FinOps, Air-Gap, Performance, Dual-Deploy).
+  - Requirements: OC-SIGNAL-01, OC-BENCH-01
+  - Depends on: Phase 2
+
+- [ ] **Phase 4: Review Command + Scorecard Output** — `/review` command in `.opencode/commands/`. Structured scorecard identical to Claude Code format. Evidence enforcement and banned-phrase validation.
+  - Requirements: OC-REVIEW-01, OC-SCORE-01
+  - Depends on: Phase 3
+
+- [ ] **Phase 5: Speckit Integration Hook** — Wire as `/speckit.analyze` extension via `.specify/extensions.yml`. Auto-trigger devils-council after `/speckit.plan` completes.
+  - Requirements: OC-SPECKIT-01
+  - Depends on: Phase 4
+
+- [ ] **Phase 6: Dual-Runtime CI** — Extend existing CI pipeline to test OpenCode plugin path alongside Claude Code. Shared persona fixtures, golden-file scorecard comparison, coexistence verification.
+  - Requirements: OC-CI-01
+  - Depends on: Phase 5
+
+## v1.2 Requirements
+
+| ID | Requirement | Phase |
+|----|-------------|-------|
+| OC-SCAFFOLD-01 | OpenCode plugin loads without errors and registers agents/commands | 1 |
+| OC-SCAFFOLD-02 | npm package publishable and installable via `opencode.json` `plugin` array | 1 |
+| OC-PERSONA-01 | Core 4 personas produce voice-differentiated critique in OpenCode | 2 |
+| OC-PERSONA-02 | Chair synthesis produces contradictions-first summary with finding IDs | 2 |
+| OC-SIGNAL-01 | Signal detection triggers correct bench personas based on artifact content | 3 |
+| OC-BENCH-01 | 4 bench personas (Security, FinOps, Air-Gap, Performance/Dual-Deploy) activated by signals | 3 |
+| OC-REVIEW-01 | `/review` command produces structured scorecard matching Claude Code output format | 4 |
+| OC-SCORE-01 | Scorecard enforces evidence (verbatim quotes), bans generic phrases, uses severity tiers | 4 |
+| OC-SPECKIT-01 | Devils-council triggers automatically as post-plan quality gate in speckit workflow | 5 |
+| OC-CI-01 | CI tests both runtimes; shared fixtures produce equivalent scorecards | 6 |
 
 **Goal:** Expand bench coverage (4 → 9 personas), ship custom-persona scaffolder, spike Codex `--output-schema` enforcement for Security deep scans, and close v1.0 tech-debt including the v1.0.0 P0 shell-inject regression class.
 
