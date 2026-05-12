@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-12
+
+v1.2 OpenCode Compatibility release. Devils-council now ships as a dual-runtime plugin — the Claude Code plugin remains unchanged while an additive OpenCode port delivers core 4 + Chair + 4 bench personas with structured scorecard output, LLM-driven signal detection, speckit integration, and dual-runtime CI validation.
+
+### OpenCode Plugin (`@opencode-ai/devils-council`)
+
+- **10 OpenCode agents** — 4 core personas (Staff Engineer, SRE, PM, Devil's Advocate), Council Chair, experimental council-review orchestrator, and 4 bench personas (Security, FinOps, Air-Gap, Performance)
+- **council-review orchestrator** (`@council-review`) — single-invocation agent that runs all 4 core personas sequentially + dynamic bench activation + Chair synthesis. Labeled experimental due to single-context cross-contamination tradeoffs.
+- **Signal detection rules** — inline activation criteria in council-review.md; LLM reads artifact patterns and activates bench persona lenses dynamically
+- **TypeScript signal classifier** (`signals.ts`) — 13 regex detectors mapped to 4 bench personas, deterministic classification for CI/automation use
+- **Scorecard validation checklist** — Chair synthesis phase enforces: evidence is verbatim, severity is valid, no banned phrases, target is specific
+- **Speckit integration** — `tool.execute.after` hook detects `/speckit.plan` completion and suggests council review; `.specify/extensions.yml` for declarative extension registration
+- **npm-publishable** — `devils-council-opencode` package with `build.sh` transforming shared persona markdown from canonical `agents/` source
+
+### CI / Testing
+
+- **`scripts/test-opencode.sh`** — validates TypeScript tests, build output, agent structure, package.json, and coexistence with Claude Code plugin
+- **`scripts/test-signal-parity.sh`** — verifies Python and TypeScript classifiers agree on shared fixtures (with documented expected divergence for runtime-specific detectors)
+- **CI workflow extended** — `.github/workflows/ci.yml` now tests both runtimes in the same workflow run
+
+### Key Design Decisions
+
+- **Schema-compatible, not byte-compatible** — scorecard output uses same YAML keys, severity enum, and section structure across runtimes; natural LLM variation is accepted
+- **Shared persona markdown** — root `agents/*.md` is the source of truth; `build.sh` transforms for OpenCode (Option D: build step for npm, direct for local dev)
+- **Experimental orchestrator** — `council-review` uses sequential single-context role-play with CONTEXT RESET boundaries; standalone agents recommended for isolation-equivalent output
+- **Dual-Deploy deferred** — highly specific to KOTS/SaaS hybrid; deferred to v1.3
+
 ## [1.1.0] - 2026-04-29
 
 v1.1 Expansion + Hardening release. Persona roster grows from 10 to 16 (4 core + 9 bench + Chair + classifier + Junior Engineer as always-invokable bench on code-diff). Custom persona scaffolder ships. Codex `--output-schema` wired behind feature-detect (WRAPPER verdict). All 7 v1.0 tech-debt items closed.

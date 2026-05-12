@@ -56,6 +56,9 @@
 - [ ] **Phase 6: Dual-Runtime CI** — Extend existing CI pipeline to test OpenCode plugin path alongside Claude Code. Shared persona fixtures, golden-file scorecard comparison, coexistence verification.
   - Requirements: OC-CI-01
   - Depends on: Phase 5
+  - **Plans:** 1 plan
+  - Plans:
+    - [x] 06-01-PLAN.md — OpenCode TS tests + build validation, signal parity check, CI workflow extension
 
 ## v1.2 Requirements
 

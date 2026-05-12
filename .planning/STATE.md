@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — OpenCode Compatibility
 status: verifying
-last_updated: "2026-05-12T18:32:32.210Z"
+last_updated: "2026-05-12T19:04:00.109Z"
 last_activity: 2026-05-12
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 6
+  completed_plans: 6
   percent: 100
 ---
 
@@ -24,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-05-12 — v1.2 milestone added)
 
 ## Current Position
 
-Phase: 01 (OpenCode Plugin Scaffold)
+Phase: 06 (Dual-Runtime CI)
 Plan: 01 complete (1/1 plans in phase)
-Status: Phase 1 plan executed, all verifications pass
+Status: Phase 6 plan executed, all verifications pass
 Last activity: 2026-05-12
 
 ## Accumulated Context
@@ -65,7 +65,7 @@ v1.1 shipped as v1.1.0 on 2026-05-01. Full 16-persona suite working in Claude Co
 
 ## Session Continuity
 
-Last session: 2026-05-12T18:32:32.205Z
+Last session: 2026-05-12T19:03:54.256Z
 
 ### Performance Metrics
 
@@ -88,3 +88,4 @@ Last session: 2026-05-12T18:32:32.205Z
 - [Phase 04]: Scorecard validation gate added to Chair synthesis with 4 enforcement rules
 - [Phase 05]: Speckit tool detection via case-insensitive prefix match (startsWith speckit + contains plan)
 - [Phase 05]: Dual extension config: .specify/ for dogfooding, .opencode/extensions/ for npm distribution
+- [Phase 06]: Parity test compares only shared persona set (security, finops, air-gap) — runtime-specific divergence documented as expected

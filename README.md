@@ -2,7 +2,7 @@
 
 > Persona-driven adversarial review for plans, code, and design artifacts. Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give.
 
-**Status:** v1.1.0 — 16 personas shipped (4 core + 9 bench + Chair + classifier + Junior Engineer always-invokable on code-diff), custom persona scaffolder, Codex `--output-schema` enforcement (WRAPPER verdict), 9-entry bench priority order with budget cap, and all v1.0 tech debt closed.
+**Status:** v1.2.0 — Dual-runtime plugin (Claude Code + OpenCode). 16 personas in Claude Code, 10 in OpenCode (4 core + Chair + orchestrator + 4 bench). TypeScript signal classifier, speckit integration, schema-compatible scorecard output across runtimes.
 
 **Repo:** <https://github.com/astrowicked/devils-council> · **License:** MIT · **Claude Code:** v2.1.63+
 
@@ -31,7 +31,7 @@ Verify:
 
 ```bash
 claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
-# Expected: "1.1.0"
+# Expected: "1.2.0"
 ```
 
 After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-bump) if new commands don't appear):
