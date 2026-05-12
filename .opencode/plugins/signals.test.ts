@@ -1,11 +1,13 @@
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 import { classify, type SignalResult } from "./signals"
 
-// Helper: resolve fixture path relative to repo root
-const fixtureDir = join(import.meta.dirname, "..", "test-fixtures")
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const fixtureDir = join(__dirname, "..", "test-fixtures")
 
 describe("classify() — Security Reviewer triggers", () => {
   it("triggers on auth/login path patterns", () => {
