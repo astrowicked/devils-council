@@ -44,11 +44,14 @@
   - Depends on: Phase 3
   - **Plans:** 1 plan
   - Plans:
-    - [ ] 04-01-PLAN.md — TypeScript signal classifier, scorecard validation enforcement in Chair synthesis, plugin export wiring
+    - [x] 04-01-PLAN.md — TypeScript signal classifier, scorecard validation enforcement in Chair synthesis, plugin export wiring
 
 - [ ] **Phase 5: Speckit Integration Hook** — Wire as `/speckit.analyze` extension via `.specify/extensions.yml`. Auto-trigger devils-council after `/speckit.plan` completes.
   - Requirements: OC-SPECKIT-01
   - Depends on: Phase 4
+  - **Plans:** 1 plan
+  - Plans:
+    - [ ] 05-01-PLAN.md — Speckit hook detection + extension config + plugin wiring
 
 - [ ] **Phase 6: Dual-Runtime CI** — Extend existing CI pipeline to test OpenCode plugin path alongside Claude Code. Shared persona fixtures, golden-file scorecard comparison, coexistence verification.
   - Requirements: OC-CI-01

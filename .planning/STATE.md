@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — OpenCode Compatibility
 status: verifying
-last_updated: "2026-05-12T18:04:04.692Z"
+last_updated: "2026-05-12T18:20:55.790Z"
 last_activity: 2026-05-12
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
@@ -65,7 +65,7 @@ v1.1 shipped as v1.1.0 on 2026-05-01. Full 16-persona suite working in Claude Co
 
 ## Session Continuity
 
-Last session: 2026-05-12T18:04:04.686Z
+Last session: 2026-05-12T18:20:55.786Z
 
 ### Performance Metrics
 
@@ -74,6 +74,7 @@ Last session: 2026-05-12T18:04:04.686Z
 | 01 | 01 | ~3m | 2 | 10 |
 | Phase 02 P01 | 9m | 3 tasks | 7 files |
 | Phase 03 P01 | 591 | 2 tasks | 8 files |
+| Phase 04 P01 | 377 | 2 tasks | 4 files |
 
 ### Decisions
 
@@ -82,3 +83,5 @@ Last session: 2026-05-12T18:04:04.686Z
 - [Phase 02]: council-review.md is experimental convenience tool; standalone persona agents are primary workflow
 - [Phase 03]: Post-build cleanup in build.sh for Codex/sidecar stripping — ensures idempotent builds
 - [Phase 03]: Signal detection as LLM-driven natural language rules (not regex) — matches soft detection strategy
+- [Phase 04]: Performance Reviewer uses split N+1 detection (loop+db and SQL-in-loop) counting as 2 signals
+- [Phase 04]: Scorecard validation gate added to Chair synthesis with 4 enforcement rules
