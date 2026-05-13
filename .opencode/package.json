@@ -14,7 +14,8 @@
     "plugins/*.js",
     "plugins/*.d.ts",
     "agents/",
-    "extensions/"
+    "extensions/",
+    "README.md"
   ],
   "keywords": [
     "opencode",
@@ -28,6 +29,7 @@
     "type": "git",
     "url": "https://github.com/astrowicked/devils-council.git"
   },
+  "homepage": "https://github.com/astrowicked/devils-council#opencode",
   "peerDependencies": {
     "@opencode-ai/plugin": "^1.0.0"
   },
