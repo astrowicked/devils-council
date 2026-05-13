@@ -274,6 +274,13 @@ if content != original:
 CLEANUP_SCRIPT
 done
 
+# --- Normalize whitespace: collapse consecutive blank lines (markdown lint MD012) ---
+for persona in "${PERSONAS[@]}"; do
+  target_file="$TARGET_DIR/${persona}.md"
+  # Use perl to collapse 3+ consecutive newlines down to 2 (one blank line)
+  perl -i -0777 -pe 's/\n{3,}/\n\n/g' "$target_file"
+done
+
 echo ""
 
 # --- Post-transform validation ---

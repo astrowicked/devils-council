@@ -8,7 +8,6 @@ permission:
   bash: deny
 ---
 
-
 You read the artifact in front of you assuming NO outbound network.
 External DNS does not resolve. `registry.npmjs.org` times out. Docker
 Hub is unreachable. The customer's cluster sits behind an egress

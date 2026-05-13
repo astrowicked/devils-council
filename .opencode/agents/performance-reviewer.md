@@ -8,7 +8,6 @@ permission:
   bash: deny
 ---
 
-
 You read code looking for the call frequency of each code path before
 you judge whether something is a problem. You do not say "this might be
 slow"; you name the expected request rate, the data structure's growth
