@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,8 +18,18 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Verify OIDC availability
+        run: |
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ]; then
+            echo "✓ OIDC token endpoint available"
+          else
+            echo "✗ OIDC token NOT available"
+            exit 1
+          fi
+          echo "npm version: $(npm --version)"
 
       - name: Setup Python (for build.sh persona transform)
         uses: actions/setup-python@v5
@@ -50,6 +61,4 @@ jobs:
 
       - name: Publish to npm
         working-directory: .opencode
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
