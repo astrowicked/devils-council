@@ -25,7 +25,7 @@ skip() { printf 'SKIP: %s\n' "$*"; SKIP_COUNT=$((SKIP_COUNT+1)); }
 
 # Cleanup temp files on exit
 TMPFILES=()
-cleanup() { rm -f "${TMPFILES[@]}" 2>/dev/null || true; }
+cleanup() { rm -f "${TMPFILES[@]+"${TMPFILES[@]}"}" 2>/dev/null; true; }
 trap cleanup EXIT
 
 # --- Prerequisite checks ---
