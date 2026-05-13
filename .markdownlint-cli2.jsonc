@@ -30,6 +30,7 @@
     ".planning/**",
     "**/fixtures/**",
     "node_modules/**",
+    "**/node_modules/**",
     ".claude/**",
     ".council/**",
     "agents/**",

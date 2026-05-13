@@ -22,26 +22,30 @@ The artifact to review is provided in the user's message or as file content past
 
 After reading the artifact, check for these structural signals. If ANY signals match, add the corresponding bench persona lens as an ADDITIONAL phase after Phase 4 (Devil's Advocate) and before the Chair Synthesis.
 
-### Security Reviewer — activate if you observe:
+### Security Reviewer — activate if you observe
+
 - Authentication/session/login/JWT/OAuth code or endpoint paths (`/login`, `/auth`, `/oauth`)
 - Cryptographic imports (crypto, bcrypt, argon2, jose, libsodium, nacl)
-- Secret handling (process.env.*_SECRET, *_KEY, *_TOKEN; secret manager API calls)
+- Secret handling (process.env.\*\_SECRET, \*\_KEY, \*\_TOKEN; secret manager API calls)
 - Dependency updates in lockfiles (package-lock.json, yarn.lock, go.sum, etc.)
 
-### FinOps Auditor — activate if you observe:
+### FinOps Auditor — activate if you observe
+
 - AWS SDK imports (boto3, @aws-sdk/client-*, aws-sdk)
 - New cloud resource declarations (Terraform resource blocks, CDK constructs, CloudFormation)
 - Autoscaling/HPA/replica changes
 - Storage class changes
 
-### Air-Gap Reviewer — activate if you observe:
+### Air-Gap Reviewer — activate if you observe
+
 - Dependency updates (same trigger as Security above)
 - Network egress to external hosts (fetch/axios/requests to non-localhost URLs)
 - External container image pulls (FROM <registry>/..., image: <external>/...)
 - Unpinned dependencies (^, ~, >=, latest)
 - License/telemetry phone-home (Sentry, Datadog, Mixpanel SDK inits)
 
-### Performance Reviewer — activate if you observe (need 2+ patterns):
+### Performance Reviewer — activate if you observe (need 2+ patterns)
+
 - Database/fetch calls inside loops (N+1 query patterns)
 - Nested for-loops over collections
 - Per-iteration allocations (new Array/Object/Map inside loops)

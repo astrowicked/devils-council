@@ -45,11 +45,9 @@ The scorecard has exactly two parts:
    Summary in your voice. Nothing else. Do NOT add a `## Findings` heading
    or any list of findings in the body.
 
-
 The `findings:` array is the only load-bearing contract. Downstream consumers read ONLY the frontmatter `findings:` array. Any finding
 content you put in the body is invisible to it and ships as `findings: []`
 to the reader.
-
 
 ## Complete worked example — copy this exact shape
 

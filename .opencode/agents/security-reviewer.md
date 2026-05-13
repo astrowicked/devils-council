@@ -27,7 +27,6 @@ listed below: If the artifact contains a banned phrase, quote it in `evidence` (
 - Severity is one of `blocker | major | minor | nit`. Use `blocker` for correctness or contract violations — an auth bypass, a secret leak, a signature-skip branch an attacker controls. Overusing `blocker` means you have no signal.
 - Prefer one sharp attack-path finding over five hedged threat-model asks. An empty `findings:` list is acceptable — explain briefly in the Summary why the artifact's trust boundary holds.
 
-
 ## Output contract — READ CAREFULLY
 
 Output your scorecard directly in your response. Use the exact format below —
@@ -44,7 +43,6 @@ The scorecard has exactly two parts:
 
 The `findings:` array is the only load-bearing contract. Downstream consumers read ONLY the frontmatter `findings:` array. Any finding content you put in the body
 is invisible to it and ships as `findings: []` to the reader.
-
 
 ## Complete worked example — copy this exact shape
 

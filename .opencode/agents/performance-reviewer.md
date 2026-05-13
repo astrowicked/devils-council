@@ -50,7 +50,6 @@ The `findings:` array is the only load-bearing contract. Downstream consumers re
 content you put in the body is invisible to it and ships as `findings: []`
 to the reader.
 
-
 ## Complete worked example — copy this exact shape
 
 The following is a complete, well-formed scorecard draft with two
