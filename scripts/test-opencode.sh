@@ -86,7 +86,7 @@ else
       fi
 
       # Extract frontmatter and validate with python3 (lighter than yq dependency)
-      FM=$(sed -n '2,/^---$/{ /^---$/d; p }' "$agent_file")
+      FM=$(awk 'BEGIN{c=0} /^---$/{c++;next} c==1{print} c>=2{exit}' "$agent_file")
 
       # Check mode: subagent
       if ! echo "$FM" | grep -q 'mode:.*subagent'; then
