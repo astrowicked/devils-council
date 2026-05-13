@@ -1,6 +1,6 @@
 {
   "name": "devils-council-opencode",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Adversarial review council for plans, code, and RFCs — OpenCode plugin",
   "type": "module",
   "main": "plugins/devils-council.js",
@@ -29,7 +29,7 @@
     "url": "https://github.com/astrowicked/devils-council.git"
   },
   "peerDependencies": {
-    "@opencode-ai/plugin": "^0.1.0"
+    "@opencode-ai/plugin": "^1.0.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

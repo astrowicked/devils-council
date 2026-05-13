@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-05-13
+
+### Fixed
+
+- **peerDependencies**: Bumped `@opencode-ai/plugin` from `^0.1.0` to `^1.0.0` — the old range rejected any OpenCode version ≥1.0.0 (npm peer dep resolution failure on install)
+
 ## [1.2.0] - 2026-05-12
 
 v1.2 OpenCode Compatibility release. Devils-council now ships as a dual-runtime plugin — the Claude Code plugin remains unchanged while an additive OpenCode port delivers core 4 + Chair + 4 bench personas with structured scorecard output, LLM-driven signal detection, speckit integration, and dual-runtime CI validation.
