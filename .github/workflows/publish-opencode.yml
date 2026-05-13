@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,8 +48,8 @@ jobs:
           grep -q "agents/staff-engineer.md" /tmp/pack-output.txt
           echo "✓ Package contents verified"
 
-      - name: Publish to npm (OIDC Trusted Publishing)
+      - name: Publish to npm
         working-directory: .opencode
-        run: npm publish --provenance --access public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
