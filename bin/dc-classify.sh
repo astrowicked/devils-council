@@ -37,14 +37,14 @@ SIGNALS="${REPO_ROOT}/lib/signals.json"
 [ -f "$MANIFEST" ]  || { err "MANIFEST.json not found: $MANIFEST"; exit 2; }
 [ -f "$SIGNALS" ]   || { err "signals.json not found: $SIGNALS"; exit 2; }
 
-# python3 detection mirrors bin/dc-prep.sh idiom
+# python3 detection — yaml is optional (handled in classify.py via try/except)
 PYTHON3=""
 if command -v python3 >/dev/null 2>&1; then
-  if python3 -c 'import yaml, ast, json, re, hashlib' >/dev/null 2>&1; then
+  if python3 -c 'import ast, json, re, hashlib' >/dev/null 2>&1; then
     PYTHON3="python3"
   fi
 fi
-[ -n "$PYTHON3" ] || { err "python3 with yaml/ast/json/re/hashlib required"; exit 1; }
+[ -n "$PYTHON3" ] || { err "python3 with ast/json/re/hashlib required"; exit 1; }
 
 command -v jq >/dev/null 2>&1 || { err "jq required"; exit 1; }
 

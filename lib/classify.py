@@ -13,7 +13,15 @@ import re
 import sys
 from pathlib import Path
 
-import yaml  # noqa: F401  (imported for runtime availability check; future detectors may use)
+try:
+    import yaml  # noqa: F401
+
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+    # yaml is optional — no current detectors require it.
+    # Future detectors that need yaml should check YAML_AVAILABLE before running
+    # and return [] (no evidence) if unavailable, rather than crashing the classifier.
 
 VERSION = 1
 
