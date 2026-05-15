@@ -1,14 +1,49 @@
 # devils-council
 
-> Persona-driven adversarial review for plans, code, and design artifacts. Catch weak plans, overengineered designs, and business misalignment *before* execution — by surfacing the pushback a senior engineering org would give.
+**Adversarial AI code review — 4 experts find what you missed before you ship.**
 
-**Status:** v1.2.0 — Dual-runtime plugin (Claude Code + OpenCode). 16 personas in Claude Code, 10 in OpenCode (4 core + Chair + orchestrator + 4 bench). TypeScript signal classifier, speckit integration, schema-compatible scorecard output across runtimes.
+> Before your plan becomes code, a Staff Engineer, SRE, Product Manager, and Devil's Advocate independently rip it apart. In 48 seconds. Every finding cites your own words back at you.
 
-**Repo:** <https://github.com/astrowicked/devils-council> · **License:** MIT · **Claude Code:** v2.1.63+
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/devils-council-opencode)](https://www.npmjs.com/package/devils-council-opencode)
 
-## Core Value
+---
 
-Four always-on core personas (Staff Engineer, SRE, Product Manager, Devil's Advocate) critique the artifact in parallel. Four bench personas (Security, FinOps, Air-Gap, Dual-Deploy) auto-trigger on structural signals — Helm values changes wake Dual-Deploy; AWS SDK imports wake FinOps; auth/crypto code wakes Security. A Council Chair synthesizes contradictions **by name** ("PM says ship, SRE says block because...") without collapsing dissent into a scalar verdict. Every finding cites a verbatim quote from the artifact; every finding has a stable ID so dismissals persist across re-runs.
+## See it in action (30 seconds, no setup)
+
+```bash
+# Install
+echo '{"plugin":["devils-council-opencode"]}' > .opencode/opencode.json
+
+# Run the built-in demo against a deliberately flawed plan
+/devils-council:demo
+```
+
+The demo reviews a notification service plan with over-engineering, circular risk mitigations, and missing operational details. Watch each persona catch different issues.
+
+---
+
+## What it catches (real examples)
+
+| Catch | Personas | Impact |
+|-------|----------|--------|
+| [Credential migration with no verification gate](examples/01-173-workspace-outage.md) | SRE + Devil's Advocate | Prevented 173-workspace CI/CD outage |
+| [CI trigger premise disproven from both directions](examples/02-signal-invalidated-both-directions.md) | Devil's Advocate + SRE | Killed a design with simultaneous false positives AND false negatives |
+| [4 plans build tooling, none prove it works](examples/03-plumbing-without-water.md) | Product Manager | Caught "plumbing without water" before 2 weeks of wasted effort |
+| [Threat model claims control exists, code doesn't](examples/04-threat-model-said-it-was-there.md) | Devil's Advocate + SRE | Avoided false SOC2 attestation |
+| [3,291 lines for a problem standard tooling solves](examples/05-3291-lines-solved-problem.md) | All three (convergent) | Deleted 3,291 lines, replaced with 40 |
+
+See all [case studies →](examples/)
+
+---
+
+## How it works
+
+Four always-on **core personas** critique your artifact in parallel. Additional **bench personas** auto-trigger on structural signals — Helm values changes wake Dual-Deploy; AWS SDK imports wake FinOps; auth/crypto code wakes Security.
+
+A **Council Chair** synthesizes contradictions **by name** ("PM says ship, SRE says block because...") without collapsing dissent into a scalar verdict. Every finding cites a verbatim quote from the artifact; every finding has a stable ID so dismissals persist across re-runs.
+
+**Status:** v1.2.2 — Dual-runtime plugin (Claude Code + OpenCode). MIT licensed.
 
 ## Requirements
 
@@ -81,6 +116,19 @@ OpenCode auto-installs npm plugins at startup — no `npm install` needed. The p
 ```
 
 Runtime artifacts under `.council/<run-id>/` (review outputs) and `~/.codex/` (Codex credentials) are NOT removed by uninstall — delete manually if desired.
+
+## GitHub Action (CI integration)
+
+Automatically review plans on every PR and post findings as a comment:
+
+```yaml
+- uses: astrowicked/devils-council-action@v1
+  with:
+    artifact: '.planning/**/PLAN.md'
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+Teammates see findings on every PR. No local install required for reviewers. See [devils-council-action](https://github.com/astrowicked/devils-council-action) for full docs.
 
 ## Quickstart
 
