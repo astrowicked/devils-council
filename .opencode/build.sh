@@ -348,7 +348,7 @@ fi
 
 # Compile with tsc (uses tsconfig.json in .opencode/)
 cd "$SCRIPT_DIR"
-npx --yes -p typescript tsc --outDir dist --declaration --declarationDir dist 2>&1 || {
+npx tsc --outDir dist --declaration --declarationDir dist 2>&1 || {
   echo "ERROR: TypeScript compilation failed." >&2
   exit 1
 }
