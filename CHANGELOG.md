@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-16
+
+### Added
+
+- **All 5 commands ship in npm package** — `review`, `on-plan`, `on-code`, `dig`, `demo` now included in `devils-council-opencode` (previously only `demo`; others required Claude Code plugin)
+- **HTML scorecard renderer** — single-page self-contained HTML report with all personas + synthesis, auto-generated after every review (`REPORT.html` in run dir). Dark/light theme toggle, severity badges, collapsible sections
+- **`bin/dc-render-html.py`** — standalone renderer: `dc-render-html.py <run-dir|latest> [-o out.html]`
+- **`DC_ROOT` resolution preamble** — review command portably resolves plugin root across OpenCode cache, Claude Code plugins dir, and dev repo. Fixes `${CLAUDE_PLUGIN_ROOT}` not being set in OpenCode shell-injections
+- **Self-contained demo** — plan inlined as heredoc, deterministic temp path, zero file-discovery needed
+- **Full package contents** — npm package now ships `bin/`, `lib/`, `config.json`, `persona-metadata/` (previously missing; required Claude Code symlink)
+- **Plugin JS symlinks all commands** — `ensureCommandSymlinks()` creates symlinks for all commands in `~/.config/opencode/commands/` on session start (was demo-only)
+
+### Changed
+
+- **README** — code review elevated to equal prominence with plan review; OpenCode primary runtime; GitHub Action section expanded for inline PR code review
+- **Build script** — copies `bin/`, `lib/`, `config.json`, `persona-metadata/` into `.opencode/` during `prepublishOnly`
+
+### Fixed
+
+- `${CLAUDE_PLUGIN_ROOT}` resolving to empty string in OpenCode, causing `/bin/dc-prep.sh: No such file or directory`
+- Demo command requiring 8-10 exploratory tool calls to locate the plan file
+- npm package missing bin scripts that `review.md` shell-injections depend on
+
+## [1.3.4] - 2026-05-15
+
+### Added
+
+- **Demo command** (`commands/demo.md`) — run a full review against a bundled flawed plan with no project setup
+- **Speckit hook** — auto-triggers council-review after `/speckit.plan` completion
+- **Signal classifier** compiled JS shipped in npm package
+
 ## [1.2.1] - 2026-05-13
 
 ### Fixed

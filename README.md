@@ -1,11 +1,12 @@
 # devils-council
 
-**Adversarial AI code review — 4 experts find what you missed before you ship.**
+**Adversarial AI review — 4 experts find what you missed before you ship.**
 
-> Before your plan becomes code, a Staff Engineer, SRE, Product Manager, and Devil's Advocate independently rip it apart. In 48 seconds. Every finding cites your own words back at you.
+> Before your plan, code, or RFC goes out, a Staff Engineer, SRE, Product Manager, and Devil's Advocate independently rip it apart. In 48 seconds. Every finding cites your own words back at you.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/devils-council-opencode)](https://www.npmjs.com/package/devils-council-opencode)
+[![version](https://img.shields.io/badge/version-1.4.0-brightgreen)](CHANGELOG.md)
 
 ---
 
@@ -16,7 +17,7 @@
 echo '{"plugin":["devils-council-opencode"]}' > .opencode/opencode.json
 
 # Run the built-in demo against a deliberately flawed plan
-/devils-council:demo
+/devils-council-demo
 ```
 
 The demo reviews a notification service plan with over-engineering, circular risk mitigations, and missing operational details. Watch each persona catch different issues.
@@ -39,46 +40,28 @@ See all [case studies →](examples/)
 
 ## How it works
 
-Four always-on **core personas** critique your artifact in parallel. Additional **bench personas** auto-trigger on structural signals — Helm values changes wake Dual-Deploy; AWS SDK imports wake FinOps; auth/crypto code wakes Security.
+Four always-on **core personas** critique your artifact in parallel. Additional **bench personas** auto-trigger on structural signals — Helm values changes wake Dual-Deploy; AWS SDK imports wake FinOps; auth/crypto code wakes Security; code diffs wake Junior Engineer.
 
 A **Council Chair** synthesizes contradictions **by name** ("PM says ship, SRE says block because...") without collapsing dissent into a scalar verdict. Every finding cites a verbatim quote from the artifact; every finding has a stable ID so dismissals persist across re-runs.
 
-**Status:** v1.2.2 — Dual-runtime plugin (Claude Code + OpenCode). MIT licensed.
+**Status:** v1.4.0 — Dual-runtime plugin (OpenCode + Claude Code). MIT licensed.
+
+---
 
 ## Requirements
 
-- **Claude Code** v2.1.63 or newer (`Agent` subagent tool)
+- **OpenCode** v1.14+ (primary runtime — npm plugin, no extra install)
+- **Claude Code** v2.1.63+ (secondary runtime — marketplace plugin)
 - **jq** (macOS: `brew install jq`; Ubuntu: `apt install jq`)
-- **python3** + PyYAML (`pip install pyyaml`)
-- **OpenAI Codex CLI** — required for v1; used by Security + Dual-Deploy personas (see [Codex Setup](#codex-setup))
+- **python3** + PyYAML (`pip install pyyaml`) — required for HTML report generation
+- **OpenAI Codex CLI** — required for Security + Dual-Deploy deep scans (see [Codex Setup](#codex-setup))
 - **Node 18+** only if installing Codex via `npm` (`brew install --cask codex` avoids this)
+
+---
 
 ## Install
 
-### Claude Code (recommended for Claude Code users)
-
-From the GitHub marketplace:
-
-```bash
-/plugin marketplace add astrowicked/devils-council
-/plugin install devils-council@devils-council
-```
-
-Verify:
-
-```bash
-claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
-# Expected: "1.2.0"
-```
-
-After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-bump) if new commands don't appear):
-
-```bash
-/plugin uninstall devils-council@devils-council
-/plugin install devils-council@devils-council
-```
-
-### OpenCode
+### OpenCode (recommended)
 
 Add to your project's `opencode.json`:
 
@@ -95,31 +78,100 @@ OpenCode auto-installs npm plugins at startup — no `npm install` needed. The p
 - `@council-review` — full council (4 core + dynamic bench activation + Chair synthesis) in one invocation
 - `@security-reviewer`, `@finops-auditor`, `@air-gap-reviewer`, `@performance-reviewer` — bench personas activated by signal detection
 
-**Quickstart (OpenCode):**
+### Claude Code
+
+From the GitHub marketplace:
 
 ```bash
-# Full council review (single invocation)
-@council-review <paste your plan or diff here>
-
-# Single persona lens
-@staff-engineer <paste artifact>
-
-# Speckit integration (auto-triggers after /speckit.plan)
-# Just add "devils-council-opencode" to your opencode.json plugin array
+/plugin marketplace add astrowicked/devils-council
+/plugin install devils-council@devils-council
 ```
 
-## Uninstall
+Verify:
+
+```bash
+claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
+# Expected: "1.4.0"
+```
+
+After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-bump) if new commands don't appear):
 
 ```bash
 /plugin uninstall devils-council@devils-council
-/plugin marketplace remove astrowicked/devils-council
+/plugin install devils-council@devils-council
 ```
 
-Runtime artifacts under `.council/<run-id>/` (review outputs) and `~/.codex/` (Codex credentials) are NOT removed by uninstall — delete manually if desired.
+---
+
+## Quickstart
+
+### Review a plan
+
+```bash
+# Full council review (core personas + triggered bench + Chair synthesis)
+/devils-council:review path/to/PLAN.md
+
+# GSD integration: review every plan in a phase
+/devils-council:on-plan 7
+```
+
+### Review code
+
+```bash
+# Review a diff file
+/devils-council:review path/to/diff.patch --type=code-diff
+
+# Review your current branch against main
+git diff main...HEAD > /tmp/d.patch && /devils-council:review /tmp/d.patch --type=code-diff
+
+# GSD integration: review the committed diff for a phase
+/devils-council:on-code 7                 # auto-discovers phase-start commit
+/devils-council:on-code 7 --from HEAD~10  # explicit base when .planning/ is gitignored
+```
+
+Code diffs auto-trigger the Junior Engineer persona (D-12) in addition to the four core personas. Security signals in the diff wake the Security Reviewer; Helm changes wake Dual-Deploy.
+
+### Dig into a finding
+
+```bash
+# Ask a follow-up scoped to ONE persona's scorecard
+/devils-council:dig staff-engineer latest "Why is the ConfigLoader a blocker?"
+/devils-council:dig security-reviewer latest "justify blocker severity"
+```
+
+Output renders synthesis-first: top-3 blockers with persona attribution, contradictions called out by name, per-persona scorecards collapsed into one-liners by default (pass `--show-nits` to expand). Raw scorecards live under `.council/<run>/<persona>.md`.
+
+---
+
+## HTML Reports
+
+After every review, if `python3` is available, devils-council automatically generates a self-contained HTML report:
+
+```
+.council/<run-id>/REPORT.html
+```
+
+Open it in any browser — no server needed. The report includes the synthesis, all persona scorecards, finding IDs, and severity badges. Useful for sharing with teammates who don't have the plugin installed.
+
+Generate or regenerate a report manually:
+
+```bash
+# Latest run
+bin/dc-render-html.py latest
+
+# Specific run directory
+bin/dc-render-html.py .council/2026-05-16T14-32-00/
+```
+
+The HTML is fully self-contained (inline CSS, no external dependencies) so it survives being attached to a ticket or emailed.
+
+---
 
 ## GitHub Action (CI integration)
 
-Automatically review plans on every PR and post findings as a comment:
+Teammates see findings on every PR. No local install required for reviewers.
+
+### Review plans on PR
 
 ```yaml
 - uses: astrowicked/devils-council-action@v1
@@ -128,32 +180,28 @@ Automatically review plans on every PR and post findings as a comment:
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Teammates see findings on every PR. No local install required for reviewers. See [devils-council-action](https://github.com/astrowicked/devils-council-action) for full docs.
+### Review code on PR
 
-## Quickstart
+Post findings as inline PR review comments on every pull request:
 
-```bash
-# Review a plan (core personas + any triggered bench personas + Chair synthesis)
-/devils-council:review path/to/PLAN.md
-
-# Review code via file or stdin
-/devils-council:review path/to/diff.patch --type=code-diff
-git diff main...feature > /tmp/d.patch && /devils-council:review /tmp/d.patch --type=code-diff
-
-# Dig into ONE persona's findings after a review
-/devils-council:dig staff-engineer latest "Why is the ConfigLoader a blocker?"
-
-# GSD integration: review every plan in a phase, or the phase's committed diff
-/devils-council:on-plan 7
-/devils-council:on-code 7                 # auto-discovers phase-start commit
-/devils-council:on-code 7 --from HEAD~10  # explicit base when .planning/ is gitignored
+```yaml
+- uses: astrowicked/devils-council-action@v1
+  with:
+    artifact: ${{ github.event.pull_request.diff_url }}
+    type: code-diff
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    post-as: inline-review  # posts findings as inline PR review comments
 ```
 
-Output renders synthesis-first: top-3 blockers with persona attribution, contradictions called out by name, per-persona scorecards collapsed into one-liners by default (pass `--show-nits` to expand). Raw scorecards live under `.council/<run>/<persona>.md`.
+The action fetches the PR diff, runs the full council, and posts each finding as an inline comment on the relevant file and line. Blockers appear as `REQUEST_CHANGES`; majors and minors as `COMMENT`.
+
+See [devils-council-action](https://github.com/astrowicked/devils-council-action) for full docs and configuration options.
+
+---
 
 ## Persona Roster
 
-Sixteen personas ship in v1.1.0. Core tier always runs; bench tier auto-triggers on artifact signals.
+Sixteen personas ship in v1.4.0. Core tier always runs; bench tier auto-triggers on artifact signals.
 
 | Persona | Tier | Primary Concern | Trigger / always-on |
 |---------|------|-----------------|---------------------|
@@ -166,15 +214,17 @@ Sixteen personas ship in v1.1.0. Core tier always runs; bench tier auto-triggers
 | [Air-Gap Reviewer](agents/air-gap-reviewer.md) | bench | Self-hosted, no-egress, pinned deps | network egress, external image pull, unpinned dep, license phone-home |
 | [Dual-Deploy Reviewer](agents/dual-deploy-reviewer.md) | bench | SaaS + self-hosted parity, Helm/KOTS surface | Helm values change, Chart.yaml, KOTS config, SaaS-only assumption |
 | [Compliance Reviewer](agents/compliance-reviewer.md) | bench | Regulatory control citations (GDPR, HIPAA, SOC2, PCI) | compliance_marker signal |
-| [Performance Reviewer](agents/performance-reviewer.md) | bench | Hot-path characterization, workload profiling | performance_hotpath signal |
+| [Performance Reviewer](agents/performance-reviewer.md) | bench | Hot-path characterization, worst-case latency | perf_sensitive signal |
 | [Test Lead](agents/test-lead.md) | bench | Circular tests, flaky patterns, coverage gaps | test_imbalance signal |
 | [Executive Sponsor](agents/executive-sponsor.md) | bench | Quantified business impact (dollars, weeks, customers) | exec_keyword signal (plan/rfc only) |
 | [Competing Team Lead](agents/competing-team-lead.md) | bench | Shared-infra consumer impact | shared_infra_change signal |
-| [Junior Engineer](agents/junior-engineer.md) | bench | First-person comprehension failure | always-invokable on code-diff |
+| [Junior Engineer](agents/junior-engineer.md) | bench | First-person comprehension failure | always-invokable on code-diff (D-12) |
 | [Council Chair](agents/council-chair.md) | chair | Contradiction synthesis, top-3 blockers | always-on; runs sequentially after core + bench |
 | [Artifact Classifier](agents/artifact-classifier.md) | classifier | Ambiguous artifact type routing | Haiku fallback when structural signals are zero |
 
 Each persona has a distinct value-system anchor, characteristic-objection list, and banned-phrase list; a blinded-reader test on a sample artifact can attribute scorecards to personas without filenames (Phase 4 CORE-05 criterion; verified 2026-04-23).
+
+---
 
 ## Trigger Rules
 
@@ -203,6 +253,11 @@ Source of truth: [`lib/signals.json`](lib/signals.json).
 | `chart_yaml_present` | Artifact contains or modifies `Chart.yaml` | dual-deploy-reviewer |
 | `kots_config_change` | `kots-*.yaml` / `kind: Config` (kots.io) | dual-deploy-reviewer |
 | `saas_only_assumption` | Single-tenant, cloud-only architectural assumptions | dual-deploy-reviewer |
+| `compliance_marker` | GDPR/HIPAA/SOC2/PCI references, data-residency requirements | compliance-reviewer |
+| `perf_sensitive` | Hot-path annotations, latency SLOs, throughput targets | performance-reviewer |
+| `test_imbalance` | Test-to-implementation ratio anomalies, mock-heavy patterns | test-lead |
+| `exec_keyword` | Business-impact language, OKR references, revenue/cost framing | executive-sponsor |
+| `shared_infra_change` | Shared platform components, cross-team API surface changes | competing-team-lead |
 
 </details>
 
@@ -215,6 +270,8 @@ Override the auto-selection with flags:
 ```
 
 Trigger reasons appear in `MANIFEST.trigger_reasons{}` for every bench persona that joined a run.
+
+---
 
 ## Commands
 
@@ -233,6 +290,8 @@ Flags on `review`:
 - `--type=code-diff|plan|rfc` — override auto-detected artifact type
 - `--show-nits` — expand collapsed nits inline (default: nits hidden, one-line summary)
 
+---
+
 ## Configuration
 
 ### Budget cap (config.json)
@@ -249,16 +308,31 @@ Flags on `review`:
 
 Default cap is $0.50 / 30s per invocation. When exceeded, further bench fan-out is halted and skipped personas appear in `MANIFEST.personas_skipped[]`. Override per-invocation with `--cap-usd=<N>`.
 
-### GSD integration (userConfig)
+### GSD integration
 
-Off by default. To enable PostToolUse wrapping of `gsd-plan-checker` and `gsd-code-reviewer` (appends a one-line pointer directing you to `/devils-council:review <path>` after a GSD agent runs):
+Off by default. When enabled, a one-line pointer appears after `gsd-plan-checker` or `gsd-code-reviewer` runs, directing you to `/devils-council:review <path>`.
+
+For OpenCode, set in your project's `opencode.json`:
+
+```json
+{
+  "plugin": ["devils-council-opencode"],
+  "devils-council": {
+    "gsd_integration": true
+  }
+}
+```
+
+For Claude Code, toggle via:
 
 ```bash
 /plugin config devils-council
 # Toggle: gsd_integration → true
 ```
 
-Or edit `~/.claude/settings.json` directly. The hook is a no-op when GSD is not installed (checks `~/.claude/agents/gsd-plan-checker.md` presence).
+The hook is a no-op when GSD is not installed.
+
+---
 
 ## Custom Personas
 
@@ -294,7 +368,7 @@ The scaffolder:
 Output lands in:
 
 ```
-${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/
+${DC_ROOT}/create-persona-workspace/<slug>/
   agents/<slug>.md
   persona-metadata/<slug>.yml
 ```
@@ -302,14 +376,12 @@ ${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/
 To install into your plugin:
 
 ```bash
-cp "${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/agents/<slug>.md" agents/
-cp "${CLAUDE_PLUGIN_DATA}/create-persona-workspace/<slug>/persona-metadata/<slug>.yml" persona-metadata/
+cp "${DC_ROOT}/create-persona-workspace/<slug>/agents/<slug>.md" agents/
+cp "${DC_ROOT}/create-persona-workspace/<slug>/persona-metadata/<slug>.yml" persona-metadata/
 ./scripts/validate-personas.sh
 ```
 
-Then run `/reload-plugins` to pick up the new persona.
-
-> **Note:** v1.2 will add `userConfig.custom_personas_dir` so custom personas survive plugin updates without manual copying.
+---
 
 ## Codex Setup
 
@@ -361,6 +433,8 @@ codex login status
 
 `--sandbox read-only` is fixed in v1 (no writes, no network beyond Codex's own API). Widening is a post-v1 decision requiring a dedicated threat-model review.
 
+---
+
 ## Responses Workflow
 
 After a review, annotate findings by editing `.council/responses.md`:
@@ -387,6 +461,8 @@ On re-run: dismissed findings are suppressed from Chair synthesis; a one-line `S
 
 See [Troubleshooting #4](#4-dismissals-not-suppressing-on-re-run-resp-03-llm-variance) for a known limitation.
 
+---
+
 ## Troubleshooting
 
 ### 1. Plugin cache staleness after version bump
@@ -400,13 +476,9 @@ See [Troubleshooting #4](#4-dismissals-not-suppressing-on-re-run-resp-03-llm-var
 /plugin install devils-council@devils-council
 ```
 
-A v1.1 ticket tracks adding a first-class cache-invalidation mechanism upstream.
-
 ### 2. Install picks up old version after tag bump
 
-**Symptom:** After a new tag ships (e.g. v1.0.1 → v1.0.2, or v1.0.x → v1.1.0),
-`/plugin install devils-council@devils-council` still installs the OLD version
-because the marketplace descriptor is cached locally.
+**Symptom:** After a new tag ships, `/plugin install devils-council@devils-council` still installs the old version because the marketplace descriptor is cached locally.
 
 **Fix:** refresh the marketplace descriptor first, THEN reinstall:
 
@@ -423,8 +495,6 @@ claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version
 ```
 
 This is Claude Code marketplace-caching behavior, not a devils-council bug.
-Run the `marketplace update` step any time you expect a newer tag to be
-available (e.g. after this plugin publishes a v1.1 release).
 
 ### 3. Codex unavailable
 
@@ -438,22 +508,20 @@ Per D-51 the plugin is fail-loud by design — it does NOT silently degrade.
 
 **Symptom:** you dismissed a finding in `.council/responses.md`, but it re-appears on re-run with a slightly different `claim` and a different finding ID.
 
-**Cause:** finding IDs hash `persona + target + claim`. Personas may produce slightly different claim text across re-runs (e.g., "Deploy-time reset of the token bucket means every deploy gra..." vs "Deploy resets every token bucket, so every deploy is an inst..."). Same concern, different hash.
+**Cause:** finding IDs hash `persona + target + claim`. Personas may produce slightly different claim text across re-runs. Same concern, different hash.
 
-**Workaround for v1.0:** dismiss multiple variants proactively. Or use `--exclude=<persona>` on re-run to skip the persona while you investigate.
+**Workaround:** dismiss multiple variants proactively. Or use `--exclude=<persona>` on re-run to skip the persona while you investigate.
 
-**v1.1 fix tracked:** normalize `claim` before hashing (lowercase + stopword-strip + whitespace-collapse). See `.planning/phases/07-hardening-injection-defense-response-workflow/07-UAT.md` finding #2 for the full rationale.
+**Fix tracked:** normalize `claim` before hashing (lowercase + stopword-strip + whitespace-collapse).
 
 ### 5. GSD hook integration not firing
 
 **Symptom:** after `gsd-plan-checker` runs, no `[devils-council: ...]` pointer appears.
 
 **Checks:**
-1. Opt-in on? `jq '.plugins.devils-council.userConfig.gsd_integration' ~/.claude/settings.json` (expected: `true`)
+1. Opt-in on? For OpenCode: `gsd_integration: true` in `opencode.json`. For Claude Code: `jq '.plugins.devils-council.userConfig.gsd_integration' ~/.claude/settings.json` (expected: `true`)
 2. GSD installed? `ls ~/.claude/agents/gsd-plan-checker.md ~/.claude/agents/gsd-code-reviewer.md` — at least one must exist
-3. Hook registered? `jq '.hooks.PostToolUse' ~/.claude/plugins/cache/devils-council/devils-council/1.0.0/hooks/hooks.json` (should show the Agent matcher)
-
-If all three look right and the pointer still doesn't appear, check `bin/dc-gsd-wrap.sh` extraction — the `tool_input.prompt` field might not contain an extractable PLAN.md path. Run the guard test locally: `./scripts/test-hooks-gsd-guard.sh`.
+3. Hook registered? Check `bin/dc-gsd-wrap.sh` extraction — the `tool_input.prompt` field might not contain an extractable PLAN.md path. Run the guard test locally: `./scripts/test-hooks-gsd-guard.sh`.
 
 ### 6. Bench persona not spawning despite artifact match
 
@@ -488,13 +556,38 @@ If all three look right and the pointer still doesn't appear, check `bin/dc-gsd-
 ls -t .council/ | head -1 | xargs -I{} cat ".council/{}/staff-engineer.md"
 ```
 
+Or open the HTML report instead:
+
+```bash
+open .council/$(ls -t .council/ | head -1)/REPORT.html
+```
+
 Or use `--show-nits` only when you want everything inline (default: top-3 blockers + major/minor one-liners + nits-collapsed summary).
+
+---
+
+## Uninstall
+
+**OpenCode:** remove `"devils-council-opencode"` from your `opencode.json` plugin array.
+
+**Claude Code:**
+
+```bash
+/plugin uninstall devils-council@devils-council
+/plugin marketplace remove astrowicked/devils-council
+```
+
+Runtime artifacts under `.council/<run-id>/` (review outputs) and `~/.codex/` (Codex credentials) are NOT removed by uninstall — delete manually if desired.
+
+---
 
 ## Contributing
 
 PRs welcome. See the phase-artifact trail under `.planning/` (in-repo, gitignored for public users — fork to see planning docs) for the design rationale behind every shipped feature. Personas are markdown files under `agents/` with YAML frontmatter; add a new one and `scripts/validate-personas.sh` will accept it if the schema holds.
 
-Tests: `bash scripts/validate-personas.sh && claude plugin validate .` for a quick check; full suite lives in `.github/workflows/ci.yml`.
+Tests: `bash scripts/validate-personas.sh` for a quick check; full suite lives in `.github/workflows/ci.yml`.
+
+---
 
 ## Publishing (OpenCode npm package)
 
@@ -530,6 +623,8 @@ bash build.sh          # transforms agents + compiles TypeScript
 npm test               # runs signal + speckit-hook tests
 npm pack --dry-run     # verify tarball contents
 ```
+
+---
 
 ## License
 
