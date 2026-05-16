@@ -1,6 +1,6 @@
 import { definePlugin } from "@opencode-ai/plugin"
 import { handleToolAfter } from "./speckit-hook"
-import { mkdirSync, symlinkSync, existsSync, readlinkSync } from "fs"
+import { mkdirSync, symlinkSync, existsSync, readlinkSync, readdirSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 export { classify, type SignalResult } from "./signals"
@@ -16,26 +16,29 @@ const GLOBAL_COMMANDS_DIR = join(
 
 function ensureCommandSymlinks() {
   try {
-    const demoSrc = join(COMMANDS_SRC, "demo.md")
-    if (!existsSync(demoSrc)) return
-
+    if (!existsSync(COMMANDS_SRC)) return
     mkdirSync(GLOBAL_COMMANDS_DIR, { recursive: true })
-    const demoLink = join(GLOBAL_COMMANDS_DIR, "devils-council-demo.md")
 
-    if (existsSync(demoLink)) {
-      // Verify existing link points to our source
-      try {
-        const target = readlinkSync(demoLink)
-        if (target === demoSrc) return // already correct
-      } catch {
-        // not a symlink, skip
-        return
+    const commands = readdirSync(COMMANDS_SRC).filter((f) => f.endsWith(".md"))
+
+    for (const cmd of commands) {
+      const src = join(COMMANDS_SRC, cmd)
+      const linkName = `devils-council-${cmd}`
+      const linkPath = join(GLOBAL_COMMANDS_DIR, linkName)
+
+      if (existsSync(linkPath)) {
+        try {
+          const target = readlinkSync(linkPath)
+          if (target === src) continue // already correct
+        } catch {
+          continue // exists but not a symlink, skip
+        }
       }
-    }
 
-    symlinkSync(demoSrc, demoLink)
+      symlinkSync(src, linkPath)
+    }
   } catch {
-    // Non-fatal — command just won't be available
+    // Non-fatal — commands just won't be available globally
   }
 }
 

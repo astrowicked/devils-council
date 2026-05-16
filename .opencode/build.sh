@@ -365,5 +365,20 @@ done
 rm -rf dist
 
 echo "✓ TypeScript compiled: plugins/*.js + plugins/*.d.ts"
+
+# --- Copy bin/ and lib/ for npm publish ---
+echo ""
+echo "=== Copying bin/ and lib/ ==="
+
+rm -r "$SCRIPT_DIR/bin" "$SCRIPT_DIR/lib" 2>/dev/null || true
+cp -r "$REPO_ROOT/bin" "$SCRIPT_DIR/bin"
+cp -r "$REPO_ROOT/lib" "$SCRIPT_DIR/lib"
+cp "$REPO_ROOT/config.json" "$SCRIPT_DIR/config.json"
+cp -r "$REPO_ROOT/persona-metadata" "$SCRIPT_DIR/persona-metadata"
+rm -r "$SCRIPT_DIR/lib/__pycache__" 2>/dev/null || true
+rm "$SCRIPT_DIR/bin/.gitkeep" 2>/dev/null || true
+chmod +x "$SCRIPT_DIR/bin/"*.sh "$SCRIPT_DIR/bin/"*.py 2>/dev/null || true
+
+echo "✓ bin/ and lib/ copied"
 echo ""
 echo "Build complete."

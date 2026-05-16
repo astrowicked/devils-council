@@ -3,6 +3,7 @@ declare module "fs" {
   export function symlinkSync(target: string, path: string): void
   export function existsSync(path: string): boolean
   export function readlinkSync(path: string): string
+  export function readdirSync(path: string): string[]
 }
 
 declare module "path" {

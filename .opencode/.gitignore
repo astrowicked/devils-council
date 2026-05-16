@@ -3,3 +3,7 @@ dist/
 plugins/*.js
 plugins/*.d.ts
 package-lock.json
+bin/
+lib/
+config.json
+persona-metadata/
