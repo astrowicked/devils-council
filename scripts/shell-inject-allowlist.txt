@@ -18,6 +18,10 @@
 
 commands/review.md:22:${CLAUDE_PLUGIN_ROOT}/bin/dc-prep.sh $ARGUMENTS
 commands/review.md:24:${CLAUDE_PLUGIN_ROOT}/bin/dc-classify.sh
+
+# commands/demo.md (v1.3.4) — demo plan setup and cleanup:
+commands/demo.md:21:set -e (copy demo plan to temp dir)
+commands/demo.md:68:rm -rf "$DEMO_DIR" (cleanup temp dir)
 commands/review.md:70:case " $ARGUMENTS " in *" --show-nits "*
 commands/review.md:94:if [ "${SHOW_NITS:-0}" -eq 1 ]
 
