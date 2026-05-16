@@ -28,7 +28,7 @@ The plan proposed extending this system with additional path-matching rules, a n
 
 > **Finding (BLOCKER):** All app teams depend on this tooling with no CODEOWNERS entry, no on-call designation, and no contract for resolution time when breakage blocks CI. Who gets paged when this breaks at 2am before a release?
 
-### The comparison table the plan claimed:
+### The comparison table the plan claimed
 
 | | Custom Impact Gate | Nx Affected |
 |---|---|---|
@@ -40,6 +40,7 @@ The plan proposed extending this system with additional path-matching rules, a n
 ## What replaced it
 
 The custom impact gate was removed. Replaced with:
+
 ```yaml
 AFFECTED=$(pnpm nx show projects --affected --base="$NX_BASE" --head=HEAD --json)
 ```

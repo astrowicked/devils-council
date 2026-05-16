@@ -20,7 +20,7 @@ The plan built an entire CI architecture around this premise: path filters on `p
 
 > **Finding (BLOCKER):** The lockfile changes for reasons unrelated to your packages: dependency resolution shifts, pnpm version bumps, hoisting algorithm changes. The signal fires on **noise** — unrelated changes trigger unnecessary rebuilds.
 
-### The contradiction the Chair surfaced:
+### The contradiction the Chair surfaced
 
 > These are complementary failure modes that together invalidate the lockfile-as-signal premise from both directions. The plan simultaneously:
 > - Misses real changes (false negatives from source edits)  

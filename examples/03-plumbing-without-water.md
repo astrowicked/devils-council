@@ -23,7 +23,7 @@ All four plans built tooling. None of them actually onboarded a single vendor im
 
 > **Finding (HIGH):** The plans exhibit a common anti-pattern: building generic infrastructure without a concrete instance to validate it. Discovery that finds 294 images but onboards zero is a tooling exercise, not a delivery.
 
-### The fix applied:
+### The fix applied
 
 Added a concrete deliverable to Plan 02: "At minimum, onboard `redis` as `images/redis/manifest.yaml` with `build_type: vendor`, scan it, promote it to `golden/redis` in ECR. This proves the path end-to-end before Phase 08 depends on it."
 

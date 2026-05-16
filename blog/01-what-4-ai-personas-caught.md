@@ -30,6 +30,7 @@ Two personas independently found the same gap:
 > What happens if the new token is invalid? What if ESO takes 5 minutes to sync? What's the abort criteria?
 
 The fix was obvious once stated:
+
 ```
 1. Apply (new token in Vault)
 2. Verify ESO ExternalSecret has synced

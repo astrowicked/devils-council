@@ -21,7 +21,7 @@ The agent token is **non-importable** (write-only API field), so a new token mus
 
 > **Finding (BLOCKER):** The plan acknowledges the token is non-importable but then doesn't define the actual cutover procedure. What happens if the new token is invalid? What if ESO takes 5 minutes to sync? What's the abort criteria?
 
-### The fix applied before execution:
+### The fix applied before execution
 
 ```
 1. After apply (new token in Vault): verify ESO ExternalSecret has synced

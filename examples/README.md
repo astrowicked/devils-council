@@ -20,7 +20,7 @@ These are anonymized case studies from production use of devils-council. Each sh
 
 What the council catches repeatedly:
 
-- **Circular risk mitigations** — "How do you handle X?" / "Y handles X" / "How does Y handle X?" / "..." 
+- **Circular risk mitigations** — "How do you handle X?" / "Y handles X" / "How does Y handle X?" / "..."
 - **Plumbing without water** — Infrastructure built but never validated with a real instance
 - **Claimed vs actual security posture** — Threat models that say controls exist when they don't
 - **Standard tooling avoidance** — Custom systems built when mature OSS solves the problem
