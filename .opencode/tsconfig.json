@@ -8,7 +8,7 @@
     "declaration": true,
     "outDir": "dist",
     "rootDir": ".",
-    "typeRoots": ["types"]
+    "typeRoots": ["types", "node_modules/@types"]
   },
   "include": ["plugins/**/*.ts", "types/**/*.d.ts"],
   "exclude": ["plugins/**/*.test.ts"]
