@@ -6,7 +6,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/devils-council-opencode)](https://www.npmjs.com/package/devils-council-opencode)
-[![version](https://img.shields.io/badge/version-1.4.0-brightgreen)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.6.0-brightgreen)](CHANGELOG.md)
 
 ---
 

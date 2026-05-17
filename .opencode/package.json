@@ -1,6 +1,6 @@
 {
   "name": "devils-council-opencode",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "Adversarial review council for plans, code, and RFCs — OpenCode plugin",
   "type": "module",
   "main": "plugins/devils-council.js",
