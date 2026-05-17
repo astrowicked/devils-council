@@ -1,0 +1,50 @@
+## Contradictions
+
+- **Devil's Advocate** (devils-advocate-cbea057f): «The Context section assumes the right response to a tenant whose traffic already trips an existing soft quota is to ship a NEW, STRICTER hard limiter — the artifact never defends this direction against the opposite one (raise or waive the existing soft quota for Acme through the demo window).»
+  **SRE** (sre-0c1f9c85): «100 req/sec burst / 600 req/min sustained is quoted with no evidence that Acme's CI fleet stays under it — and the artifact says their CI is what caused the original 502s.»
+  *Tension:* Devil's Advocate rejects the entire premise of "add a hard limiter" — the fix should be "raise the soft quota," and calibrating a new bucket is arguing within the wrong frame. SRE accepts the limiter direction and demands the defaults be calibrated against replay data. Both cannot be right: either the limiter is the wrong artifact and SRE's replay ask is wasted work, or the limiter is correct and Devil's Advocate's reframing is off-topic.
+
+- **Staff Engineer** (staff-engineer-0f3c9cf3): «Either write the restart test, or move the bucket to a shared store (Redis) so the reset stops being a risk.»
+  **SRE** (sre-bbff619a): «Freeze deploys to this service from May 13 00:00 PT through May 15 23:59 PT and publish the freeze in the release channel. If the freeze is unacceptable, then the integration test is not optional — pick one.»
+  *Tension:* Both personas target the same May 14 deploy-reset risk but propose incompatible remediation menus. Staff Engineer's menu is technical (test OR Redis); SRE's menu is process (deploy freeze OR test). The overlap is only "write the test" — and Redis versus deploy-freeze is a fork in the road, not two compatible asks.
+
+- **Staff Engineer** (staff-engineer-ea32b314): «The customer problem is bursts exceeding quota and getting 502s; the fix ships a hard limiter that returns 429s. That swaps one rejection code for another — the CI fleet bursts still fail, the demo still breaks. The plan does not solve the stated problem.»
+  **Product Manager** (product-manager-1ec0f0bd): «The default bucket (100 req/sec burst, 600 req/min sustained) is presented as an implementation detail, but it is the single business parameter of this feature — and no stakeholder is cited for the numbers.»
+  *Tension:* Staff Engineer says the limiter cannot solve the problem regardless of what numbers go in the bucket (code swap only). PM says the limiter could solve the problem if the numbers were cited against Acme's measured burst. One says the mechanism is wrong; the other says the mechanism is fine and the parameters are unjustified. These are different diagnoses of the same artifact.
+
+## Top-3 Blocking Concerns
+
+1. **SRE** (sre-3826bc38) and **Staff Engineer** (staff-engineer-1d7f23fe): No runtime kill switch on a middleware in the hot path of every authenticated request, shipped unflagged 7 days before a $1.2M-ARR demo — a miscalibration at 14:55 on May 15 has no lever short of a rollback that itself resets every bucket. sev=blocker, raised by two personas at the same target.
+2. **Devil's Advocate** (devils-advocate-cbea057f): The Context section never defends "add a harder limit" over "raise the soft quota." Every downstream decision (token bucket, defaults, middleware wiring) depends on a direction the artifact has not argued for. sev=blocker, and the only finding that questions whether this plan should exist at all.
+3. **Product Manager** (product-manager-facdcd56): "The customer team has already signed off" is the load-bearing sentence authorizing unflagged ship — and it names no person, no ticket, no written artifact. A verbal handshake is being laundered into a blocker-severity architectural choice. sev=blocker, business-alignment.
+
+## Agreements
+
+- **Staff Engineer** (staff-engineer-1ced53ad), **SRE** (sre-0c1f9c85), and **Product Manager** (product-manager-1ec0f0bd) converge on `## Proposal`: the 100 req/sec burst / 600 req/min sustained default bucket is unjustified against Acme's measured burst rate, and shipping it without that number means the demo fails in a new way.
+- **Staff Engineer** (staff-engineer-1d7f23fe), **SRE** (sre-3826bc38), and **Devil's Advocate** (devils-advocate-d4328ae0) converge on `## Proposal`: the absence of a kill switch / flag is not justified by customer sign-off on the end-state, and the decision is reversible with a default-ON flag that requires zero demo-script changes.
+- **Staff Engineer** (staff-engineer-58208cb4), **SRE** (sre-bbff619a), **Product Manager** (product-manager-41b4d3c7), and **Devil's Advocate** (devils-advocate-f1163ec5) converge on `## Risks`: the May 14 bad-deploy scenario is named in writing and then left unmitigated, unowned, and contradicted by the "No kill switch" clause in the Proposal.
+
+## Also Raised
+
+- staff-engineer: ## Approach — staff-engineer-0f3c9cf3 — major
+- sre: ## Proposal (in-memory per-replica buckets) — sre-8d4dcfdf — major
+- sre: ## Proposal (observability / runbook signal) — sre-8ff4e232 — major
+- product-manager: ## Proposal (other-tenant comms) — product-manager-fcd11f9c — blocker
+- product-manager: ## Risks (deploy-freeze owner) — product-manager-41b4d3c7 — major
+- product-manager: ## Context (post-May 15 ownership) — product-manager-43a98add — major
+- devils-advocate: ## Proposal (sign-off / release-mechanics conflation) — devils-advocate-d4328ae0 — blocker
+- devils-advocate: ## Risks (bad-deploy probability never quantified) — devils-advocate-f1163ec5 — major
+- staff-engineer: ## Proposal (wrong rejection code) — staff-engineer-ea32b314 — blocker
+- staff-engineer: ## Proposal (bucket defaults unjustified) — staff-engineer-1ced53ad — blocker
+- staff-engineer: ## Risks (May 14 disclaimer, not mitigation) — staff-engineer-58208cb4 — major
+- sre: ## Proposal (default-bucket replay evidence) — sre-0c1f9c85 — blocker
+- sre: ## Risks (deploy freeze or integration test) — sre-bbff619a — blocker
+- product-manager: ## Proposal (unflagged across all tenants) — product-manager-fcd11f9c — blocker
+- product-manager: ## Proposal (default bucket unjustified) — product-manager-1ec0f0bd — blocker
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)
+- [product-manager.md](./product-manager.md)
+- [devils-advocate.md](./devils-advocate.md)

@@ -1,0 +1,168 @@
+{
+  "artifact_path": "benchmarks/corpus/01-over-engineering.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260517T022713Z-01-over-engineering",
+  "started_at": "2026-05-17T02:27:13Z",
+  "sha256": "2c666cf6eaf5385756910c3c9819dda3412c919d7af2b8d4b387ee51e1e8ac98",
+  "nonce": "a735a052",
+  "bytes": 4068,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-bff1a71a",
+          "target": "### Task 2: Template Engine",
+          "claim": "Task 2 has nine sub-bullets for a template engine whose stated job is 'render email/SMS/push notifications.' An A/B testing framework with statistical significance tracking, a dependency graph for cascade invalidation, and a Liquid fallback parser are three independent products masquerading as sub-tasks of a notification service.",
+          "severity": "major",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-51482a55",
+          "target": "### Task 6: Multi-Region Active-Active Deployment",
+          "claim": "Multi-region active-active in week 4 of a greenfield notification service that has zero production traffic. You're paying the coordination cost of Kafka MirrorMaker 2, PostgreSQL logical replication with conflict resolution, and cross-region Redis before you know if the service works in one region.",
+          "severity": "blocker",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-8748c522",
+          "target": "## Risks & Mitigations",
+          "claim": "Every mitigation is a one-sentence hand-wave in quotes — none explains how it actually resolves the risk. 'Auto-scaling is configured' is not a mitigation for consumer lag; it's a restatement of the hope that the problem doesn't happen.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-33f2cc2c",
+          "target": "## Success Criteria",
+          "claim": "10,000 notifications/second sustained throughput has no grounding in current or projected traffic. The Context section says the problem is p99 latency from inline delivery — that could be 50 req/s. This throughput target drives the multi-region architecture, the Kafka choice, and the Redis Cluster investment without evidence that the platform will ever approach it.",
+          "severity": "major",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-fd8f840f",
+          "target": "## Risks & Mitigations",
+          "claim": "Kafka consumer lag mitigation is 'Auto-scaling is configured' — but auto-scaling has a cold-start window (new consumers joining the group trigger a rebalance that pauses ALL partitions for 30-90s). During that rebalance, lag grows worse, not better. There's no number for how many seconds of lag triggers scale-out, no cap on notification age before discard, and no alert for 'lag exceeds SLO-breach threshold'.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-931f4bd5",
+          "target": "## Risks & Mitigations",
+          "claim": "Template rendering failure mitigation is 'The circuit breaker handles this' — but the circuit breaker (Task 3) is on delivery channels, not on the template engine. If rendering fails, what happens to the message? It either gets DLQ'd (losing notifications) or retried in a loop (wasting compute). No fallback rendering path is defined.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-db6ee0b3",
+          "target": "### Task 6: Multi-Region Active-Active Deployment",
+          "claim": "Multi-region active-active with Kafka MirrorMaker 2 and PostgreSQL logical replication means both regions consume and deliver the same notification. There is no dedup coordination across regions — the Redis SET NX dedup in Task 1 is per-region (Redis Cluster replication is async). Result: user gets duplicate notifications during normal operation, violating the 'Zero duplicate deliveries' success criterion.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-f407e165",
+          "target": "## Risks & Mitigations",
+          "claim": "Credential rotation mitigation is 'Vault handles credential rotation automatically' — Vault rotates secrets in its store, but running consumers hold in-memory copies of SES/Twilio credentials. Without a lease-expiry refresh loop or a sidecar agent, the consumer uses revoked credentials until restart.",
+          "severity": "minor",
+          "category": "blast-radius"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-7facbd0d",
+          "target": "## Context",
+          "claim": "The entire justification for this service is 'p99 latency spikes' during inline notification sending, but the plan names no customer complaint, no SLA breach, no ticket, and no product owner who decided to prioritize a new microservice over, say, moving the existing sends to a background job in the monolith.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-56c74343",
+          "target": "### Task 2: Template Engine",
+          "claim": "An A/B testing framework with statistical significance tracking is a product feature that requires a product decision owner, a hypothesis, and a measurement plan — yet it appears as a subtask of a template engine with no stakeholder attribution.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-d272acee",
+          "target": "### Task 6: Multi-Region Active-Active Deployment",
+          "claim": "Active-active multi-region with Kafka MirrorMaker, PostgreSQL logical replication, and Redis Enterprise is a 6-figure annual infrastructure commitment that appears with no business driver — no regulatory requirement, no SLA commitment to a customer that demands geographic redundancy, and no ticket.",
+          "severity": "major",
+          "category": "business-alignment"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-3e021684",
+          "target": "## Success Criteria",
+          "claim": "The success criteria states a 10,000 notifications/second throughput target, and the entire architecture — Kafka, multi-region active-active, Redis Cluster with cross-region replication — is sized to serve it. The artifact never defends where this number came from: no current traffic measurement, no growth model, no customer contract. If the real traffic is 100/sec, this plan over-provisions by 100x and the multi-region work is unjustified.",
+          "severity": "major",
+          "category": "premise-attack"
+        },
+        {
+          "id": "devils-advocate-6ac6c292",
+          "target": "## Context",
+          "claim": "The Context states that inline notification sending causes p99 latency spikes, and the plan concludes that the solution is a new Kafka-backed microservice. The unstated premise: that a new service is required. A background job queue in the existing API (Sidekiq, Celery, even a simple database-backed queue) solves the 'inline is blocking the request' problem without introducing Kafka, a new deployment, or a new on-call rotation.",
+          "severity": "major",
+          "category": "premise-attack"
+        },
+        {
+          "id": "devils-advocate-72f4b3ee",
+          "target": "## Success Criteria",
+          "claim": "The plan states 'Zero duplicate deliveries (exactly-once semantics)' as a success criterion. Exactly-once delivery is a theoretical impossibility in distributed systems — you can have at-most-once or at-least-once with deduplication. The plan builds Redis SET NX dedup as though this resolves it, but in the multi-region architecture, async Redis replication creates a window where duplicates are guaranteed. The success criterion promises something the architecture cannot deliver.",
+          "severity": "major",
+          "category": "premise-attack"
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "findings_kept": 14,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.3.4",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ]
+}

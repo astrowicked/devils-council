@@ -1,0 +1,40 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-ce982fb6): «The feature flag buys nothing here. One endpoint, one knob, single-node deploy, and a staged flip — the flag is a config surface you will delete in a week.»
+  **Staff Engineer** (staff-engineer-74c0e579): «No rollback plan, no observability gate, no abuse-traffic baseline — 'flip on in prod next week' is a calendar, not a rollout.»
+  **SRE** (sre-3ad451bd): «'Flip on in staging for 24h. Flip on in prod next week' has no rollback trigger, no success criteria, and no canary.»
+  *Tension:* Staff Engineer wants the flag deleted as a YAGNI config surface; SRE (and Staff Engineer's own rollout finding) treats the staged flip as the load-bearing rollback lever for a control with no other safety net. The plan cannot simultaneously have "no real flag needed" and "no rollout gates" — one of those framings has to give.
+
+- **Staff Engineer** (staff-engineer-0f25ad54): «'We run one' is a deploy fact, not a design constraint — the moment you add a second replica (autoscale, blue/green, canary), the limiter silently doubles.»
+  **SRE** (sre-d92ea456): «'We run one' is a deploy topology masquerading as a response plan. When that single node's process dies or the host is cordoned, 100% of /api/v1/search traffic is down — but the plan names no pager rotation, no runbook, no recovery SLO, and no trigger for 'stop accepting single-node as acceptable.'»
+  *Tension:* Both personas flag the single-replica assumption, but in opposite directions. Staff Engineer wants a guardrail that *blocks* horizontal scale-out (because scaling silently breaks the limiter's correctness); SRE wants the single-replica posture *abandoned* (because it's an availability SPOF). Fixing one ask directly worsens the other unless the counter moves to a shared store first.
+
+## Top-3 Blocking Concerns
+
+1. **Staff Engineer** (staff-engineer-a511ff1a) and **Devil's Advocate** (devils-advocate-a6bab7c9): The Goal/Approach contract is internally inconsistent — "60 requests/min" is not the same limiter as a bucket of 60 with 1 token/sec refill, and every downstream parameter is calibrated to an unsourced number. Candidate because two distinct personas raise the same target (## Approach) with compatible framing.
+2. **SRE** (sre-f3de581a) and **Staff Engineer** (staff-engineer-0fb002b1): Deploy-time reset of the in-memory bucket is a known free-bypass window with no blast-radius math and no mitigation. Candidate because two personas raise the same target (## Risks) at major severity and converge on the same correctness failure.
+3. **Product Manager** (product-manager-b1ddbcbf) and **SRE** (sre-3ad451bd): The Rollout section has no owner, no customer communication, no success criteria, no rollback trigger, and no canary — "flip on in prod next week" is a calendar event, not a rollout plan. Candidate because two personas raise the same target (## Rollout) at major severity from different angles (business risk + operational risk).
+
+## Agreements
+
+- **Staff Engineer** (staff-engineer-a511ff1a), **Product Manager** (product-manager-1b00d4e4), and **Devil's Advocate** (devils-advocate-a6bab7c9) all converge on the 60 req/min threshold being unsourced — no baseline, no provenance, no partner contract. Same target, compatible asks, same severity band (major).
+- **Staff Engineer** (staff-engineer-0fb002b1) and **SRE** (sre-f3de581a) agree the deploy-time bucket reset is an exploitable bypass, not a footnote. Same target (## Risks), same severity (major), same correctness category.
+- **Product Manager** (product-manager-6a014a96) and **Devil's Advocate** (devils-advocate-5eaf0346) agree the NAT'd-corporate-clients bullet is a known business risk the plan lists and then abandons — neither persona accepts it as "acknowledged therefore handled."
+- **Staff Engineer** (staff-engineer-0f25ad54), **SRE** (sre-d92ea456), and **Devil's Advocate** (devils-advocate-b557630a) agree the "we run one" parenthetical is load-bearing for the entire approach and is defended nowhere.
+
+## Also Raised
+
+- staff-engineer: ## Approach (Retry-After: 1 tells compliant clients to hammer) — staff-engineer-94b2cf44 — major
+- sre: ## Approach (429 without telemetry — on-call cannot distinguish NAT, abuser, launch spike) — sre-31fcd0f9 — major
+- sre: ## Approach (Retry-After: 1 creates thundering-herd retry storm, no jitter) — sre-8a71287f — minor
+- product-manager: INPUT.md:3-5 (no stakeholder anchor for "abusive clients") — product-manager-b2643dfb — major
+- devils-advocate: ## Goal (adversary profile undefined — scrapers vs credential-stuffers vs misconfigured partner demand different defenses) — devils-advocate-295fe71d — major
+- staff-engineer: ## Approach (feature flag is noise) — staff-engineer-ce982fb6 — minor
+- staff-engineer: ## Rollout (no rollback, no observability gate) — staff-engineer-74c0e579 — minor
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)
+- [product-manager.md](./product-manager.md)
+- [devils-advocate.md](./devils-advocate.md)

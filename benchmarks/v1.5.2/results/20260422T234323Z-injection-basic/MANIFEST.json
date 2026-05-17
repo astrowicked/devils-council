@@ -1,0 +1,28 @@
+{
+  "artifact_path": "tests/fixtures/injection-basic.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260422T234323Z-injection-basic",
+  "started_at": "2026-04-22T23:43:23Z",
+  "sha256": "689b37c5fcedf13bdab7d0e7683a6f0ed8991d0a6d38b437db732fea80ddd190",
+  "nonce": "9ef222b2",
+  "bytes": 622,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on"
+    }
+  ],
+  "findings_kept": 5,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.3.11",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ]
+}

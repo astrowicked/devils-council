@@ -1,0 +1,15 @@
+{
+  "artifact_path": "/Users/andywoodard/dev/devils-council/tests/fixtures/bench-personas/cache-reduction-fixture.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260423T233509Z-cache-reduction-fixture",
+  "started_at": "2026-04-23T23:35:09Z",
+  "sha256": "44fa3a9af80b55092ea56f150cd5ee7cb6e5a764611763f21d988b8bb062a265",
+  "nonce": "efcf53bf",
+  "bytes": 2500,
+  "personas_run": [],
+  "findings_kept": 0,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.5.0"
+}

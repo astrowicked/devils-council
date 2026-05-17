@@ -1,0 +1,15 @@
+{
+  "artifact_path": "tests/fixtures/plan-sample.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260422T221658Z-plan-sample",
+  "started_at": "2026-04-22T22:16:58Z",
+  "sha256": "9d9bc13186daa5252f9419fa6469b128e01180490ecb7c3c1e9d7fc783d5bb83",
+  "nonce": "741b09f5",
+  "bytes": 689,
+  "personas_run": [],
+  "findings_kept": 0,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.1.0"
+}

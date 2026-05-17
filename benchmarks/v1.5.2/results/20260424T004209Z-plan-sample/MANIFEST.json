@@ -1,0 +1,200 @@
+{
+  "artifact_path": "tests/fixtures/plan-sample.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260424T004209Z-plan-sample",
+  "started_at": "2026-04-24T00:42:09Z",
+  "sha256": "9d9bc13186daa5252f9419fa6469b128e01180490ecb7c3c1e9d7fc783d5bb83",
+  "nonce": "5e30d34d",
+  "bytes": 689,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-436d5544",
+          "target": "## Approach",
+          "claim": "The flag has one consumer, one environment, and a stated flip date a week away. It is scaffolding for a rollback you will not execute; delete it and rely on revert.",
+          "severity": "minor",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-fdc865a1",
+          "target": "## Rollout",
+          "claim": "A 24-hour staging bake cannot exercise 60 req/min/IP traffic unless staging has production-shaped clients. The bake produces a green light with zero signal.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-5a5cd587",
+          "target": "## Risks",
+          "claim": "The plan acknowledges the corporate-NAT problem but does nothing about it. A 60-req/min cap on a shared egress IP will brick a single office within minutes of flip-on.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-2dd2c7b9",
+          "target": "## Approach",
+          "claim": "Bucket=60 with refill=1/s means the steady-state cap is 60/min AND the burst cap is 60 — a client hitting the endpoint once per second forever never trips the limit. The stated goal and the stated math are the same number by accident, not by design.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-24603748",
+          "target": "## Risks",
+          "claim": "`Retry-After: 1` tells a misbehaving client to retry in one second, which is exactly when the next token refills — you are coaching abusive clients into a tight poll loop that stays right at the limit.",
+          "severity": "minor",
+          "category": "correctness"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-954b4029",
+          "target": "## Risks",
+          "claim": "Deploy resets every token bucket, so every deploy is an instant free pass for abusers and a mass false-429 event for legitimate clients mid-burst; the plan names the behavior but never quantifies the blast radius against the API's error budget.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-9ae3b34c",
+          "target": "## Risks",
+          "claim": "'We run one' is a deployment topology, not a response plan. Single replica means the limiter process dying takes the endpoint with it (or fails open to unlimited, which is worse); no pager rotation, no runbook, no decision on fail-open vs fail-closed is named.",
+          "severity": "major",
+          "category": "observability"
+        },
+        {
+          "id": "sre-21634f36",
+          "target": "## Rollout",
+          "claim": "'Flip on in prod next week' is a calendar date, not a rollout. No canary slice, no per-metric rollback trigger, no SLO gate — so the on-call has no automatic signal to flip the flag back off when 429s spike on real customers.",
+          "severity": "major",
+          "category": "rollout"
+        },
+        {
+          "id": "sre-35f938c3",
+          "target": "## Approach",
+          "claim": "No telemetry is specified. There's no metric for trips-per-key, no log line with the offending IP/UA, and no way to tell 'abuse' from 'one NAT gateway for a Fortune 500 customer' once the pager fires.",
+          "severity": "major",
+          "category": "observability"
+        },
+        {
+          "id": "sre-410c01d3",
+          "target": "## Risks",
+          "claim": "The NAT collision risk is named but left as a hazard, not a mitigation. A single enterprise customer behind one egress IP will trip 60/min trivially and page us with a 'your API is broken' ticket that isn't a bug.",
+          "severity": "major",
+          "category": "correctness"
+        }
+      ]
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-f4b2c042",
+          "target": "## Goal",
+          "claim": "The goal names an adversary ('abusive clients') but no stakeholder — no customer, no incident, no support ticket, no PM, no ticket reference. A 60 req/min cap on a public endpoint is a business decision about acceptable partner traffic, not a neutral engineering default, and there is nobody on the hook for that number.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-2cd6e7ff",
+          "target": "## Rollout",
+          "claim": "The rollout has no owner, no customer-communication plan, and no definition of what 'flip on in prod next week' requires — this is an engineering schedule pretending to be a product decision. A public API adding 429s without notice is a contract change for every integration that depends on it.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-25f3f89b",
+          "target": "## Risks",
+          "claim": "The plan acknowledges that IP-based keying punishes NAT'd corporate clients but treats it as a line-item risk, not a stakeholder question. 'Disproportionately hits corporate clients' is a description of which customers will get told no — and nobody in this document is named as having decided that is an acceptable trade.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-b852dedd",
+          "target": "## Approach",
+          "claim": "A `Retry-After: 1` header is a client-contract decision — it tells every SDK and integration partner how to back off. The plan picks the value with no reference to what current clients do on 429, whether any SDK retries automatically, or whether 1 second is defensible vs. the refill rate.",
+          "severity": "minor",
+          "category": "business-alignment"
+        }
+      ]
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-a11a52bd",
+          "target": "## Goal",
+          "claim": "The Goal frames the problem as 'abusive clients' but never defends the premise that abuse is the actual threat being observed — every downstream choice (token-bucket, 60/min, per-IP, 429) is calibrated to a threat model the artifact asserts rather than evidences.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-67888b9e",
+          "target": "## Goal",
+          "claim": "The number 60 requests/min is presented as a given, and the entire Approach section (bucket size 60, refill 1/sec, Retry-After: 1) is a mechanical consequence of accepting it — but the artifact never sources the number, so the implementation is calibrated to a guess.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-fb0e206d",
+          "target": "## Risks",
+          "claim": "The Risks section lists the single-node assumption as a fact rather than a premise, but the entire in-memory token-bucket design is load-bearing on it — the moment a second replica exists (autoscaling, HA, a second AZ), the limiter silently doubles the effective limit and the plan's stated 60/min becomes 120/min with no code change.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        }
+      ]
+    }
+  ],
+  "findings_kept": 17,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.6.0",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ],
+  "synthesis": {
+    "ran": true,
+    "chair_persona": "council-chair",
+    "duration_ms": null,
+    "contradiction_count": 3,
+    "blocker_candidate_count": 4,
+    "top3_count": 3,
+    "also_raised_count": 8,
+    "missing_personas": [],
+    "validation": {
+      "passed": true,
+      "errors": []
+    }
+  },
+  "suppressed_findings": []
+}

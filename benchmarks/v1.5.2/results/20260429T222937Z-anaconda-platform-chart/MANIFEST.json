@@ -1,0 +1,346 @@
+{
+  "artifact_path": "tests/fixtures/uat-9bench/anaconda-platform-chart.md",
+  "detected_type": "rfc",
+  "run_dir": ".council/20260429T222937Z-anaconda-platform-chart",
+  "started_at": "2026-04-29T22:29:37Z",
+  "sha256": "02517281e3dfe34ff8d6abbeb0cdca019ff2bbae839d63f766e354e327db88e3",
+  "nonce": "fda40f02",
+  "bytes": 6941,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-72a116c5",
+          "target": "## Performance-Critical Path: Session Validation",
+          "claim": "The validateSession function has an explicit N+1 query pattern on the hot path — every authenticated request will issue one DB round-trip per session in the user's list. With 3 concurrent sessions and 10k RPM, that is 30k queries/min against the new RDS instance, yet the plan prices only a single r6g.large and moves on.",
+          "severity": "blocker",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-b6a54238",
+          "target": "## Shared Platform API Contract Changes",
+          "claim": "The plan introduces a BREAKING change on /api/v2/platform/auth/verify — the same version path, same major API version — and relies on 4 downstream teams coordinating a simultaneous cutover. The Overview section promises 'backward-compatible API contracts throughout the phased rollout' which directly contradicts this.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-5d263fdc",
+          "target": "## Test Coverage Gap",
+          "claim": "Five source files form the security boundary of the new auth gateway, and the plan explicitly defers all testing to 'sprint 2' — yet enterprise self-hosted customers ship in week 1-2. You are deploying untested auth code to your least-recoverable environment first.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-70344a10",
+          "target": "## Authentication Gateway Migration",
+          "claim": "The JWKS endpoint is fetched via createRemoteJWKSet which issues an outbound HTTPS call on every verification (with internal caching, but requiring network). In an air-gapped environment — the first deployment target — there is no network path to AUTH_ISSUER/.well-known/jwks.json. The plan never addresses offline JWKS provisioning.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-85d9973b",
+          "target": "## Cloud Infrastructure (AWS CDK)",
+          "claim": "The S3 migration bucket uses S3_MANAGED encryption (SSE-S3) instead of KMS, meaning you cannot enforce key rotation policies or grant cross-account decrypt through KMS key policies. For a bucket holding migration artifacts that likely contain session data, this is an unnecessary downgrade from the KMS default most CDK stacks use.",
+          "severity": "minor",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-de96f9f0",
+          "target": "## Strategic Alignment",
+          "claim": "The section is pure filler — 'unlocks value', 'move the needle', 'north star metric' — without binding any of those phrases to a measurable decision in the plan. The only concrete number (4h to 45min) has no connection to any technical choice in the document.",
+          "severity": "nit",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success",
+      "cache_stats": {
+        "input_tokens": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-1ec0bf0e",
+          "target": "## Performance-Critical Path: Session Validation",
+          "claim": "The session validation function is an N+1 DB query on the hot path of every authenticated request. With no bound on the `sessions` array length, a user with K active sessions produces K sequential round-trips to Postgres. At any non-trivial request rate this will saturate connection pool and spike p99 latency until the gateway starts failing health checks.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-a9ffd1f6",
+          "target": "## Authentication Gateway Migration",
+          "claim": "The JWKS endpoint is fetched via `createRemoteJWKSet` with no cache TTL, no fallback, and no circuit breaker. If the auth issuer has a DNS blip or returns 5xx, every token verification fails simultaneously across all 3 replicas. That is a full auth outage -- zero requests pass.",
+          "severity": "major",
+          "category": "observability"
+        },
+        {
+          "id": "sre-cda8267c",
+          "target": "## Deployment Timeline",
+          "claim": "The rollout plan says enterprise self-hosted customers go first (Weeks 1-2) but there is no rollback procedure, no success criteria gate between stages, and no mention of how the on-call distinguishes 'migration broke auth' from 'customer misconfigured OIDC'. Enterprise customers in air-gapped environments cannot be hotfixed quickly -- a bad bundle stays bad until the next bundle ships.",
+          "severity": "major",
+          "category": "rollback"
+        },
+        {
+          "id": "sre-18f90155",
+          "target": "## Cloud Infrastructure (AWS CDK)",
+          "claim": "The RDS session store is provisioned as a single r6g.large with MultiAZ but no read replicas, no connection pooling (PgBouncer/RDS Proxy), and no alarm definitions. The N+1 query pattern on the hot path will hit the connection limit of a single-instance writer at moderate load. When connections are exhausted, the auth gateway stops serving -- every request 503s.",
+          "severity": "major",
+          "category": "capacity"
+        },
+        {
+          "id": "sre-59a44437",
+          "target": "## Shared Platform API Contract Changes",
+          "claim": "The plan ships a breaking change to /api/v2/platform/auth/verify consumed by 4 downstream teams, with no versioning strategy beyond 'all teams must update their clients before the v3.0 cutover'. If even one of the four teams misses the cutover window, their service starts throwing 400s or 500s against the new schema. That is a cross-team incident with unclear ownership.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-aef7415b",
+          "target": "## Test Coverage Gap",
+          "claim": "Five source files modified or created with zero test coverage, explicitly deferred to 'sprint 2'. The deployment timeline starts enterprise rollout in Week 1 -- meaning untested auth code ships to air-gapped customers who cannot be patched quickly. A regression in session rotation or token verification surfaces as a full auth outage at the customer site.",
+          "severity": "major",
+          "category": "risk"
+        }
+      ],
+      "outcome": "success",
+      "cache_stats": {
+        "input_tokens": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-73fb084e",
+          "target": "## Strategic Alignment",
+          "claim": "The 'competitive landscape demands' assertion and the 'north star metric' are stated as givens with no named customer, no win/loss data, no ticket, no RFC, and no internal sponsor. This is a strategy slide masquerading as a requirement.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-89b11a66",
+          "target": "## Overview",
+          "claim": "A $12k/month compute increase with a claimed 3x ROI has no named finance approver, no link to a budget request, and no methodology for the ROI projection. 'Reduced operational overhead' is not a measurable outcome anyone has signed for.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-710a7d5e",
+          "target": "## Shared Platform API Contract Changes",
+          "claim": "A breaking change to a shared API consumed by four named downstream teams is a coordination commitment, not an engineering task. The plan names the teams but does not name who agreed to the timeline or what happens if one team cannot ship by cutover.",
+          "severity": "blocker",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-79823369",
+          "target": "## Deployment Timeline",
+          "claim": "Enterprise self-hosted customers are the first deployment target in weeks 1-2, yet no customer name, contract obligation, or customer success contact appears anywhere in this plan. Deploying to paying enterprise customers first without naming which ones or who owns customer comms is a support incident waiting to happen.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-ffe1636b",
+          "target": "## Compliance & Audit Requirements",
+          "claim": "The compliance section cites four regulatory frameworks (GDPR, SOC2, PCI, HIPAA/CCPA) as hard requirements but names no compliance officer, no audit finding, and no ticket that triggered this work. Listing framework citations without a named internal stakeholder who demanded them is compliance theater — it looks authoritative but has no accountability chain.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-99bd1fa2",
+          "target": "## Test Coverage Gap",
+          "claim": "Deferring the test plan to sprint 2 is a schedule decision with no named owner and no risk acceptance. Five source files with zero tests shipping to enterprise customers in week 1-2 means the first deployment cohort is the test environment — and nobody signed up for that.",
+          "severity": "major",
+          "category": "business-alignment"
+        }
+      ],
+      "outcome": "success",
+      "cache_stats": {
+        "input_tokens": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "cache_hit_ratio": null
+      }
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-81eca862",
+          "target": "## Overview",
+          "claim": "The budget justification assumes the ROI comes from 'reduced operational overhead' but never names what operational overhead is being reduced, how it was measured today, or how the new RDS instances and expanded node pools (which are themselves new operational surface area) net out against whatever overhead disappears. The entire $12k/month spend is justified by an undefended multiplier applied to an unquantified baseline.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-f0b99abb",
+          "target": "## Strategic Alignment",
+          "claim": "The plan treats 'consolidating three separate auth services into one platform gateway' as inherently value-creating, but the premise that consolidation reduces deployment time from 4h to 45min is never defended. The three services may not be the bottleneck in that 4h deployment, and a single gateway introduces a new single point of failure that the three-service architecture did not have.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-14ede523",
+          "target": "## Deployment Timeline",
+          "claim": "The plan deploys to enterprise self-hosted customers (air-gapped) first, then SaaS, treating enterprise as the lower-risk environment for a new auth gateway. This assumes that air-gapped customers -- who cannot receive hotfixes without generating and shipping a new bundle -- are safer targets for an unproven auth consolidation than SaaS, where rollback is a configuration change.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        }
+      ],
+      "outcome": "success",
+      "cache_stats": {
+        "input_tokens": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "cache_hit_ratio": null
+      }
+    }
+  ],
+  "findings_kept": 21,
+  "findings_dropped": 1,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.1.0",
+  "budget": {
+    "cap_usd": 0.5,
+    "per_persona_estimate_usd": 0.08,
+    "max_spawnable_bench": 6,
+    "spawned_bench_count": 0,
+    "skipped_personas": [],
+    "actual_cost_usd": null,
+    "over_budget": false,
+    "errors": [],
+    "always_invoked": []
+  },
+  "personas_skipped": [],
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 6,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 6,
+      "findings_dropped": 1,
+      "drop_reasons": [
+        {
+          "id": "finding-2",
+          "reason": "evidence_not_verbatim",
+          "phrase": null
+        }
+      ]
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 6,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ],
+  "cache_summary": {
+    "total_input_tokens": 0,
+    "total_cache_creation_tokens": 0,
+    "total_cache_read_tokens": 0,
+    "overall_hit_ratio": 0,
+    "personas_count": 4,
+    "observable_reduction_pct": 0,
+    "measurement_available": false,
+    "note": "Agent() response usage metadata not surfaced by Claude Code harness in this environment; cache_stats populated with nulls. See 06-CACHE-SPIKE-MEMO.md."
+  },
+  "suppressed_findings": [],
+  "synthesis": {
+    "ran": false,
+    "chair_persona": "council-chair",
+    "duration_ms": null,
+    "contradiction_count": 3,
+    "blocker_candidate_count": 8,
+    "top3_count": 3,
+    "also_raised_count": 8,
+    "missing_personas": [],
+    "validation": {
+      "passed": false,
+      "errors": [
+        {
+          "check": "banned_token",
+          "detail": "APPROVE"
+        }
+      ]
+    }
+  },
+  "classifier": {
+    "version": 1,
+    "deterministic_match_count": 6,
+    "needs_haiku": false,
+    "triggered_personas": [
+      "air-gap-reviewer",
+      "compliance-reviewer",
+      "dual-deploy-reviewer",
+      "executive-sponsor",
+      "security-reviewer"
+    ],
+    "trigger_reasons": {
+      "security-reviewer": [
+        "auth_code_change",
+        "crypto_import"
+      ],
+      "air-gap-reviewer": [
+        "external_image_pull"
+      ],
+      "dual-deploy-reviewer": [
+        "external_image_pull",
+        "kots_config_change"
+      ],
+      "compliance-reviewer": [
+        "compliance_marker"
+      ],
+      "executive-sponsor": [
+        "exec_keyword"
+      ]
+    }
+  },
+  "triggered_personas": [
+    "air-gap-reviewer",
+    "compliance-reviewer",
+    "dual-deploy-reviewer",
+    "executive-sponsor",
+    "security-reviewer"
+  ],
+  "trigger_reasons": {
+    "security-reviewer": [
+      "auth_code_change",
+      "crypto_import"
+    ],
+    "air-gap-reviewer": [
+      "external_image_pull"
+    ],
+    "dual-deploy-reviewer": [
+      "external_image_pull",
+      "kots_config_change"
+    ],
+    "compliance-reviewer": [
+      "compliance_marker"
+    ],
+    "executive-sponsor": [
+      "exec_keyword"
+    ]
+  }
+}

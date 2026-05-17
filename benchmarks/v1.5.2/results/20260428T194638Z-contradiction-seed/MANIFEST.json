@@ -1,0 +1,248 @@
+{
+  "artifact_path": "/Users/andywoodard/dev/devils-council/tests/fixtures/contradiction-seed.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260428T194638Z-contradiction-seed",
+  "started_at": "2026-04-28T19:46:38Z",
+  "sha256": "304ef5895a8a1f04329f98f9c0627e1764401b7fa9812d77fb7f6a5ce6a3af88",
+  "nonce": "98c156f8",
+  "bytes": 1559,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-04a6f201",
+          "target": "## Proposal",
+          "claim": "The limiter has one caller (Acme) and ships as middleware for every tenant; this is speculative generality.",
+          "severity": "major",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-d06ae968",
+          "target": "## Proposal",
+          "claim": "Shipping unflagged removes the rollback lever; a 9am PT deploy-induced 429 spike takes the demo rehearsal down.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-19e6b287",
+          "target": "## Risks",
+          "claim": "Deploy-minute state reset will page on-call the week of the demo; there is no runbook.",
+          "severity": "major",
+          "category": "blast-radius"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-d78ee020",
+          "target": "## Proposal",
+          "claim": "The Acme demo commitment was signed off on 'ship it on by default'; gating with a flag changes the contract without a re-commit.",
+          "severity": "major",
+          "category": "business"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-48c858f7",
+          "target": "## Proposal",
+          "claim": "The unexamined premise is 'demo simplicity justifies removing the rollback path'; this trade is not named anywhere in the plan.",
+          "severity": "major",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "compliance-reviewer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "compliance-reviewer-033115ec",
+          "target": "## Proposal",
+          "claim": "The rate limiter stores per-tenant request counts with no retention schedule — GDPR Art. 5(1)(e) requires a defined deletion timeline for data that can be linked to an account.",
+          "severity": "major",
+          "category": "compliance"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "performance-reviewer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "performance-reviewer-f2f11ace",
+          "target": "## Proposal",
+          "claim": "The token-bucket check runs per request but the plan states no expected request rate — at 10,000 req/s the in-memory state lookup becomes the hot path.",
+          "severity": "major",
+          "category": "performance"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "test-lead",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "test-lead-d3eb85b4",
+          "target": "## Proposal",
+          "claim": "The proposal adds middleware that modifies request flow but the diff contains zero test files — either existing tests cover this path or nothing does.",
+          "severity": "major",
+          "category": "test-coverage"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "executive-sponsor",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "executive-sponsor-64f1db48",
+          "target": "## Proposal",
+          "claim": "The plan names no budget for the rate limiter infrastructure — at the described scale (multi-tenant, per-tenant counters), Redis alone costs roughly $200/month and the engineering investment is unstated.",
+          "severity": "major",
+          "category": "quantification-gap"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "competing-team-lead",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "competing-team-lead-b8ba4350",
+          "target": "## Proposal",
+          "claim": "The middleware sits on the shared request path but names no downstream consumer — the Acme onboarding service calls this endpoint and a 429 at their request rate breaks their import flow.",
+          "severity": "major",
+          "category": "shared-infra"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "junior-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "junior-engineer-129847e1",
+          "target": "## Risks",
+          "claim": "I had to re-read the deploy-window risk section three times — it says 'in-memory state does not survive restart' but never explains what happens to requests in flight when the state resets.",
+          "severity": "minor",
+          "category": "comprehension"
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "findings_kept": 11,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.0.2",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "compliance-reviewer",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "performance-reviewer",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "test-lead",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "executive-sponsor",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "competing-team-lead",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "junior-engineer",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ],
+  "synthesis": {
+    "ran": true,
+    "chair_persona": "council-chair",
+    "duration_ms": null,
+    "contradiction_count": 3,
+    "blocker_candidate_count": 2,
+    "top3_count": 1,
+    "also_raised_count": 0,
+    "missing_personas": [],
+    "validation": {
+      "passed": true,
+      "errors": []
+    }
+  },
+  "classifier": {
+    "version": 1,
+    "deterministic_match_count": 0,
+    "needs_haiku": true,
+    "triggered_personas": [],
+    "trigger_reasons": {}
+  },
+  "triggered_personas": [],
+  "trigger_reasons": {}
+}

@@ -1,0 +1,126 @@
+{
+  "artifact_path": "benchmarks/corpus/03-security-diff.patch",
+  "detected_type": "code-diff",
+  "run_dir": ".council/20260517T022749Z-03-security-diff",
+  "started_at": "2026-05-17T02:27:49Z",
+  "sha256": "113b6facef0f20bc77c25634a03a37aa01d41fa935f32d00c92d19089598a2ae",
+  "nonce": "c4507605",
+  "bytes": 680,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-be9bd4f1",
+          "target": "src/auth/session.ts:11",
+          "claim": "Session lifetime jumps 24x with no security boundary besides the token itself — a product request is not an auth policy decision, and this diff ships no compensating control (refresh token, re-auth, activity timeout).",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-fc20487e",
+          "target": "src/auth/session.ts:17-19",
+          "claim": "The in-memory sessions map grows unbounded — expired sessions are only cleaned up on access. With 24h lifetimes and no reaper, abandoned sessions leak until the process restarts.",
+          "severity": "minor",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-c362da8a",
+          "target": "export function createSession",
+          "claim": "24x TTL increase with an in-memory Map and no background reaper turns every session into a 24-hour memory reservation. At 1h TTL, peak memory was bounded by one hour's concurrent users; at 24h, it's bounded by an entire day's cumulative logins. The process will OOM and restart — losing all sessions.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-95478d9d",
+          "target": "src/auth/session.ts:17-19",
+          "claim": "There is no revocation path. If a token is compromised, there is no invalidateSession or invalidateAllSessions(userId) — the only way to kill a token is to restart the process (losing all sessions) or wait 24 hours for it to expire naturally.",
+          "severity": "major",
+          "category": "blast-radius"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-9af40b74",
+          "target": "expiresAt: now + 24 * 3600_000",
+          "claim": "The comment 'per product request' is the sole justification for a 24x increase in token exposure window, but the diff assumes that a product request constitutes sufficient authority to change security posture. Who approved this as a security decision, not just a UX decision?",
+          "severity": "major",
+          "category": "premise-attack"
+        },
+        {
+          "id": "devils-advocate-3b52f9f1",
+          "target": "validateSession",
+          "claim": "The new expiry-check in validateSession assumes that server-side expiry enforcement is the only control needed for a 24h window — it never defends the premise that no other session hygiene (rotation, revocation on privilege change, binding to IP/fingerprint) is required when tokens live 24x longer.",
+          "severity": "minor",
+          "category": "premise-attack"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "security-reviewer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "security-reviewer-f5fa9662",
+          "target": "expiresAt: now + 24 * 3600_000",
+          "claim": "Session token lifetime increased 24x (from 1h to 24h) with no compensating controls — no refresh token rotation, no re-authentication on privilege change, no IP binding. A stolen token is now exploitable for 24 hours instead of 1 hour. The comment 'per product request' is not a security review.",
+          "severity": "blocker",
+          "category": "auth-posture"
+        },
+        {
+          "id": "security-reviewer-d92fdf03",
+          "target": "validateSession",
+          "claim": "There is no session revocation mechanism in this diff. If a user reports a compromised account, the only remediation is to wait up to 24 hours for natural expiry — or restart the process (destroying all sessions). No invalidateSession, no logout-all, no admin kill switch.",
+          "severity": "major",
+          "category": "auth-posture"
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "findings_kept": 8,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.3.4",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "security-reviewer",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ]
+}

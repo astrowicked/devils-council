@@ -1,0 +1,15 @@
+{
+  "artifact_path": ".planning/self-eval-design.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260517T011636Z-self-eval-design",
+  "started_at": "2026-05-17T01:16:36Z",
+  "sha256": "46d6707afbb103949245b77037a2a39a09ba11d8f7172df505caf26326dc6be7",
+  "nonce": "4fd8195c",
+  "bytes": 11253,
+  "personas_run": [],
+  "findings_kept": 0,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.3.4"
+}

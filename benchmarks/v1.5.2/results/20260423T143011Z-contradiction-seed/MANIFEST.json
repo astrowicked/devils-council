@@ -1,0 +1,211 @@
+{
+  "artifact_path": "tests/fixtures/contradiction-seed.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260423T143011Z-contradiction-seed",
+  "started_at": "2026-04-23T14:30:11Z",
+  "sha256": "304ef5895a8a1f04329f98f9c0627e1764401b7fa9812d77fb7f6a5ce6a3af88",
+  "nonce": "d0a45cdf",
+  "bytes": 1559,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-ea32b314",
+          "target": "## Proposal",
+          "claim": "The customer problem is bursts exceeding quota and getting 502s; the fix ships a hard limiter that returns 429s. That swaps one rejection code for another — the CI fleet bursts still fail, the demo still breaks. The plan does not solve the stated problem.",
+          "severity": "blocker",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-1ced53ad",
+          "target": "## Proposal",
+          "claim": "Default bucket numbers are pulled from thin air. The plan never states Acme's measured burst rate, so 100 req/sec could be twice what they need or half. Shipping a hard cap without that number means the demo fails in a new way on May 15.",
+          "severity": "blocker",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-1d7f23fe",
+          "target": "## Proposal",
+          "claim": "No flag, no kill switch, no staged rollout for a change that sits in the hot path of every authenticated request, one week before a $1.2M-ARR demo. The Risks section itself describes the May 14 failure mode — and the Approach offers nothing to contain it.",
+          "severity": "blocker",
+          "category": "operability"
+        },
+        {
+          "id": "staff-engineer-0f3c9cf3",
+          "target": "## Approach",
+          "claim": "The Risks section names deploy-reset as the paging scenario. The Approach then explicitly skips the one test that would catch it, citing setup cost for 'a one-off feature' — but the plan just shipped this to production unflagged, so it is not a one-off, it is load-bearing.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-58208cb4",
+          "target": "## Risks",
+          "claim": "The Risks section identifies a specific, dated, demo-killing scenario and then stops. No mitigation, no owner, no rehearsal plan — just acknowledgment. That is not risk management, that is a disclaimer.",
+          "severity": "major",
+          "category": "operability"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-3826bc38",
+          "target": "## Proposal",
+          "claim": "Shipping this unflagged with no kill switch means when the limiter mis-calibrates the on-call has no lever to disable it short of a rollback — and the rollback itself restarts the process, resetting every bucket and paging the customer during their demo.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-0c1f9c85",
+          "target": "## Proposal",
+          "claim": "100 req/sec burst / 600 req/min sustained is quoted with no evidence that Acme's CI fleet stays under it — and the artifact says their CI is what caused the original 502s. Ship day is also 7 days before the demo, so a miscalibration surfaces as a pager during rehearsal at best, during live demo at worst.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-bbff619a",
+          "target": "## Risks",
+          "claim": "The artifact names the exact 3am scenario — deploy at 9am PT on May 14 nukes the buckets — and then proposes no integration test for it. The author has identified the pager event and declined to cover it.",
+          "severity": "blocker",
+          "category": "release-safety"
+        },
+        {
+          "id": "sre-8d4dcfdf",
+          "target": "## Proposal",
+          "claim": "In-memory per-tenant state means every replica has its own bucket; a tenant hitting N replicas gets N× the advertised quota, and a replica restart silently widens that further. The artifact treats the limiter as a single counter but doesn't say how many replicas the API runs on.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "sre-8ff4e232",
+          "target": "## Proposal",
+          "claim": "429 with Retry-After is the right response shape, but there's no mention of what metric/log the on-call greps at 14:55 on May 15 to distinguish 'Acme tripped the limit' from 'the limiter is broken and 429ing everyone'. Without that signal the pager has no runbook.",
+          "severity": "major",
+          "category": "observability"
+        }
+      ]
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-facdcd56",
+          "target": "## Proposal",
+          "claim": "The sign-off that authorizes shipping unflagged is attributed to 'the customer team' with no named stakeholder, no ticket, and no artifact. That is a verbal handshake dressed up as a product decision — and the decision it authorizes (no flag, no kill switch, no rollout) is irreversible on the demo date.",
+          "severity": "blocker",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-1ec0f0bd",
+          "target": "## Proposal",
+          "claim": "The default bucket (100 req/sec burst, 600 req/min sustained) is presented as an implementation detail, but it is the single business parameter of this feature — and no stakeholder is cited for the numbers. The artifact told us Acme's CI fleet burst is the problem; it does not tell us the new limit actually fits Acme's CI fleet.",
+          "severity": "blocker",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-fcd11f9c",
+          "target": "## Proposal",
+          "claim": "The limiter lands unflagged across all tenants to serve one tenant's demo. No other paying tenant is named, consulted, or notified — yet every one of them will be silently placed under a new hard cap on May 8.",
+          "severity": "blocker",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-41b4d3c7",
+          "target": "## Risks",
+          "claim": "The author identified a specific catastrophic scenario — a May 14 deploy taking down the rehearsal — and then proposed no mitigation and no decision-owner. A named risk with no named owner is a risk the plan is pretending to acknowledge.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-43a98add",
+          "target": "## Context",
+          "claim": "The plan is scoped as a one-off for Acme's demo, but a per-tenant hard quota limiter in front of the API is not a one-off feature — it is a permanent ceiling on every customer's throughput. No stakeholder is named for what this limiter becomes after May 15.",
+          "severity": "major",
+          "category": "business-alignment"
+        }
+      ]
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-cbea057f",
+          "target": "## Context",
+          "claim": "The Context section assumes the right response to a tenant whose traffic already trips an existing soft quota is to ship a NEW, STRICTER hard limiter — the artifact never defends this direction against the opposite one (raise or waive the existing soft quota for Acme through the demo window). Every downstream choice (token bucket, middleware wiring, 100/600 defaults) is a consequence of accepting this unexamined direction.",
+          "severity": "blocker",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-d4328ae0",
+          "target": "## Proposal",
+          "claim": "The Proposal treats a customer's procedural preference as sufficient authorization to drop the engineering org's standard safety controls — the unstated premise is that customer sign-off on DEPLOYMENT STYLE transfers the risk of that style onto the customer. It does not. The customer signed off on an outcome (it's on by default); the team owns the decision to reach that outcome without a flag or kill switch.",
+          "severity": "blocker",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-f1163ec5",
+          "target": "## Risks",
+          "claim": "The Risks section names the May 14 scenario explicitly, and the Proposal's 'No kill switch' clause assumes that scenario is acceptable — the artifact contains both statements and never reconciles them. The unstated premise is that the probability of a bad deploy in the May 7–15 window is low enough to not warrant a kill switch; the artifact never defends that probability estimate.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        }
+      ]
+    }
+  ],
+  "findings_kept": 18,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.5.0",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ],
+  "synthesis": {
+    "ran": false,
+    "chair_persona": "council-chair",
+    "duration_ms": null,
+    "contradiction_count": 3,
+    "blocker_candidate_count": 3,
+    "top3_count": 1,
+    "also_raised_count": 15,
+    "missing_personas": [],
+    "validation": {
+      "passed": false,
+      "errors": [
+        {
+          "check": "banned_token",
+          "detail": "REJECT"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "artifact_path": "benchmarks/corpus/04-multi-signal.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260517T022749Z-04-multi-signal",
+  "started_at": "2026-05-17T02:27:49Z",
+  "sha256": "9a58ec2350c509e4a26984d0d8f6cc6e209eca353dd43d6ec84eaab3beb63c5e",
+  "nonce": "77dd5bf6",
+  "bytes": 3670,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-b9b69124",
+          "target": "## Executive Summary",
+          "claim": "This plan bundles four independent initiatives (framework swap, auth rework, Helm chart major bump, compliance logging) into one Q4 deliverable. Each has distinct failure modes, distinct reviewers, and distinct rollback surfaces. Shipping them atomically means a compliance gap blocks the performance win from Express to Fastify and vice versa.",
+          "severity": "major",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-241673d0",
+          "target": "## Shared API Contract",
+          "claim": "Dropping X-RateLimit-Count is a breaking change to a known consumer (billing-service) with no migration path, versioning gate, or consumer acknowledgment in this plan.",
+          "severity": "major",
+          "category": "correctness"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-5c5c8f42",
+          "target": "## Executive Summary",
+          "claim": "The plan claims a 'phased rollout strategy' but never specifies what the phases are, what gates between them, or what the rollback procedure is for each phase. Four major changes (framework, auth, infra, compliance) targeting Q4 with no concrete rollout plan means the first failure requires rolling back everything.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-29b54169",
+          "target": "## Compliance and Audit",
+          "claim": "GDPR requires 6-year retention but the plan states 'No deletion schedule exists today.' Without a lifecycle policy, the audit table grows unbounded — at 50M rows/month, that's 3.6B rows at 6 years with no partition strategy and no storage alarm.",
+          "severity": "major",
+          "category": "capacity"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-8793b6e6",
+          "target": "## Shared API Contract",
+          "claim": "The plan names a breaking change to billing-service (dropping X-RateLimit-Count header) with the Billing Team identified as the owner — but provides no evidence that the Billing Team was consulted, agreed to the timeline, or has capacity to migrate.",
+          "severity": "major",
+          "category": "business-alignment"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "security-reviewer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "security-reviewer-1b097c04",
+          "target": "## Authentication Changes",
+          "claim": "The jwtVerify call validates audience but does not validate issuer. An attacker who controls any OIDC-compliant identity provider can mint a token with a matching audience claim, and this function will accept it — because the JWKS URL is fetched dynamically but the token's iss claim is never checked against an allowlist.",
+          "severity": "major",
+          "category": "auth-bypass"
+        },
+        {
+          "id": "security-reviewer-cf4bb922",
+          "target": "## Authentication Changes",
+          "claim": "The JWKS endpoint is constructed solely from an environment variable with no caching strategy, no fallback, and no key-rotation alerting. If the JWKS endpoint is unreachable (DNS, network partition, provider outage), every request fails auth — making the identity provider a single point of total gateway failure.",
+          "severity": "major",
+          "category": "key-trust-boundary"
+        },
+        {
+          "id": "security-reviewer-b00855cd",
+          "target": "## Authentication Changes",
+          "claim": "Secret rotation moves from 90-day manual to 24-hour automated but the plan specifies no overlap window. If the old secret is invalidated the instant the new one is active, any in-flight request validated against the previous key set will fail — creating a denial-of-service on every rotation.",
+          "severity": "major",
+          "category": "availability"
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "findings_kept": 8,
+  "findings_dropped": 1,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.3.4",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 1,
+      "findings_dropped": 1,
+      "drop_reasons": [
+        {
+          "id": "finding-0",
+          "reason": "banned_phrase_detected",
+          "phrase": "should"
+        }
+      ]
+    },
+    {
+      "persona": "security-reviewer",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "outcome": "PENDING",
+  "run_dir": ".council/20260423T214202Z-plan-sample",
+  "nonce": "c5398911",
+  "cached_prompt_path": ".council/20260423T214202Z-plan-sample/spike-prompt.md",
+  "cached_prefix_bytes": 1232,
+  "measurement_available": null,
+  "personas": {
+    "a": {
+      "input_tokens": null,
+      "cache_creation_input_tokens": null,
+      "cache_read_input_tokens": null,
+      "visible": null
+    },
+    "b": {
+      "input_tokens": null,
+      "cache_creation_input_tokens": null,
+      "cache_read_input_tokens": null,
+      "visible": null
+    }
+  },
+  "notes": ""
+}

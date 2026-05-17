@@ -1,0 +1,218 @@
+{
+  "artifact_path": "tests/fixtures/plan-sample.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260423T235731Z-plan-sample",
+  "started_at": "2026-04-23T23:57:31Z",
+  "sha256": "9d9bc13186daa5252f9419fa6469b128e01180490ecb7c3c1e9d7fc783d5bb83",
+  "nonce": "053efba1",
+  "bytes": 689,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-ce982fb6",
+          "target": "## Approach",
+          "claim": "The feature flag buys nothing here. One endpoint, one knob, single-node deploy, and a staged flip — the flag is a config surface you will delete in a week.",
+          "severity": "minor",
+          "category": "complexity"
+        },
+        {
+          "id": "staff-engineer-0fb002b1",
+          "target": "## Risks",
+          "claim": "You listed 'limits reset on deploy' as a risk and then kept walking. For a 60/min bucket, a deploy-time reset is a free bypass for any attacker who can trigger or observe a restart — that's a limiter you cannot rely on.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-a511ff1a",
+          "target": "## Approach",
+          "claim": "Bucket size 60 with 1 token/sec refill is not 'per-IP to 60 requests/min' — it is a burst of 60 followed by a strict 1 rps ceiling. The Goal and the Approach describe two different limiters.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-94b2cf44",
+          "target": "## Approach",
+          "claim": "`Retry-After: 1` is a lie when the bucket is fully drained — a client that obeys it and retries after 1s gets exactly one token and then 429s again. You are telling clients to hammer you.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-0f25ad54",
+          "target": "## Risks",
+          "claim": "'We run one' is a deploy fact, not a design constraint — the moment you add a second replica (autoscale, blue/green, canary), the limiter silently doubles. This is the exact shape of a control that works until it matters.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-74c0e579",
+          "target": "## Rollout",
+          "claim": "No rollback plan, no observability gate, no abuse-traffic baseline — 'flip on in prod next week' is a calendar, not a rollout.",
+          "severity": "minor",
+          "category": "operability"
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-f3de581a",
+          "target": "## Risks",
+          "claim": "Deploy-time reset of the token bucket means every deploy grants every client a fresh 60-token burst — an attacker who notices the deploy cadence can time abuse to the restart window. No blast-radius math, no estimate of how many minutes of unthrottled traffic per deploy, no SLO impact analysis.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-d92ea456",
+          "target": "## Risks",
+          "claim": "'We run one' is a deploy topology masquerading as a response plan. When that single node's process dies or the host is cordoned, 100% of /api/v1/search traffic is down — but the plan names no pager rotation, no runbook, no recovery SLO, and no trigger for 'stop accepting single-node as acceptable.'",
+          "severity": "major",
+          "category": "observability"
+        },
+        {
+          "id": "sre-31fcd0f9",
+          "target": "## Approach",
+          "claim": "429 with Retry-After: 1 and no telemetry means the on-call cannot distinguish 'NAT'd corporate customer tripped the limit' from 'actual abuser hammering the endpoint' from 'legitimate traffic spike from a launch.' The first pages the wrong team, the third is a customer-impact incident masquerading as a successful limiter.",
+          "severity": "major",
+          "category": "observability"
+        },
+        {
+          "id": "sre-3ad451bd",
+          "target": "## Rollout",
+          "claim": "'Flip on in staging for 24h. Flip on in prod next week' has no rollback trigger, no success criteria, and no canary. 'It didn't page anyone in staging' is not evidence the production traffic distribution won't trip legitimate users — staging traffic is almost never shaped like prod's NAT'd enterprise egress.",
+          "severity": "major",
+          "category": "rollout"
+        },
+        {
+          "id": "sre-8a71287f",
+          "target": "## Approach",
+          "claim": "Retry-After: 1 with a bucket that refills 1 token/second creates a thundering-herd retry storm — every throttled client retries in lockstep at T+1s and either all succeed (limiter was pointless for that second) or all re-trip (amplifying load). The plan has no jitter and no backoff guidance.",
+          "severity": "minor",
+          "category": "blast-radius"
+        }
+      ]
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-b2643dfb",
+          "target": "INPUT.md:3-5 (## Goal)",
+          "claim": "The goal names 'abusive clients' as the thing being protected against, but cites no customer incident, no support ticket, no named stakeholder who asked for this. A rate limit is a customer-facing policy decision dressed as an engineering task — without a stakeholder anchor, 60 req/min is a number someone guessed.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-1b00d4e4",
+          "target": "INPUT.md:5 (60 requests/min threshold)",
+          "claim": "The 60 req/min threshold is asserted with no provenance. No analytics baseline, no P95/P99 observation of current legitimate traffic, no named integration partner whose SLA this respects. The plan picks a number and ships it.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-b1ddbcbf",
+          "target": "INPUT.md:13-14 (## Rollout)",
+          "claim": "The rollout plan names no owner, no customer communication, and no success criteria. 'Flip on in prod next week' is a calendar event, not a product decision — and paying API consumers who suddenly start getting 429s will not have been warned.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-6a014a96",
+          "target": "INPUT.md:19 (NAT'd corporate clients risk)",
+          "claim": "The plan acknowledges that IP keying 'hits NAT'd corporate clients disproportionately' but names no enterprise account, no CS owner, and no mitigation. This is a known business risk listed as a bullet and then abandoned.",
+          "severity": "major",
+          "category": "business-alignment"
+        }
+      ]
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-295fe71d",
+          "target": "## Goal",
+          "claim": "The Goal treats `abusive clients` as a known, defined threat that per-IP rate-limiting is the right answer to — but the artifact never characterizes who the abusive clients actually are (scrapers? credential-stuffers? a single misconfigured partner? LLM crawlers?), and the entire plan is calibrated to that undefined adversary. Different abuser profiles demand different defenses; the plan cannot be evaluated until the adversary is named.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-a6bab7c9",
+          "target": "## Approach",
+          "claim": "The Approach posits `60 requests/min` as though the number is self-evident. The artifact cites no traffic data, no p99 baseline, no partner contract, no industry reference. Every parameter downstream (bucket size 60, refill 1/s, Retry-After: 1) is a mechanical restatement of that unsourced number — if 60 is wrong, the entire configuration is wrong in lockstep.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-b557630a",
+          "target": "## Risks",
+          "claim": "The Risks section lists three operational quirks of the chosen implementation but is silent on the premise that justifies building this in-process at all. The second bullet mentions `we run one` node almost in passing — that single parenthetical is the load-bearing assumption for the whole approach being viable, and it is stated as present-tense fact with no defense of how long it will hold.",
+          "severity": "major",
+          "category": "unexamined-framing"
+        },
+        {
+          "id": "devils-advocate-5eaf0346",
+          "target": "## Risks",
+          "claim": "The third risk bullet acknowledges that NAT'd corporate clients are hit disproportionately but treats it as a footnote. The premise the plan never defends is that `req.ip` is a meaningful identity for rate-limiting at all — a single corporate NAT, a mobile carrier CGNAT, or a cloud egress pool can represent thousands of legitimate users behind one IP, which means the 60/min limit is not really 'per user' or even 'per client', it is 'per network boundary'.",
+          "severity": "minor",
+          "category": "unexamined-framing"
+        }
+      ]
+    }
+  ],
+  "findings_kept": 19,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.6.0",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 6,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ],
+  "synthesis": {
+    "ran": false,
+    "chair_persona": "council-chair",
+    "duration_ms": null,
+    "contradiction_count": 2,
+    "blocker_candidate_count": 3,
+    "top3_count": 1,
+    "also_raised_count": 7,
+    "missing_personas": [],
+    "validation": {
+      "passed": false,
+      "errors": [
+        {
+          "check": "top3_off_candidate_set",
+          "detail": "product-manager-b1ddbcbf->INPUT.md:13-14 (## Rollout)"
+        }
+      ]
+    }
+  }
+}

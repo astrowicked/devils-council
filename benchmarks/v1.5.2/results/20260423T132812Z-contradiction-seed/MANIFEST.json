@@ -1,0 +1,58 @@
+{
+  "artifact_path": "tests/fixtures/contradiction-seed.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260423T132812Z-contradiction-seed",
+  "started_at": "2026-04-23T13:28:12Z",
+  "sha256": "304ef5895a8a1f04329f98f9c0627e1764401b7fa9812d77fb7f6a5ce6a3af88",
+  "nonce": "8a22cc3c",
+  "bytes": 1559,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on"
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on"
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on"
+    }
+  ],
+  "findings_kept": 18,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.4.0",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 5,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 4,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "artifact_path": "benchmarks/corpus/02-contradiction-seed.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260517T022748Z-02-contradiction-seed",
+  "started_at": "2026-05-17T02:27:49Z",
+  "sha256": "304ef5895a8a1f04329f98f9c0627e1764401b7fa9812d77fb7f6a5ce6a3af88",
+  "nonce": "6a1777ed",
+  "bytes": 1559,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-ae1b058d",
+          "target": "## Proposal",
+          "claim": "The plan explicitly refuses a kill switch while simultaneously identifying a scenario (bad deploy on May 14) where the only remediation is a rollback-and-redeploy — which is a kill switch with a 10-minute MTTR instead of a 10-second one. This is speculative risk acceptance for a feature that serves one customer's demo.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-8a0853eb",
+          "target": "## Risks",
+          "claim": "The Risks section names the exact failure mode that would destroy the demo — state loss on deploy — and then the Approach section explicitly declines to test it. The plan contradicts itself: it acknowledges the risk is real and then treats mitigation as too expensive.",
+          "severity": "major",
+          "category": "correctness"
+        },
+        {
+          "id": "staff-engineer-20edf4a6",
+          "target": "## Proposal",
+          "claim": "An in-memory token bucket in a multi-instance deployment means each pod gets its own counter. A tenant hitting two pods gets 2× the stated limit. The plan does not mention instance count or sticky routing — this is speculative generality applied as permanent middleware for all tenants when one caller needs it.",
+          "severity": "major",
+          "category": "correctness"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-3824a252",
+          "target": "## Proposal",
+          "claim": "No feature flag, no kill switch, no staged rollout means a bad token-bucket configuration pages every on-call simultaneously because the only remediation is a full rollback of the entire release train. The plan acknowledges restart resets state but refuses the kill switch that would let you survive a restart without losing the limiter entirely.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-8fd25368",
+          "target": "## Risks",
+          "claim": "The plan acknowledges deploy-reset as a risk and then explicitly skips testing it. This is the exact code path that will page someone on May 14: a hotfix deploy resets all buckets, CI fleet burst-fills them instantly, and the limiter starts 429ing the demo presenter mid-slide.",
+          "severity": "major",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-b2a44152",
+          "target": "## Risks",
+          "claim": "In-memory state on a single release train with no canary means the limiter is either working for all tenants or broken for all tenants. There's no mention of which pager rotation owns this code path, what the runbook is when the limiter misfires, or how to distinguish 'limiter is correctly rejecting abuse' from 'limiter is incorrectly rejecting the $1.2M demo.'",
+          "severity": "major",
+          "category": "blast-radius"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-a9ac2924",
+          "target": "## Proposal",
+          "claim": "This limiter is framed as serving one customer's demo, but it ships unflagged and applies to every tenant at 100 req/sec burst, 600 req/min sustained. No other tenant was consulted, no communication plan exists. Building permanent middleware for a one-off demo event is a misaligned investment when a temporary quota override for Acme alone would solve the stated problem.",
+          "severity": "major",
+          "category": "business-alignment"
+        },
+        {
+          "id": "product-manager-965f57b2",
+          "target": "## Context",
+          "claim": "The plan calls Acme Corp a 'top-three paying tenant ($1.2M ARR)' but then makes a product-wide decision (hard limiter, all tenants, no flag) based solely on their demo timeline. No product owner is named as having approved this scope expansion from 'fix Acme's demo' to 'change the rate-limit contract for every customer.'",
+          "severity": "major",
+          "category": "business-alignment"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-fbd6c2fd",
+          "target": "## Risks",
+          "claim": "The plan acknowledges that in-memory state does not survive restart and a bad deploy would take down the demo rehearsal — then proceeds to ship without addressing this. The artifact contradicts itself: the Risks section is evidence that the author knows the plan is dangerous, and the Approach section is evidence that they chose to accept the danger without mitigation. The plan's own risk assessment invalidates its own deployment strategy.",
+          "severity": "major",
+          "category": "premise-attack"
+        },
+        {
+          "id": "devils-advocate-ee6ba052",
+          "target": "## Context",
+          "claim": "The Context section treats the 502 problem as a platform-side rate-limiting gap, but the described cause is 'burst requests from their internal CI fleet.' The artifact never examines whether the CI fleet's burst behavior is the thing to fix. Every downstream decision — new middleware, no flag, ship to all tenants — rests on the undefended premise that a platform-wide change is the correct response to one customer's CI misconfiguration.",
+          "severity": "major",
+          "category": "premise-attack"
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "findings_kept": 10,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "1.3.4",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 3,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ]
+}

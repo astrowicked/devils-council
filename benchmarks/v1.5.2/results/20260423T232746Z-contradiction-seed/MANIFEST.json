@@ -1,0 +1,124 @@
+{
+  "artifact_path": "/Users/andywoodard/dev/devils-council/tests/fixtures/contradiction-seed.md",
+  "detected_type": "plan",
+  "run_dir": ".council/20260423T232746Z-contradiction-seed",
+  "started_at": "2026-04-23T23:27:46Z",
+  "sha256": "304ef5895a8a1f04329f98f9c0627e1764401b7fa9812d77fb7f6a5ce6a3af88",
+  "nonce": "77f01344",
+  "bytes": 1559,
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "staff-engineer-04a6f201",
+          "target": "## Proposal",
+          "claim": "The limiter has one caller (Acme) and ships as middleware for every tenant; this is speculative generality.",
+          "severity": "major",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "sre",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "sre-d06ae968",
+          "target": "## Proposal",
+          "claim": "Shipping unflagged removes the rollback lever; a 9am PT deploy-induced 429 spike takes the demo rehearsal down.",
+          "severity": "blocker",
+          "category": "blast-radius"
+        },
+        {
+          "id": "sre-19e6b287",
+          "target": "## Risks",
+          "claim": "Deploy-minute state reset will page on-call the week of the demo; there is no runbook.",
+          "severity": "major",
+          "category": "blast-radius"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "product-manager",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "product-manager-d78ee020",
+          "target": "## Proposal",
+          "claim": "The Acme demo commitment was signed off on 'ship it on by default'; gating with a flag changes the contract without a re-commit.",
+          "severity": "major",
+          "category": "business"
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "name": "devils-advocate",
+      "trigger_reason": "core:always-on",
+      "findings": [
+        {
+          "id": "devils-advocate-48c858f7",
+          "target": "## Proposal",
+          "claim": "The unexamined premise is 'demo simplicity justifies removing the rollback path'; this trade is not named anywhere in the plan.",
+          "severity": "major",
+          "category": "complexity"
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "findings_kept": 5,
+  "findings_dropped": 0,
+  "budget_usage": null,
+  "classification_warning": null,
+  "plugin_version": "0.5.0",
+  "validation": [
+    {
+      "persona": "staff-engineer",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "sre",
+      "findings_kept": 2,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "product-manager",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    },
+    {
+      "persona": "devils-advocate",
+      "findings_kept": 1,
+      "findings_dropped": 0,
+      "drop_reasons": []
+    }
+  ],
+  "synthesis": {
+    "ran": false,
+    "chair_persona": "council-chair",
+    "duration_ms": null,
+    "contradiction_count": 1,
+    "blocker_candidate_count": 1,
+    "top3_count": 1,
+    "also_raised_count": 0,
+    "missing_personas": [],
+    "validation": {
+      "passed": false,
+      "errors": [
+        {
+          "check": "contradiction_id_not_resolvable",
+          "detail": "product-manager-deadbeef,sre-deadbee1"
+        }
+      ]
+    }
+  }
+}

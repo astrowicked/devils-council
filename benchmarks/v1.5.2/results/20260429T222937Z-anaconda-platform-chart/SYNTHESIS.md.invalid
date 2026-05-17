@@ -1,0 +1,46 @@
+## Contradictions
+
+- **Staff Engineer** (staff-engineer-70344a10): «The JWKS endpoint is fetched via createRemoteJWKSet which issues an outbound HTTPS call on every verification (with internal caching, but requiring network). In an air-gapped environment — the first deployment target — there is no network path to AUTH_ISSUER/.well-known/jwks.json. The plan never addresses offline JWKS provisioning.»
+  **SRE** (sre-a9ffd1f6): «The JWKS endpoint is fetched via `createRemoteJWKSet` with no cache TTL, no fallback, and no circuit breaker. If the auth issuer has a DNS blip or returns 5xx, every token verification fails simultaneously across all 3 replicas. That is a full auth outage -- zero requests pass.»
+  *Tension:* Staff Engineer frames the JWKS problem as a correctness gap (code cannot work in the declared target environment); SRE frames it as a resilience gap (code has no failure-mode story even in environments with network). Both are right about the same line of code but disagree on which failure scenario matters most — inability to function at all, or inability to degrade gracefully.
+
+- **Devil's Advocate** (devils-advocate-14ede523): «The plan deploys to enterprise self-hosted customers (air-gapped) first, then SaaS, treating enterprise as the lower-risk environment for a new auth gateway. This assumes that air-gapped customers -- who cannot receive hotfixes without generating and shipping a new bundle -- are safer targets for an unproven auth consolidation than SaaS, where rollback is a configuration change.»
+  **SRE** (sre-cda8267c): «The rollout plan says enterprise self-hosted customers go first (Weeks 1-2) but there is no rollback procedure, no success criteria gate between stages, and no mention of how the on-call distinguishes 'migration broke auth' from 'customer misconfigured OIDC'. Enterprise customers in air-gapped environments cannot be hotfixed quickly -- a bad bundle stays bad until the next bundle ships.»
+  *Tension:* Devil's Advocate challenges the *premise* (why is enterprise-first rational?); SRE accepts the order as given and demands operational guardrails within it (rollback procedure, go/no-go gates). The plan would need to answer both: justify the order *and* define the safety net, but the two personas pull toward different resolutions — reorder vs. instrument.
+
+- **Product Manager** (product-manager-710a7d5e): «A breaking change to a shared API consumed by four named downstream teams is a coordination commitment, not an engineering task. The plan names the teams but does not name who agreed to the timeline or what happens if one team cannot ship by cutover.»
+  **Staff Engineer** (staff-engineer-b6a54238): «The plan introduces a BREAKING change on /api/v2/platform/auth/verify — the same version path, same major API version — and relies on 4 downstream teams coordinating a simultaneous cutover. The Overview section promises 'backward-compatible API contracts throughout the phased rollout' which directly contradicts this.»
+  *Tension:* Staff Engineer sees a technical contract violation (same version path, breaking schema); Product Manager sees a coordination failure (no named owner, no consent from consuming teams). The fix Staff Engineer wants (version it as /v3/ or dual-schema window) does not resolve PM's concern (who confirmed teams have capacity?), and vice versa. Both must be addressed.
+
+## Top-3 Blocking Concerns
+
+1. **Staff Engineer** (staff-engineer-72a116c5) and **SRE** (sre-1ec0bf0e): The N+1 session validation query on the hot path of every authenticated request will exhaust the connection pool of a single r6g.large at moderate concurrency, producing a full auth outage. Candidate by severity (both personas rated blocker) and cross-persona convergence.
+
+2. **Product Manager** (product-manager-710a7d5e): The breaking API change to /api/v2/platform/auth/verify is imposed on four downstream teams with no named coordination owner and no confirmed capacity from any consumer. Candidate by severity (blocker) and cross-persona convergence (Staff Engineer and SRE raised the same target).
+
+3. **SRE** (sre-cda8267c) and **Devil's Advocate** (devils-advocate-14ede523): Enterprise air-gapped customers — who have the slowest recovery path from a bad deploy — are the first recipients of untested, breaking auth code with no rollback procedure defined. Candidate by cross-persona convergence (SRE + Devil's Advocate + Product Manager raised the same target).
+
+## Agreements
+
+- **Staff Engineer** (staff-engineer-72a116c5) and **SRE** (sre-1ec0bf0e) agree the session validation N+1 pattern is a blocker-severity correctness issue on the hot path, citing the same code evidence. Both ask for bounded or batched queries.
+- **Staff Engineer** (staff-engineer-5d263fdc), **SRE** (sre-aef7415b), and **Product Manager** (product-manager-99bd1fa2) agree that deferring test coverage to sprint 2 while shipping to enterprise customers in week 1-2 is an unacceptable sequencing — the first deployment cohort becomes the test environment.
+- **Product Manager** (product-manager-73fb084e) and **Devil's Advocate** (devils-advocate-f0b99abb) agree the strategic alignment section makes undefended claims — neither the 45-minute deployment target nor the "north star metric" is tied to evidence that the proposed technical work achieves it.
+- **Product Manager** (product-manager-89b11a66) and **Devil's Advocate** (devils-advocate-81eca862) agree the $12k/month ROI projection is undefended — no baseline measurement, no named approver, no arithmetic connecting new infrastructure costs to claimed savings.
+
+## Also Raised
+
+- **Staff Engineer**: ## Authentication Gateway Migration — staff-engineer-70344a10 — major
+- **SRE**: ## Cloud Infrastructure (AWS CDK) — sre-18f90155 — major
+- **SRE**: ## Test Coverage Gap — sre-aef7415b — major
+- **Staff Engineer**: ## Test Coverage Gap — staff-engineer-5d263fdc — major
+- **Product Manager**: ## Deployment Timeline — product-manager-79823369 — major
+- **Product Manager**: ## Compliance & Audit Requirements — product-manager-ffe1636b — major
+- **Devil's Advocate**: ## Overview — devils-advocate-81eca862 — major
+- **Devil's Advocate**: ## Strategic Alignment — devils-advocate-f0b99abb — major
+
+## Raw Scorecards
+
+- [staff-engineer.md](./staff-engineer.md)
+- [sre.md](./sre.md)
+- [product-manager.md](./product-manager.md)
+- [devils-advocate.md](./devils-advocate.md)
