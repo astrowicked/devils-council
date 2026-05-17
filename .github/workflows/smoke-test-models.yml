@@ -1,0 +1,33 @@
+name: Smoke Test GitHub Models
+on:
+  workflow_dispatch:
+
+jobs:
+  test-github-models:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test GitHub Models API with GITHUB_TOKEN
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Testing gpt-4.1-mini via GitHub Models..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://models.inference.ai.azure.com/chat/completions" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"model":"gpt-4.1-mini","messages":[{"role":"user","content":"Reply with exactly: SMOKE_TEST_PASS"}]}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ GitHub Models works with GITHUB_TOKEN"
+          elif [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+            echo "❌ GITHUB_TOKEN not authorized for GitHub Models"
+            echo "May need Copilot plan or models:read scope"
+          else
+            echo "⚠️ Unexpected status: $HTTP_CODE"
+          fi
