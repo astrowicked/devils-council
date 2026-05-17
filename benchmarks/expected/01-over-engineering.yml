@@ -31,11 +31,11 @@ expected_findings:
     must_claim_contains_any: ["scope", "business", "stakeholder", "justif"]
     rationale: "Multi-region, A/B testing, template dependency graphs — no business case for any"
 
-  - persona: devils-advocate
+  - persona: sre
     severity: major
     must_target: "Risks"
-    must_claim_contains_any: ["circular", "hand-wave", "undefended", "restate", "mitigation", "hope"]
-    rationale: "Every risk mitigation restates the risk as solved without evidence"
+    must_claim_contains_any: ["circular", "hand-wave", "undefended", "restate", "hope"]
+    rationale: "Risk mitigations restate the risk as solved without mechanism — SRE catches this as operational handwaving"
 
 not_expected:
   - description: "Kafka partition key choice is a valid design decision"
