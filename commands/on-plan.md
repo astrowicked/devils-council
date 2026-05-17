@@ -10,7 +10,7 @@ allowed-tools: [Bash, Read]
 The user passed a phase number as `$ARGUMENTS`. Validate and zero-pad:
 
 !`set -e
-PHASE="${ARGUMENTS:-}"
+PHASE="$ARGUMENTS"
 case "$PHASE" in
   ''|*[!0-9]*)
     echo "ERROR: /devils-council:on-plan requires an integer phase number. Got: '$PHASE'" >&2
@@ -24,7 +24,7 @@ printf 'PADDED=%s\n' "$PADDED"`
 ## Discover plan files
 
 !`set -e
-PHASE="${ARGUMENTS:-}"
+PHASE="$ARGUMENTS"
 case "$PHASE" in
   ''|*[!0-9]*) exit 2 ;;
 esac
