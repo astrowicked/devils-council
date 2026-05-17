@@ -3,6 +3,7 @@
 #
 # Deterministic prep step for /devils-council:review. Runs via shell-injection
 # at prompt-load time. Classifies the artifact, snapshots to INPUT.md, writes
+# MANIFEST.json, creates the timestamped run directory.
 # initial MANIFEST.json, emits `RUN_DIR=<path>` as final stdout line.
 #
 # Decision anchors: D-02 (hybrid conductor/prep split), D-03 (run dir format),

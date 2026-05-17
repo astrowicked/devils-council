@@ -1,0 +1,24 @@
+name: Free Tier Smoke Test
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  free-tier-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      models: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astrowicked/devils-council-action@v2
+        id: review
+
+      - name: Report result
+        run: |
+          echo "Provider: ${{ steps.review.outputs.provider }}"
+          echo "Verdict: ${{ steps.review.outputs.verdict }}"
+          echo "Blockers: ${{ steps.review.outputs.blocker-count }}"
+          echo "Majors: ${{ steps.review.outputs.major-count }}"
