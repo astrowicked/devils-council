@@ -1,7 +1,7 @@
 {
   "name": "devils-council",
-  "version": "1.3.4",
-  "description": "Persona-driven adversarial review council for plans, code, and RFCs. Staff Engineer, SRE, PM, Devil's Advocate + auto-triggered bench personas critique in parallel; Council Chair synthesizes contradictions without collapsing dissent.",
+  "version": "1.6.0",
+  "description": "Get a staff-level LGTM — 4 expert personas (Staff Engineer, SRE, PM, Devil's Advocate) plus auto-triggered bench personas review plans, code, and RFCs in parallel. Council Chair synthesizes contradictions without collapsing dissent.",
   "author": {
     "name": "Andy Woodard",
     "url": "https://github.com/astrowicked"

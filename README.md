@@ -91,7 +91,7 @@ Verify:
 
 ```bash
 claude plugin list --json | jq '.[] | select(.name=="devils-council") | .version'
-# Expected: "1.4.0"
+# Expected: "1.6.0"
 ```
 
 After upgrade (see [Troubleshooting #1](#1-plugin-cache-staleness-after-version-bump) if new commands don't appear):
@@ -201,7 +201,7 @@ See [devils-council-action](https://github.com/astrowicked/devils-council-action
 
 ## Persona Roster
 
-Sixteen personas ship in v1.4.0. Core tier always runs; bench tier auto-triggers on artifact signals.
+Sixteen personas ship in v1.6.0. Core tier always runs; bench tier auto-triggers on artifact signals.
 
 | Persona | Tier | Primary Concern | Trigger / always-on |
 |---------|------|-----------------|---------------------|
