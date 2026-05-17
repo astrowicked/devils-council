@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-16
+
+### Added
+
+- **Self-eval benchmark system** — `/devils-council:self-eval` command measures finding recall, precision, and regression against version-pinned baselines
+- **Benchmark corpus** — 5 curated test artifacts (over-engineering plan, contradiction-seed, security diff, multi-signal plan, clean RFC) with 22 expected findings
+- **`bin/dc-self-eval.py`** — evaluation engine: matching algorithm, recall scoring, regression detection, verdict output
+- **Dogfooding CI** — `council-self-review` job in CI uses the action to review DC's own PRs with inline comments
+- **Expected-findings manifests** — YAML format with `must_target`, `must_claim_contains`, `not_expected` patterns, severity gates
+
+### Design Decisions
+
+- 80% recall threshold (balances LLM non-determinism vs quality signal)
+- Zero blocker/major regression gate (hard fail on lost critical catches)
+- $2.50/release budget (5 corpus items x 1 council run each)
+- Three-layer eval stack: structural (free) → golden set recall ($2.50) → quality rubric (stretch, $5)
+
 ## [1.4.0] - 2026-05-16
 
 ### Added
