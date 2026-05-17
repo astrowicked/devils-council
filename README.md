@@ -1,8 +1,8 @@
 # devils-council
 
-**Adversarial AI review — 4 experts find what you missed before you ship.**
+**Get a staff-level LGTM on every plan, PR, and RFC — in 48 seconds.**
 
-> Before your plan, code, or RFC goes out, a Staff Engineer, SRE, Product Manager, and Devil's Advocate independently rip it apart. In 48 seconds. Every finding cites your own words back at you.
+> A Staff Engineer, SRE, Product Manager, and Devil's Advocate independently review your work before anyone else sees it. Every finding cites your own words back at you. Ship with confidence.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/devils-council-opencode)](https://www.npmjs.com/package/devils-council-opencode)
@@ -44,7 +44,7 @@ Four always-on **core personas** critique your artifact in parallel. Additional 
 
 A **Council Chair** synthesizes contradictions **by name** ("PM says ship, SRE says block because...") without collapsing dissent into a scalar verdict. Every finding cites a verbatim quote from the artifact; every finding has a stable ID so dismissals persist across re-runs.
 
-**Status:** v1.4.0 — Dual-runtime plugin (OpenCode + Claude Code). MIT licensed.
+**Status:** v1.6.0 — Dual-runtime plugin (OpenCode + Claude Code). MIT licensed.
 
 ---
 
