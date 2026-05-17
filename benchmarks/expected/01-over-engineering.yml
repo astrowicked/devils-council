@@ -1,0 +1,44 @@
+corpus_item: "01-over-engineering.md"
+type: plan
+version_pinned: "1.4.0"
+description: "Notification service plan with deliberate over-engineering, circular mitigations, and scope creep"
+
+expected_findings:
+  - persona: staff-engineer
+    severity: major
+    must_target: "Task 2"
+    must_claim_contains: "A/B testing"
+    rationale: "A/B testing framework for template variants is speculative generality in a notification service"
+
+  - persona: staff-engineer
+    severity: major
+    must_claim_contains: "multi-region"
+    rationale: "Active-active multi-region for a notification service is unjustified scope"
+
+  - persona: sre
+    severity: major
+    must_target: "Risks"
+    must_claim_contains: "auto-scaling"
+    rationale: "The mitigation 'auto-scaling is configured' is not a real answer to consumer lag"
+
+  - persona: sre
+    severity: major
+    must_claim_contains: "rollback"
+    rationale: "No rollback plan, no runbook, no deployment strategy beyond 'Week 4'"
+
+  - persona: product-manager
+    severity: major
+    must_claim_contains: "scope"
+    rationale: "Multi-region, A/B testing, template dependency graphs — no business case for any"
+
+  - persona: devils-advocate
+    severity: major
+    must_target: "Risks"
+    must_claim_contains: "circular"
+    rationale: "Every risk mitigation restates the risk as solved without evidence"
+
+not_expected:
+  - description: "Kafka partition key choice is a valid design decision"
+    if_persona: staff-engineer
+    if_claim_contains: "partition key"
+    if_severity: blocker

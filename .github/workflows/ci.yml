@@ -412,3 +412,19 @@ jobs:
           for d in agents commands skills scripts bin hooks; do
             test -d "$d" || { echo "Missing directory: $d"; exit 1; }
           done
+
+  council-self-review:
+    name: Council reviews own PRs
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astrowicked/devils-council-action@v2
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          severity-threshold: major
+          exclude-paths: "*.lock,dist/**,.council/**,.planning/**,tests/fixtures/**"

@@ -1,0 +1,36 @@
+corpus_item: "04-multi-signal.md"
+type: plan
+version_pinned: "1.4.0"
+description: "API gateway migration with OAuth2, AWS CDK, Helm, GDPR — triggers multiple bench personas"
+
+expected_findings:
+  - persona: security-reviewer
+    severity: major
+    must_claim_contains: "rotation"
+    rationale: "Secret rotation moves from 90-day manual to 24-hour automated — migration path not specified"
+
+  - persona: security-reviewer
+    severity: major
+    must_claim_contains: "JWKS"
+    rationale: "JWKS endpoint as single point of auth failure — no caching/fallback strategy"
+
+  - persona: sre
+    severity: major
+    must_claim_contains: "rollout"
+    rationale: "'Phased rollout strategy' claimed but no specifics — what phases? what gates?"
+
+  - persona: staff-engineer
+    severity: major
+    must_claim_contains: "Express"
+    rationale: "Full framework migration (Express→Fastify) bundled with auth + infra + compliance — too much scope"
+
+  - persona: product-manager
+    severity: major
+    must_claim_contains: "Q4"
+    rationale: "4 major initiatives targeting same quarter with no prioritization"
+
+not_expected:
+  - description: "The code samples themselves are technically correct"
+    if_persona: staff-engineer
+    if_claim_contains: "jwtVerify"
+    if_severity: blocker

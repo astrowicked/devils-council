@@ -1,0 +1,33 @@
+corpus_item: "05-clean-rfc.md"
+type: rfc
+version_pinned: "1.4.0"
+description: "Simple RFC with legitimate open questions — should produce minor/nit findings only, no false blockers"
+
+expected_findings:
+  - persona: sre
+    severity: minor
+    must_claim_contains: "Redis fail"
+    rationale: "The RFC explicitly calls out Redis failure as an open question — valid concern"
+
+  - persona: product-manager
+    severity: minor
+    must_claim_contains: "cost"
+    rationale: "Cost estimate not computed — acknowledged as open question"
+
+  - persona: devils-advocate
+    severity: minor
+    must_claim_contains: "retention"
+    rationale: "PII in Redis until processed — the RFC raises it but doesn't resolve it"
+
+not_expected:
+  - description: "BullMQ is a reasonable choice — should not be attacked as wrong"
+    if_persona: staff-engineer
+    if_claim_contains: "BullMQ"
+    if_severity: blocker
+
+  - description: "This is a well-structured RFC — no false blockers"
+    if_persona: any
+    if_severity: blocker
+
+max_blocker_count: 0
+max_major_count: 1

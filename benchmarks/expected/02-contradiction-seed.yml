@@ -1,0 +1,36 @@
+corpus_item: "02-contradiction-seed.md"
+type: plan
+version_pinned: "1.4.0"
+description: "Quota limiter shipped unflagged with in-memory state, no kill switch, contradicts its own risk section"
+
+expected_findings:
+  - persona: staff-engineer
+    severity: major
+    must_claim_contains: "speculative"
+    rationale: "Ships as middleware for every tenant but only one caller needs it"
+
+  - persona: sre
+    severity: blocker
+    must_claim_contains: "restart"
+    rationale: "In-memory state resets on deploy — acknowledged in risks but unmitigated"
+
+  - persona: sre
+    severity: major
+    must_claim_contains: "kill switch"
+    rationale: "No feature flag, no kill switch, no staged rollout — explicit in the plan"
+
+  - persona: devils-advocate
+    severity: major
+    must_claim_contains: "contradict"
+    rationale: "Plan acknowledges deploy-reset risk then ships without addressing it"
+
+  - persona: product-manager
+    severity: major
+    must_claim_contains: "one-off"
+    rationale: "Building permanent middleware for a one-time demo is misaligned investment"
+
+not_expected:
+  - description: "Token bucket algorithm itself is well-designed"
+    if_persona: staff-engineer
+    if_claim_contains: "token bucket"
+    if_severity: blocker

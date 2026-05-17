@@ -1,0 +1,46 @@
+{
+  "version": "1.4.0",
+  "created": "2026-05-16",
+  "corpus_items": 5,
+  "total_expected_findings": 22,
+  "recall_threshold": 0.8,
+  "regression_gate": "zero_blocker_major_regressions",
+  "cost_estimate_per_run": "$2.50",
+  "corpus": [
+    {
+      "id": "01",
+      "file": "corpus/01-over-engineering.md",
+      "type": "plan",
+      "expected_file": "expected/01-over-engineering.yml",
+      "expected_count": 6
+    },
+    {
+      "id": "02",
+      "file": "corpus/02-contradiction-seed.md",
+      "type": "plan",
+      "expected_file": "expected/02-contradiction-seed.yml",
+      "expected_count": 5
+    },
+    {
+      "id": "03",
+      "file": "corpus/03-security-diff.patch",
+      "type": "code-diff",
+      "expected_file": "expected/03-security-diff.yml",
+      "expected_count": 3
+    },
+    {
+      "id": "04",
+      "file": "corpus/04-multi-signal.md",
+      "type": "plan",
+      "expected_file": "expected/04-multi-signal.yml",
+      "expected_count": 5
+    },
+    {
+      "id": "05",
+      "file": "corpus/05-clean-rfc.md",
+      "type": "rfc",
+      "expected_file": "expected/05-clean-rfc.yml",
+      "expected_count": 3
+    }
+  ]
+}
