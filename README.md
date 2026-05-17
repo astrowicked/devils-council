@@ -171,29 +171,47 @@ The HTML is fully self-contained (inline CSS, no external dependencies) so it su
 
 Teammates see findings on every PR. No local install required for reviewers.
 
+### Zero-config (free, no API key)
+
+```yaml
+name: Code Review
+on: [pull_request]
+
+jobs:
+  council-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      models: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astrowicked/devils-council-action@v2
+```
+
+That's it. No secrets, no signup. Uses GitHub Models (`gpt-4.1-mini`) for a quick scan from Staff Engineer + SRE personas.
+
+### Full review (add API key)
+
+```yaml
+      - uses: astrowicked/devils-council-action@v2
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+Unlocks all 4 core personas + signal-triggered bench (Security, FinOps, Air-Gap, Performance) + Council Chair synthesis + inline line-level comments.
+
 ### Review plans on PR
 
 ```yaml
-- uses: astrowicked/devils-council-action@v1
-  with:
-    artifact: '.planning/**/PLAN.md'
-    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+      - uses: astrowicked/devils-council-action@v2
+        with:
+          artifact: '.planning/**/PLAN.md'
+          type: plan
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-### Review code on PR
-
-Post findings as inline PR review comments on every pull request:
-
-```yaml
-- uses: astrowicked/devils-council-action@v1
-  with:
-    artifact: ${{ github.event.pull_request.diff_url }}
-    type: code-diff
-    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-    post-as: inline-review  # posts findings as inline PR review comments
-```
-
-The action fetches the PR diff, runs the full council, and posts each finding as an inline comment on the relevant file and line. Blockers appear as `REQUEST_CHANGES`; majors and minors as `COMMENT`.
+The action fetches the PR diff (or specified artifact), runs the council, and posts findings. Blockers appear as `REQUEST_CHANGES`; majors and minors as `COMMENT`.
 
 See [devils-council-action](https://github.com/astrowicked/devils-council-action) for full docs and configuration options.
 
