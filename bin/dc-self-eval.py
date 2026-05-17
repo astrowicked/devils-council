@@ -310,7 +310,7 @@ if __name__ == "__main__":
             if manifest_path.exists():
                 run_manifest = json.loads(manifest_path.read_text())
                 artifact = run_manifest.get("artifact_path", "")
-                if item["file"].replace("corpus/", "") in artifact or item["id"] in run.name:
+                if item["file"].replace("corpus/", "") in artifact or f'-{item["id"]}-' in run.name:
                     matched_run = run
                     break
 
