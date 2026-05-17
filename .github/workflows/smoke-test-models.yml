@@ -5,6 +5,9 @@ on:
 jobs:
   test-github-models:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      models: read
     steps:
       - name: Test GitHub Models API with GITHUB_TOKEN
         env:
