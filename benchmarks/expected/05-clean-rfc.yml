@@ -1,6 +1,6 @@
 corpus_item: "05-clean-rfc.md"
 type: rfc
-version_pinned: "1.4.0"
+version_pinned: "1.6.0"
 description: "Simple RFC with legitimate open questions — should produce minor/nit findings only, no false blockers"
 
 expected_findings:
@@ -8,26 +8,44 @@ expected_findings:
     severity: minor
     must_claim_contains: "Redis fail"
     rationale: "The RFC explicitly calls out Redis failure as an open question — valid concern"
+    provenance:
+      source: manual
+      seeded_flaw: "Open question 'What happens if Redis fails?' is deliberately left unresolved — SRE should quantify the blast radius"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: product-manager
     severity: minor
     must_claim_contains: "cost"
     rationale: "Cost estimate not computed — acknowledged as open question"
+    provenance:
+      source: manual
+      seeded_flaw: "Open question 'Cost estimate at 50k/day was not computed' — PM should note this invalidates the 'reuses existing infra' rationale if Redis costs more than SQS"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: devils-advocate
     severity: minor
     must_claim_contains: "retention"
     rationale: "PII in Redis until processed — the RFC raises it but doesn't resolve it"
+    provenance:
+      source: manual
+      seeded_flaw: "Open question 'Retention / PII: email bodies sit in Redis until processed — acceptable?' — DA should attack the premise that shipping before resolving a compliance question is acceptable"
+      first_caught: "v1.4.0 benchmark run"
 
 not_expected:
   - description: "BullMQ is a reasonable choice — should not be attacked as wrong"
     if_persona: staff-engineer
     if_claim_contains: "BullMQ"
     if_severity: blocker
+    provenance:
+      source: manual
+      rationale: "Redis+BullMQ is a sound choice for 50k/day with 2m p99 — the technology is not the problem, the open questions are"
 
   - description: "This is a well-structured RFC — no false blockers"
     if_persona: any
     if_severity: blocker
+    provenance:
+      source: manual
+      rationale: "Corpus item 05 is deliberately well-written to test calibration — any blocker finding is a precision failure (the council is over-reacting)"
 
 max_blocker_count: 0
 max_major_count: 1

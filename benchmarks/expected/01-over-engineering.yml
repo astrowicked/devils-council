@@ -1,6 +1,6 @@
 corpus_item: "01-over-engineering.md"
 type: plan
-version_pinned: "1.4.0"
+version_pinned: "1.6.0"
 description: "Notification service plan with deliberate over-engineering, circular mitigations, and scope creep"
 
 expected_findings:
@@ -9,36 +9,63 @@ expected_findings:
     must_target: "Task 2"
     must_claim_contains: "A/B testing"
     rationale: "A/B testing framework for template variants is speculative generality in a notification service"
+    provenance:
+      source: manual
+      seeded_flaw: "Task 2 has 9 sub-bullets including A/B testing with statistical significance — three independent products hiding in one task"
+      first_caught: "v1.0.0 demo run"
 
   - persona: staff-engineer
     severity: major
     must_claim_contains: "multi-region"
     rationale: "Active-active multi-region for a notification service is unjustified scope"
+    provenance:
+      source: manual
+      seeded_flaw: "Task 6 adds multi-region active-active in week 4 of a greenfield service with zero traffic"
+      first_caught: "v1.0.0 demo run"
 
   - persona: sre
     severity: major
     must_target: "Risks"
     must_claim_contains: "auto-scaling"
     rationale: "The mitigation 'auto-scaling is configured' is not a real answer to consumer lag"
+    provenance:
+      source: manual
+      seeded_flaw: "Risks table uses quoted hand-waves as mitigations — 'Auto-scaling is configured' for lag"
+      first_caught: "v1.3.4 benchmark run"
 
   - persona: sre
     severity: major
     must_claim_contains_any: ["rollback", "deployment", "runbook", "deploy", "week 4", "staged"]
     rationale: "No rollback plan, no runbook, no deployment strategy beyond 'Week 4'"
+    provenance:
+      source: manual
+      seeded_flaw: "Timeline section lists 'Week 4: Task 6 (multi-region)' with no rollback, canary, or staged deployment mentioned"
+      first_caught: "v1.6.0 (after SRE prompt addition)"
 
   - persona: product-manager
     severity: major
     must_claim_contains_any: ["scope", "business", "stakeholder", "justif"]
     rationale: "Multi-region, A/B testing, template dependency graphs — no business case for any"
+    provenance:
+      source: manual
+      seeded_flaw: "Context names only 'p99 latency spikes' — no stakeholder, no ticket, no business driver for the expanded scope"
+      first_caught: "v1.3.4 benchmark run"
 
   - persona: sre
     severity: major
     must_target: "Risks"
     must_claim_contains_any: ["circular", "hand-wave", "undefended", "restate", "hope"]
     rationale: "Risk mitigations restate the risk as solved without mechanism — SRE catches this as operational handwaving"
+    provenance:
+      source: manual
+      seeded_flaw: "Every row in the Risks table has a quoted one-liner mitigation that restates the hope ('Auto-scaling is configured', 'The circuit breaker handles this', 'Vault handles credential rotation automatically')"
+      first_caught: "v1.6.0 (reassigned from DA to SRE after self-eval showed SRE naturally catches operational handwaving)"
 
 not_expected:
   - description: "Kafka partition key choice is a valid design decision"
     if_persona: staff-engineer
     if_claim_contains: "partition key"
     if_severity: blocker
+    provenance:
+      source: manual
+      rationale: "Partition key = user_id is a reasonable choice for per-user ordering — attacking this as blocker would be a false positive"

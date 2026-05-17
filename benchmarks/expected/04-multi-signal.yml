@@ -1,6 +1,6 @@
 corpus_item: "04-multi-signal.md"
 type: plan
-version_pinned: "1.4.0"
+version_pinned: "1.6.0"
 description: "API gateway migration with OAuth2, AWS CDK, Helm, GDPR — triggers multiple bench personas"
 
 expected_findings:
@@ -8,29 +8,52 @@ expected_findings:
     severity: major
     must_claim_contains: "rotation"
     rationale: "Secret rotation moves from 90-day manual to 24-hour automated — migration path not specified"
+    provenance:
+      source: manual
+      seeded_flaw: "Plan states 'secret rotation moves from 90-day manual to 24-hour automated rotation via AWS Secrets Manager' with no overlap window or migration strategy"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: security-reviewer
     severity: major
     must_claim_contains: "JWKS"
     rationale: "JWKS endpoint as single point of auth failure — no caching/fallback strategy"
+    provenance:
+      source: manual
+      seeded_flaw: "Code sample shows createRemoteJWKSet(new URL(process.env.AUTH_ISSUER_URL)) with no caching, no fallback, no issuer validation — single point of auth failure"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: sre
     severity: major
     must_claim_contains: "rollout"
     rationale: "'Phased rollout strategy' claimed but no specifics — what phases? what gates?"
+    provenance:
+      source: manual
+      seeded_flaw: "Executive Summary claims 'phased rollout strategy' but no section defines the phases, gates, or rollback plan"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: staff-engineer
     severity: major
     must_claim_contains: "Express"
     rationale: "Full framework migration (Express→Fastify) bundled with auth + infra + compliance — too much scope"
+    provenance:
+      source: manual
+      seeded_flaw: "Executive Summary bundles 4 independent initiatives (Express→Fastify, OAuth2, Helm charts, GDPR) into one Q4 deliverable with no dependency graph"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: product-manager
     severity: major
     must_claim_contains_any: ["Q4", "timeline", "deadline", "quarter"]
     rationale: "4 major initiatives targeting same quarter with no prioritization"
+    provenance:
+      source: manual
+      seeded_flaw: "Q4 deadline stated with no named requestor, no business event driving the timeline, and 4 distinct initiatives sharing it without prioritization"
+      first_caught: "v1.6.0 (with keyword-bag matching)"
 
 not_expected:
   - description: "The code samples themselves are technically correct"
     if_persona: staff-engineer
     if_claim_contains: "jwtVerify"
     if_severity: blocker
+    provenance:
+      source: manual
+      rationale: "The jose library usage is correct syntax — the issue is missing options (no issuer), not broken code"

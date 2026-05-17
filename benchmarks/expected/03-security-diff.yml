@@ -1,6 +1,6 @@
 corpus_item: "03-security-diff.patch"
 type: code-diff
-version_pinned: "1.4.0"
+version_pinned: "1.6.0"
 description: "Session token expiry bumped from 1h to 24h with no security justification"
 
 expected_findings:
@@ -8,19 +8,34 @@ expected_findings:
     severity: blocker
     must_claim_contains: "24"
     rationale: "24x increase in token lifetime without security review is a material risk change"
+    provenance:
+      source: manual
+      seeded_flaw: "Diff changes expiresAt from 3600_000 (1h) to 24*3600_000 (24h) with only a comment 'per product request' as justification"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: sre
     severity: major
     must_claim_contains: "expir"
     rationale: "Session lifetime change affects incident response — compromised tokens live 24x longer"
+    provenance:
+      source: manual
+      seeded_flaw: "24h sessions with in-memory Map storage means no revocation path — compromised tokens valid for a full day, no kill switch"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: devils-advocate
     severity: major
     must_claim_contains: "product request"
     rationale: "The comment says 'per product request' — who requested? Where's the ticket?"
+    provenance:
+      source: manual
+      seeded_flaw: "The inline comment '// bumped from 1h to 24h per product request' provides no authority citation — a product request is not a security policy decision"
+      first_caught: "v1.4.0 benchmark run"
 
 not_expected:
   - description: "The expiry-check addition is a correct defensive improvement"
     if_persona: staff-engineer
     if_claim_contains: "validateSession"
     if_severity: blocker
+    provenance:
+      source: manual
+      rationale: "The new validateSession code correctly adds server-side expiry enforcement — this is a positive change that should not be attacked as blocker"

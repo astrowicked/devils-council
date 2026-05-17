@@ -1,6 +1,6 @@
 corpus_item: "02-contradiction-seed.md"
 type: plan
-version_pinned: "1.4.0"
+version_pinned: "1.6.0"
 description: "Quota limiter shipped unflagged with in-memory state, no kill switch, contradicts its own risk section"
 
 expected_findings:
@@ -8,29 +8,52 @@ expected_findings:
     severity: major
     must_claim_contains: "speculative"
     rationale: "Ships as middleware for every tenant but only one caller needs it"
+    provenance:
+      source: manual
+      seeded_flaw: "Plan ships permanent middleware (all tenants, no flag) for a one-off demo event for one customer"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: sre
     severity: blocker
     must_claim_contains: "restart"
     rationale: "In-memory state resets on deploy — acknowledged in risks but unmitigated"
+    provenance:
+      source: manual
+      seeded_flaw: "Risks section explicitly states 'In-memory state does not survive restart; limits reset on deploy' then Approach section skips testing this"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: sre
     severity: major
     must_claim_contains: "kill switch"
     rationale: "No feature flag, no kill switch, no staged rollout — explicit in the plan"
+    provenance:
+      source: manual
+      seeded_flaw: "Plan explicitly states 'No feature flag. No kill switch. No staged rollout.' — an intentional provocation"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: devils-advocate
     severity: major
     must_claim_contains: "contradict"
     rationale: "Plan acknowledges deploy-reset risk then ships without addressing it"
+    provenance:
+      source: manual
+      seeded_flaw: "Risks section names the exact failure mode that would kill the demo, then Approach section explicitly declines to mitigate it — a self-contradiction"
+      first_caught: "v1.4.0 benchmark run"
 
   - persona: product-manager
     severity: major
     must_claim_contains: "one-off"
     rationale: "Building permanent middleware for a one-time demo is misaligned investment"
+    provenance:
+      source: manual
+      seeded_flaw: "Context frames this as a one-off demo need ($1.2M customer, May 15 partner conference) but Proposal ships permanent unflagged middleware for all tenants"
+      first_caught: "v1.4.0 benchmark run"
 
 not_expected:
   - description: "Token bucket algorithm itself is well-designed"
     if_persona: staff-engineer
     if_claim_contains: "token bucket"
     if_severity: blocker
+    provenance:
+      source: manual
+      rationale: "The algorithm choice (token bucket) is sound — the problem is deployment strategy, not implementation"
