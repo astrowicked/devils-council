@@ -33,6 +33,7 @@
     "**/node_modules/**",
     ".claude/**",
     ".council/**",
+    "benchmarks/v*/**",
     "agents/**",
     "skills/**",
     "commands/**",
