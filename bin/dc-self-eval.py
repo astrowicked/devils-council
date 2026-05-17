@@ -67,6 +67,11 @@ def match_finding(expected: dict, actual_findings: list[dict]) -> bool:
     severity_filter = expected.get("severity")
     must_target = expected.get("must_target", "").lower()
     must_claim = expected.get("must_claim_contains", "").lower()
+    # keyword-bag: match if ANY keyword in the list appears in claim
+    must_claim_any = expected.get("must_claim_contains_any", [])
+    if isinstance(must_claim_any, str):
+        must_claim_any = [must_claim_any]
+    must_claim_any = [k.lower() for k in must_claim_any]
 
     for finding in actual_findings:
         if persona_filter and finding.get("_persona") != persona_filter:
@@ -83,6 +88,8 @@ def match_finding(expected: dict, actual_findings: list[dict]) -> bool:
         if must_target and must_target not in target:
             continue
         if must_claim and must_claim not in claim:
+            continue
+        if must_claim_any and not any(k in claim for k in must_claim_any):
             continue
 
         return True

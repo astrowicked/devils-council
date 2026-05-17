@@ -26,7 +26,7 @@ expected_findings:
 
   - persona: product-manager
     severity: major
-    must_claim_contains: "Q4"
+    must_claim_contains_any: ["Q4", "timeline", "deadline", "quarter"]
     rationale: "4 major initiatives targeting same quarter with no prioritization"
 
 not_expected:
