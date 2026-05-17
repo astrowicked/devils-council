@@ -39,13 +39,8 @@ jobs:
       - name: Validate plugin manifest
         shell: bash
         run: |
-          claude plugin validate . 2>&1 | tee /tmp/dc-validate.out
-          # Success indicator varies by CLI version; accept common tokens case-insensitively
-          grep -qiE 'valid|passed|success|ok' /tmp/dc-validate.out || {
-            echo "claude plugin validate output did not include a success indicator:"
-            cat /tmp/dc-validate.out
-            exit 1
-          }
+          claude plugin validate .
+          # Exit code is authoritative — non-zero means invalid
 
       - name: JSON sanity checks
         shell: bash
@@ -415,7 +410,7 @@ jobs:
 
   council-self-review:
     name: Council reviews own PRs
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -423,7 +418,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for API key
+        id: check-key
+        run: |
+          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping council review — ANTHROPIC_API_KEY not configured"
+          fi
+
       - uses: astrowicked/devils-council-action@v2
+        if: steps.check-key.outputs.skip != 'true'
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           severity-threshold: major
