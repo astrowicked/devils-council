@@ -15,14 +15,14 @@ describe("handleToolAfter() — speckit plan detection", () => {
   })
 
   it("triggers on speckit:plan tool name", () => {
-    const resultWithPath = "Created specs/feature/plan.md with 5 tasks"
+    const resultWithPath = "Created specs/feature/plan.md with 5 tasks covering authentication and authorization flows"
     const result = handleToolAfter({ tool: "speckit:plan", result: resultWithPath })
     assert.ok(result !== null, "Expected trigger action for speckit:plan")
     assert.ok(result!.command.includes("specs/feature/plan.md"))
   })
 
   it("triggers on speckit_plan_generate variant", () => {
-    const resultWithPath = "Wrote plan to specs/new-feature/plan.md"
+    const resultWithPath = "Wrote plan to specs/new-feature/plan.md with implementation details for the migration"
     const result = handleToolAfter({ tool: "speckit_plan_generate", result: resultWithPath })
     assert.ok(result !== null, "Expected trigger for tool name starting with speckit and containing plan")
     assert.ok(result!.command.includes("/devils-council:review"))
@@ -48,7 +48,7 @@ describe("handleToolAfter() — speckit plan detection", () => {
   })
 
   it("is case-insensitive for tool name matching", () => {
-    const resultWithPath = "Plan at specs/foo/plan.md done"
+    const resultWithPath = "Plan generated at specs/foo/plan.md with full implementation breakdown and timeline"
     const upper = handleToolAfter({ tool: "Speckit.Plan", result: resultWithPath })
     const mixed = handleToolAfter({ tool: "SPECKIT_PLAN", result: resultWithPath })
     assert.ok(upper !== null)
