@@ -33,10 +33,12 @@
     "**/node_modules/**",
     ".claude/**",
     ".council/**",
-    "benchmarks/v*/**",
+    "benchmarks/**",
     "agents/**",
     "skills/**",
     "commands/**",
+    ".opencode/commands/**",
+    ".opencode/agents/**",
     "CLAUDE.md",
     "CHANGELOG.md"
   ]
