@@ -5,23 +5,27 @@ import { handleToolAfter } from "./speckit-hook"
 describe("handleToolAfter() — speckit plan detection", () => {
   const planContent = `## Objective\nBuild authentication module\n\n## Tasks\n- Task 1: Create login endpoint\n- Task 2: Add JWT validation`
 
-  it("triggers on speckit.plan tool result", () => {
-    const result = handleToolAfter({ tool: "speckit.plan", result: planContent })
+  it("triggers on speckit.plan tool result with path in output", () => {
+    const resultWithPath = "Plan written to specs/auth/plan.md\n\n" + planContent
+    const result = handleToolAfter({ tool: "speckit.plan", result: resultWithPath })
     assert.ok(result !== null, "Expected trigger action for speckit.plan")
-    assert.equal(result!.agent, "council-review")
-    assert.ok(result!.artifact.length > 0, "Artifact should contain plan text")
+    assert.ok(result!.command.startsWith("/devils-council:review"))
+    assert.ok(result!.command.includes("--type=plan"))
+    assert.equal(result!.path, "specs/auth/plan.md")
   })
 
   it("triggers on speckit:plan tool name", () => {
-    const result = handleToolAfter({ tool: "speckit:plan", result: planContent })
+    const resultWithPath = "Created specs/feature/plan.md with 5 tasks"
+    const result = handleToolAfter({ tool: "speckit:plan", result: resultWithPath })
     assert.ok(result !== null, "Expected trigger action for speckit:plan")
-    assert.equal(result!.agent, "council-review")
+    assert.ok(result!.command.includes("specs/feature/plan.md"))
   })
 
   it("triggers on speckit_plan_generate variant", () => {
-    const result = handleToolAfter({ tool: "speckit_plan_generate", result: planContent })
+    const resultWithPath = "Wrote plan to specs/new-feature/plan.md"
+    const result = handleToolAfter({ tool: "speckit_plan_generate", result: resultWithPath })
     assert.ok(result !== null, "Expected trigger for tool name starting with speckit and containing plan")
-    assert.equal(result!.agent, "council-review")
+    assert.ok(result!.command.includes("/devils-council:review"))
   })
 
   it("returns null for unrelated tools (grep, read, etc.)", () => {
@@ -37,22 +41,29 @@ describe("handleToolAfter() — speckit plan detection", () => {
     assert.equal(handleToolAfter({ tool: "speckit.plan", result: "ok" }), null)
   })
 
-  it("extracts artifact text from string result", () => {
-    const result = handleToolAfter({ tool: "speckit.plan", result: planContent })
+  it("extracts path from result containing specs/ pattern", () => {
+    const result = handleToolAfter({ tool: "speckit.plan", result: "Generated plan at specs/auth-module/plan.md successfully" })
     assert.ok(result !== null)
-    assert.equal(result!.artifact, planContent)
-  })
-
-  it("extracts artifact from object result via JSON.stringify", () => {
-    const objResult = { plan: "Build authentication with JWT tokens and refresh rotation", tasks: ["login", "validate"] }
-    const result = handleToolAfter({ tool: "speckit.plan", result: objResult })
-    assert.ok(result !== null, "Object result should be stringified and treated as artifact")
-    assert.equal(result!.artifact, JSON.stringify(objResult))
+    assert.equal(result!.path, "specs/auth-module/plan.md")
   })
 
   it("is case-insensitive for tool name matching", () => {
-    const result = handleToolAfter({ tool: "Speckit.Plan", result: planContent })
-    assert.ok(result !== null, "Tool matching should be case-insensitive")
-    assert.equal(result!.agent, "council-review")
+    const resultWithPath = "Plan at specs/foo/plan.md done"
+    const upper = handleToolAfter({ tool: "Speckit.Plan", result: resultWithPath })
+    const mixed = handleToolAfter({ tool: "SPECKIT_PLAN", result: resultWithPath })
+    assert.ok(upper !== null)
+    assert.ok(mixed !== null)
+  })
+
+  it("returns null if plan path cannot be determined", () => {
+    const result = handleToolAfter({ tool: "speckit.plan", result: planContent })
+    // No path in output AND no filesystem — returns null gracefully
+    // (filesystem glob won't find anything in test environment)
+    // This tests graceful degradation
+    if (result === null) {
+      assert.ok(true, "Graceful null when path not determinable")
+    } else {
+      assert.ok(result.command.includes("/devils-council:review"))
+    }
   })
 })

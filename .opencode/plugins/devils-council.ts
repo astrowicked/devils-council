@@ -104,7 +104,7 @@ export default definePlugin({
     "tool.execute.after": async (ctx) => {
       const trigger = handleToolAfter({ tool: ctx.tool, result: ctx.result })
       if (trigger && ctx.suggest) {
-        ctx.suggest(`@${trigger.agent} ${trigger.artifact.slice(0, 200)}...`)
+        ctx.suggest(`[DEVILS-COUNCIL] Plan detected. Run:\n${trigger.command}\nNo additional context needed — the command handles everything.`)
       }
     },
   },

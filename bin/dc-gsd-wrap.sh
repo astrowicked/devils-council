@@ -50,7 +50,7 @@ esac
 # Extraction failure → exit silently. Never break the user's GSD flow.
 [ -z "$ARTIFACT" ] && exit 0
 
-# Emit pointer (D-75 semantic). Stdout is displayed to the user alongside the GSD agent's output.
-printf '\n[devils-council: GSD %s completed; run `/devils-council:review %s` for adversarial critique]\n' "$KIND" "$ARTIFACT"
+# Emit suggestion. Stdout is displayed to the user alongside the GSD agent's output.
+printf '\n[DEVILS-COUNCIL] Plan ready for review. Run:\n/devils-council:review %s --type=plan\nNo additional context needed — the command handles everything.\n' "$ARTIFACT"
 
 exit 0
