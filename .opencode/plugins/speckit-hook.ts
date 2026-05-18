@@ -1,5 +1,5 @@
-import { readdirSync, statSync, existsSync } from "node:fs"
-import { join } from "node:path"
+import { readdirSync, statSync, existsSync } from "fs"
+import { join } from "path"
 
 export interface ToolAfterContext {
   tool: string
@@ -40,14 +40,16 @@ function extractPathFromResult(result: string): string | null {
 
 function findLatestPlanFile(): string | null {
   const dirs = ["specs", ".specify"]
-  let latest: { path: string; mtime: number } | null = null
+  let latestPath: string | null = null
+  let latestMtime = 0
 
   for (const dir of dirs) {
     try {
       if (!existsSync(dir)) continue
       walkForPlans(dir, (filePath: string, mtime: number) => {
-        if (!latest || mtime > latest.mtime) {
-          latest = { path: filePath, mtime }
+        if (mtime > latestMtime) {
+          latestPath = filePath
+          latestMtime = mtime
         }
       })
     } catch {
@@ -55,7 +57,7 @@ function findLatestPlanFile(): string | null {
     }
   }
 
-  return latest ? latest.path : null
+  return latestPath
 }
 
 function walkForPlans(dir: string, cb: (path: string, mtime: number) => void, depth = 0): void {
