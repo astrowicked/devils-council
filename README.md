@@ -217,6 +217,155 @@ See [devils-council-action](https://github.com/astrowicked/devils-council-action
 
 ---
 
+## Telemetry (optional)
+
+Devils Council can emit anonymous, opt-in usage events so the maintainer
+can answer adoption + quality questions like: which personas actually fire,
+where reviews fail, which prompts produce false positives, which personas
+can be retired. **Default: OFF.** No event is sent unless you explicitly
+opt in AND `DO_NOT_TRACK` is not set on the runner environment.
+
+> **Note on "contract":** Throughout this section, "contract" means an
+> **API contract** — a wire-format commitment about field names, types,
+> and additive evolution. It is NOT a legal contract, license, or
+> warranty. Devils Council makes no legal promises to operators or users
+> beyond what the open-source license already grants.
+
+**What is NEVER sent — by deliberate design.** No source code. No file
+paths. No line numbers. No finding text. No model output. No
+`SYNTHESIS.md` content. No persona reasoning. No PR titles, branch names,
+or comment bodies. No review verdicts in determinative form. No repository
+names (only the opaque server-side HMAC of `owner/repo`). The fields
+enumerated below are the complete v1 surface; adding any field that could
+carry intellectual property, source content, or model-generated text
+would be a privacy regression and is rejected on principle.
+
+### Why opt in
+
+Devils Council is a small project. The only way we know which personas
+actually fire, which prompts produce noise, and where reviews fail is the
+events you send. With a handful of opted-in operators we can retire
+personas no one ever invokes, tune prompts that produce false positives,
+and fix error classes that cluster. With zero opted-in operators we're
+guessing. We send no code, no finding text, no repo names — just counts,
+persona names, and error classes (full schema below).
+
+### Opt in — GitHub Action
+
+```yaml
+- uses: astrowicked/devils-council-action@v2
+  with:
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    telemetry: true
+```
+
+See the [action's Telemetry docs](https://github.com/astrowicked/devils-council-action#telemetry-optional)
+for the full input list, fire-and-forget guarantees, and the workflow
+`feedback-targets` artifact.
+
+### Opt in — OpenCode / Claude Code plugins
+
+Plugin opt-in mechanic is finalized at plugin ship in a future release.
+Until then, the GitHub Action is the only emitting client. When the
+plugins ship telemetry, they will emit the same v1 event schema documented
+below — schema parity is locked.
+
+### `DO_NOT_TRACK` precedence (hard override)
+
+Precedence chain, highest wins:
+
+1. `DO_NOT_TRACK=1` environment variable on the runner / dev shell — HARD OFF.
+2. Client config flag (action input `telemetry: false`, or plugin endpoint disabled).
+3. Opt-in input (`telemetry: true` on the action; plugin config when shipped).
+
+If `DO_NOT_TRACK=1` is set, NO event is sent regardless of any other
+config — even if `telemetry: true` is also set. The client logs
+`::notice::telemetry: DO_NOT_TRACK honored, no event sent` (action) or its
+equivalent (plugin) and continues.
+
+### Event envelope
+
+Every event uses the v1 envelope:
+
+| Field        | Type               | Required | Notes                                                              |
+| ------------ | ------------------ | -------- | ------------------------------------------------------------------ |
+| `event_type` | string enum        | yes      | One of `review.completed` \| `review.failed`.                      |
+| `owner_repo` | string `owner/repo`| yes      | Server HMACs this into `repo_hash` and drops the plaintext. Clients never send a hash. |
+| `payload`    | JSON object        | yes      | Per-event shape; see tables below.                                 |
+
+Every payload also carries `schema_version: 1` so future additions are
+additive without breaking existing consumers.
+
+### `review.completed` payload fields
+
+| Field              | Type          | Required | Example                                  | Notes                                                                                          |
+| ------------------ | ------------- | -------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `schema_version`   | integer       | yes      | `1`                                      | Always `1` in v1; additive-only API contract going forward.                                    |
+| `ts`               | string (ISO)  | yes      | `2026-05-19T19:03:56.060Z`               | Client-set UTC ISO8601.                                                                        |
+| `source`           | enum string   | yes      | `"action"`                               | One of `"action"` \| `"plugin"`.                                                               |
+| `runtime`          | enum string   | yes      | `"action-shell"`                         | One of `"action-shell"` \| `"opencode"` \| `"claude-code"`.                                    |
+| `client_version`   | string        | yes      | `"v2.3.0"`                               | The action version (or plugin version) emitting the event.                                     |
+| `provider`         | enum string   | no       | `"anthropic"`                            | One of `"anthropic"` \| `"bedrock"` \| `"github-models"`. Nullable.                            |
+| `model`            | string        | no       | `"claude-sonnet-4-20250514"`             | The model ID used. Nullable.                                                                   |
+| `blocker_count`    | integer       | yes      | `0`                                      | Count of BLOCKER-severity findings.                                                            |
+| `major_count`      | integer       | yes      | `2`                                      | Count of MAJOR-severity findings.                                                              |
+| `minor_count`      | integer       | yes      | `1`                                      | Count of MINOR-severity findings.                                                              |
+| `nit_count`        | integer       | yes      | `4`                                      | Count of NIT-severity findings.                                                                |
+| `findings_total`   | integer       | yes      | `7`                                      | Total findings produced (pre-threshold filter).                                                |
+| `findings_dropped` | integer       | yes      | `0`                                      | Findings filtered by `severity-threshold` or `max-findings`.                                   |
+| `triggered_bench`  | array<string> | yes      | `["staff-engineer", "security-reviewer"]`| Persona names whose scorecards had non-empty findings for this run.                            |
+| `duration_s`       | number        | yes      | `48`                                     | End-to-end wall-clock for the council review, in seconds.                                      |
+
+No `verdict` field is sent. Downstream dashboards derive a verdict-like
+signal from the counts (`blocker_count > 0` → BLOCK, `major_count > 0` →
+WARN, else PASS). Keeping the determination out of the wire payload
+removes a future leak vector for the underlying reasoning.
+
+### `review.failed` payload fields
+
+| Field            | Type         | Required | Example                       | Notes                                                                                          |
+| ---------------- | ------------ | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `schema_version` | integer      | yes      | `1`                           | Same as above.                                                                                 |
+| `ts`             | string (ISO) | yes      | `2026-05-19T19:03:56.060Z`    | Client-set UTC ISO8601.                                                                        |
+| `source`         | enum string  | yes      | `"action"`                    | One of `"action"` \| `"plugin"`.                                                               |
+| `runtime`        | enum string  | yes      | `"action-shell"`              | Same enum as `review.completed`.                                                               |
+| `client_version` | string       | yes      | `"v2.3.0"`                    | Same as `review.completed`.                                                                    |
+| `error_class`    | enum string  | yes      | `"synthesis-failed"`          | Failure classification. Full v1 enum: `synthesis-failed`, `prep-failed`, `no-api-key`, `timeout`, `model-error`, `validation-failed`. Different client versions emit different subsets — `devils-council-action@v2.3.0` emits `synthesis-failed` + `prep-failed`; the rest are reserved for future clients with finer classification. |
+| `stage`          | enum string  | yes      | `"synthesis"`                 | One of `"prep"` \| `"persona-run"` \| `"validation"` \| `"synthesis"`.                         |
+
+Consumers MUST treat any unknown `error_class` value as the catch-all
+"failure of an unspecified subclass" rather than rejecting the event.
+
+No error message strings, no stack traces, no log lines are sent. Only
+the classified `error_class` + `stage` enums.
+
+### Fire-and-forget guarantees
+
+- 3-second total time budget on the POST (`curl --max-time 3 --connect-timeout 2`).
+- POST failure NEVER blocks the action or the plugin — the emitter always
+  exits 0 / continues normally.
+- Successful POSTs log nothing; failures log a single `::notice::` (action)
+  or equivalent (plugin) annotation.
+
+### Self-host
+
+The reference endpoint is one collector, not a required dependency. Run
+your own and point clients at it via `telemetry-endpoint` (action) or the
+equivalent plugin config (shipping in a future release).
+
+```yaml
+- uses: astrowicked/devils-council-action@v2
+  with:
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    telemetry: true
+    telemetry-endpoint: https://telemetry.yourcompany.example/v1/events
+```
+
+The collector requires an HMAC secret to boot; without it the service
+refuses to start.
+
+---
+
 ## Persona Roster
 
 Sixteen personas ship in v1.6.0. Core tier always runs; bench tier auto-triggers on artifact signals.
