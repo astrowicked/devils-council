@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-01-15T12:00:00Z",
+  "run_dir": ".council/20260115T120000Z-example-plan",
+  "artifact_path": ".planning/example/plan.md",
+  "detected_type": "plan",
+  "classifier": "structural",
+  "plugin_version": "0.1.0",
+  "triggered_personas": [
+    "competing-team-lead",
+    "dual-deploy-reviewer"
+  ],
+  "personas_skipped": [],
+  "trigger_reasons": [
+    "shared-infrastructure-signal",
+    "deployment-surface-signal"
+  ],
+  "findings_kept": 5,
+  "findings_dropped": 1,
+  "suppressed_findings": 0,
+  "budget": {
+    "max_findings": 20,
+    "max_personas": 8
+  },
+  "budget_usage": {
+    "findings": 5,
+    "personas": 4
+  },
+  "personas_run": [
+    {
+      "name": "staff-engineer",
+      "findings": [
+        {
+          "id": "f-001",
+          "category": "design",
+          "severity": "S2",
+          "target": "example/component.ts",
+          "claim": "Example finding for fixture purposes only."
+        },
+        {
+          "id": "f-002",
+          "category": "design",
+          "severity": "S3",
+          "target": "example/helper.ts",
+          "claim": "Second example finding for fixture purposes only."
+        }
+      ]
+    },
+    {
+      "name": "sre",
+      "findings": [
+        {
+          "id": "f-003",
+          "category": "ops",
+          "severity": "S2",
+          "target": "example/runtime.yaml",
+          "claim": "Example SRE finding for fixture purposes only."
+        }
+      ]
+    },
+    {
+      "name": "competing-team-lead",
+      "findings": [
+        {
+          "id": "f-004",
+          "category": "integration",
+          "severity": "S2",
+          "target": "example/api.proto",
+          "claim": "Example downstream-consumer finding for fixture purposes only."
+        }
+      ]
+    },
+    {
+      "name": "dual-deploy-reviewer",
+      "findings": [
+        {
+          "id": "f-005",
+          "category": "deployment",
+          "severity": "S3",
+          "target": "example/values.yaml",
+          "claim": "Example dual-deploy finding for fixture purposes only."
+        }
+      ]
+    }
+  ],
+  "synthesis": {
+    "top_blockers": [
+      "f-001",
+      "f-003"
+    ]
+  },
+  "validation": {
+    "schema": "pass",
+    "drops": 1
+  }
+}
