@@ -900,6 +900,15 @@ persona proceeded without deep scan" contract. D-51 requires this
 surface AT the command output AND in MANIFEST — both paths exist
 for auditability.
 
+## Emit telemetry (optional, opt-in, fire-and-forget)
+
+After all rendering completes, fire the telemetry POST if opt-in is set.
+The script self-gates on `DO_NOT_TRACK` and `DC_TELEMETRY` env vars and
+exits silently when neither matches. Background-forked; foreground command
+returns immediately.
+
+!`${CLAUDE_PLUGIN_ROOT}/bin/dc-telemetry.sh "<RUN_DIR>" --runtime=claude-code & disown`
+
 ## Explicitly NOT in this flow
 
 - **No Council Chair retry.** Phase 5's ENGN-07 extension: if the synthesis

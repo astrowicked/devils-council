@@ -937,6 +937,15 @@ If the render succeeds, include the report path in the final output:
 
 If python3 is unavailable or the script fails, skip silently — the HTML report is supplementary, not load-bearing.
 
+## Emit telemetry (optional, opt-in, fire-and-forget)
+
+After all rendering completes, fire the telemetry POST if opt-in is set.
+The script self-gates on `DO_NOT_TRACK` and `DC_TELEMETRY` env vars and
+exits silently when neither matches. Background-forked; foreground command
+returns immediately.
+
+!`${DC_ROOT}/bin/dc-telemetry.sh "<RUN_DIR>" --runtime=opencode & disown`
+
 ## Explicitly NOT in this flow
 
 - **No Council Chair retry.** Phase 5's ENGN-07 extension: if the synthesis
