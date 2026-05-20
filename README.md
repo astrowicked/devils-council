@@ -265,23 +265,69 @@ for the full input list, fire-and-forget guarantees, and the workflow
 
 ### Opt in — OpenCode / Claude Code plugins
 
-Plugin opt-in mechanic is finalized at plugin ship in a future release.
-Until then, the GitHub Action is the only emitting client. When the
-plugins ship telemetry, they will emit the same v1 event schema documented
-below — schema parity is locked.
+Both plugin runtimes (OpenCode and Claude Code) emit a single
+`review.completed` event per `/devils-council:review` run when opted in.
+Emission is **env-var only**: set `DC_TELEMETRY=true` in the shell that
+runs OpenCode or Claude Code, and the next slash-command invocation will
+fire the POST after rendering completes.
+
+```bash
+export DC_TELEMETRY=true
+# then run OpenCode or Claude Code as normal; /devils-council:review will emit
+```
+
+| Env var                   | Purpose                                                              | Default                                                 |
+| ------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
+| `DC_TELEMETRY`            | Set to literal string `true` to enable emission.                     | unset (off)                                             |
+| `DC_TELEMETRY_ENDPOINT`   | Override the default endpoint (must be `https://`).                  | `https://dc-telemetry.pub.andyjwoodard.net/v1/events`   |
+| `DO_NOT_TRACK`            | Set to `1` to hard-disable telemetry regardless of any other signal. | unset                                                   |
+
+`DC_TELEMETRY` requires the exact string `"true"` — `1`, `yes`, `on` are
+NOT accepted. This is a deliberate "explicit-only" gate to avoid drift
+across the runtimes' env-handling quirks.
+
+The plugins only emit from **github repos** — `bin/dc-telemetry.sh`
+inspects `git remote get-url origin`; non-github remotes (gitlab,
+bitbucket, self-hosted Gitea, no remote at all) silently skip the POST
+without erroring. Reason: the dc-telemetry wire schema requires
+`owner_repo` in `owner/repo` form; non-github URLs cannot be parsed
+unambiguously.
+
+In v1 only `review.completed` is emitted from the plugins. `review.failed`
+emission is deferred — see PLUG-05 in the [dc-telemetry
+backlog](https://github.com/astrowicked/dc-telemetry/blob/main/.planning/REQUIREMENTS.md).
+
+### Manual invocation
+
+Telemetry fires automatically at the end of `/devils-council:review`. To
+manually emit for a prior council run (or to inspect the payload
+without POSTing), invoke the script directly:
+
+```bash
+# preview only — no POST
+DC_TELEMETRY=true bin/dc-telemetry.sh .council/<run-dir> --runtime=claude-code --dry-run
+# or --runtime=opencode
+
+# real emit
+DC_TELEMETRY=true bin/dc-telemetry.sh .council/<run-dir> --runtime=claude-code
+```
+
+`<run-dir>` is the timestamped directory produced by a prior
+`/devils-council:review` invocation (look under `.council/`).
 
 ### `DO_NOT_TRACK` precedence (hard override)
 
 Precedence chain, highest wins:
 
 1. `DO_NOT_TRACK=1` environment variable on the runner / dev shell — HARD OFF.
-2. Client config flag (action input `telemetry: false`, or plugin endpoint disabled).
-3. Opt-in input (`telemetry: true` on the action; plugin config when shipped).
+2. Client config flag (action input `telemetry: false`, or plugin `DC_TELEMETRY` not equal to `"true"`).
+3. Opt-in input (`telemetry: true` on the action; `DC_TELEMETRY=true` for plugins).
 
 If `DO_NOT_TRACK=1` is set, NO event is sent regardless of any other
-config — even if `telemetry: true` is also set. The client logs
-`::notice::telemetry: DO_NOT_TRACK honored, no event sent` (action) or its
-equivalent (plugin) and continues.
+config — even if `telemetry: true` is also set on the action or
+`DC_TELEMETRY=true` is set in the plugin shell. The action logs
+`::notice::telemetry: DO_NOT_TRACK honored, no event sent`; the plugins
+exit silently (no logging surface — fire-and-forget by design).
 
 ### Event envelope
 
@@ -350,8 +396,10 @@ the classified `error_class` + `stage` enums.
 ### Self-host
 
 The reference endpoint is one collector, not a required dependency. Run
-your own and point clients at it via `telemetry-endpoint` (action) or the
-equivalent plugin config (shipping in a future release).
+your own (see [dc-telemetry](https://github.com/astrowicked/dc-telemetry#privacy--telemetry))
+and point clients at it.
+
+For the GitHub Action, set `telemetry-endpoint:`:
 
 ```yaml
 - uses: astrowicked/devils-council-action@v2
@@ -361,8 +409,17 @@ equivalent plugin config (shipping in a future release).
     telemetry-endpoint: https://telemetry.yourcompany.example/v1/events
 ```
 
-The collector requires an HMAC secret to boot; without it the service
-refuses to start.
+For the OpenCode / Claude Code plugins, export `DC_TELEMETRY_ENDPOINT`
+in the same shell:
+
+```bash
+export DC_TELEMETRY=true
+export DC_TELEMETRY_ENDPOINT=https://telemetry.yourcompany.example/v1/events
+```
+
+The endpoint must be `https://` — `bin/dc-telemetry.sh` silently rejects
+any other scheme (SSRF mitigation). The collector requires an HMAC secret
+to boot; without it the service refuses to start.
 
 ---
 
