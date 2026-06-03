@@ -1,4 +1,5 @@
 tier: bench
+model_tier: workhorse
 triggers:
   - performance_hotpath
 primary_concern: "What is the call frequency of this code path, and what happens at the p99?"

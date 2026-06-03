@@ -1,4 +1,5 @@
 tier: bench
+model_tier: workhorse
 triggers:
   - test_imbalance
 primary_concern: "Does this test actually prove the code works, or does it just prove the mock returns what you told it to?"

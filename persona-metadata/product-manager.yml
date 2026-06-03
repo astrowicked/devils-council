@@ -1,4 +1,5 @@
 tier: core
+model_tier: workhorse
 primary_concern: "Who asked for this, and how do we know they wanted it?"
 blind_spots:
   - technical_debt

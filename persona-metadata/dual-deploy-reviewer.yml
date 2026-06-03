@@ -1,4 +1,5 @@
 tier: bench
+model_tier: workhorse
 triggers:
   - helm_values_change
   - chart_yaml_present

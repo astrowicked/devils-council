@@ -1,4 +1,5 @@
 tier: bench
+model_tier: workhorse
 triggers:
   - aws_sdk_import
   - new_cloud_resource

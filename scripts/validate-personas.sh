@@ -27,6 +27,8 @@
 #   R8  if tier ∈ {core, chair}: `triggers` empty or absent
 #   R9  if tier == classifier: MUST NOT have primary_concern / blind_spots /
 #       characteristic_objections / banned_phrases; triggers empty or absent
+#   R10 `model_tier` ∈ {deep-reasoning, workhorse, cheap} required for core|bench|chair;
+#       MUST be absent for classifier (v1.3 per-persona model config)
 #
 # Soft warnings (stderr only, exit code unchanged):
 #   W1  banned_phrases missing any of "consider" / "think about" / "be aware of"
@@ -450,6 +452,26 @@ validate_one() {
       core|bench|chair|classifier) ;;
       *) errors+=("$rel: [R2] tier '${tier}' is not one of core|bench|chair|classifier") ;;
     esac
+  fi
+
+  # R10 (v1.3): model_tier required + valid for critics/synthesizer (core|bench|chair);
+  # forbidden for classifier (exempt — runs on the session model).
+  local model_tier mt_type
+  mt_type=$(yaml_type "$meta" 'model_tier')
+  if [ "$tier" = "classifier" ]; then
+    if [ "$mt_type" != "missing" ] && [ "$mt_type" != "null" ]; then
+      errors+=("$rel: [R10] classifier must not declare model_tier (exempt; runs on session model)")
+    fi
+  else
+    if [ "$mt_type" = "missing" ] || [ "$mt_type" = "null" ]; then
+      errors+=("$rel: [R10] model_tier missing (required; must be one of deep-reasoning|workhorse|cheap)")
+    else
+      model_tier=$(yaml_string "$meta" 'model_tier')
+      case "$model_tier" in
+        deep-reasoning|workhorse|cheap) ;;
+        *) errors+=("$rel: [R10] model_tier '${model_tier}' is not one of deep-reasoning|workhorse|cheap") ;;
+      esac
+    fi
   fi
 
   # R3-R6 apply to CRITIC personas (tier: core, tier: bench).
