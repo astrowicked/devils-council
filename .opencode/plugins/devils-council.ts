@@ -89,14 +89,19 @@ function ensureCommandSymlinks() {
 type TierDefault = { model?: string; variant?: string }
 
 // v1.3: per-persona model defaults. Reads the active preset + each persona's
-// model_tier sidecar, then per-field guarded-injects agent.<name>.{model,variant}
-// into the resolved config. The hook receives config with the user's
-// opencode.json already merged, so guarding on absence lets user overrides win.
-// Built into a local map and assigned once (atomic); the whole thing is wrapped
-// so any failure falls through to the session model rather than breaking the session.
-// NOTE (T008, deferred): injected model IDs are not yet validated against the
-// provider's available-models list — that needs the SDK client (function-shape
-// plugin). Until then a misconfigured preset model can 403 at spawn time.
+// model_tier sidecar, then per-field guarded-injects agent.<name>.{model,variant}.
+// The hook receives config with the user's opencode.json already merged, so
+// guarding on absence lets user overrides win. Built into a local map and
+// assigned once (atomic); wrapped so any failure falls through to the session
+// model rather than breaking the session.
+//
+// T008 (model-availability validation) is NOT done here: calling the SDK client
+// (client.config.providers()) from inside the config hook DEADLOCKS session
+// startup — the hook runs during config/server init and the call waits on the
+// very server that's waiting on config resolution. So injected models are not
+// pre-validated. Mitigation: presets are curated to real model IDs, the user
+// can override any persona, and a genuinely-unavailable model only affects that
+// one persona's spawn (the rest still run). See plan.md Implementation notes.
 function injectModelDefaults(cfg: { agent?: Record<string, TierDefault> }) {
   try {
     const preset = (process.env.DEVILS_COUNCIL_MODEL_PRESET || "").trim().toLowerCase()
