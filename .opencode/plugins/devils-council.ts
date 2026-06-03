@@ -102,7 +102,7 @@ type TierDefault = { model?: string; variant?: string }
 // pre-validated. Mitigation: presets are curated to real model IDs, the user
 // can override any persona, and a genuinely-unavailable model only affects that
 // one persona's spawn (the rest still run). See plan.md Implementation notes.
-function injectModelDefaults(cfg: { agent?: Record<string, TierDefault> }) {
+export function injectModelDefaults(cfg: { agent?: Record<string, TierDefault> }) {
   try {
     const preset = (process.env.DEVILS_COUNCIL_MODEL_PRESET || "").trim().toLowerCase()
     if (!preset) {

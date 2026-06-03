@@ -46,6 +46,6 @@
   "scripts": {
     "build": "./build.sh",
     "prepublishOnly": "./build.sh",
-    "test": "npx tsx --test plugins/signals.test.ts plugins/speckit-hook.test.ts"
+    "test": "npx tsx --test plugins/signals.test.ts plugins/speckit-hook.test.ts plugins/model-presets.test.ts"
   }
 }
