@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-8, 63/63 requirements shipped (2026-04-22 → 2026-04-24 as v1.0.0/1/2)
 - ✅ **v1.1 Expansion + Hardening** — Phases 1-7, 35/35 requirements shipped (2026-04-24 → 2026-05-01 as v1.1.0)
 - ✅ **v1.2 OpenCode Compatibility** — Phases 1-6, 8/8 requirements shipped (2026-05-12 → 2026-05-17 as v1.4.0–v1.6.0)
+- 🔵 **v1.3 Per-Persona Model Configuration** — Phases 1-4, 5 requirements (scoped 2026-06-03)
 
 ## Milestone v1.2 — OpenCode Compatibility (COMPLETE)
 
@@ -56,3 +57,44 @@
 | OC-SCORE-01 | Scorecard enforces evidence (verbatim quotes), bans generic phrases, uses severity tiers | 4 | ✅ |
 | OC-SPECKIT-01 | Devils-council triggers automatically as post-plan quality gate in speckit workflow | 5 | ✅ |
 | OC-CI-01 | CI tests both runtimes; shared fixtures produce equivalent scorecards | 6 | ✅ |
+
+## Milestone v1.3 — Per-Persona Model Configuration (SCOPED)
+
+**Goal:** Let users assign a specific model (and optional `variant`) to each council persona, with sensible tier-based defaults, *without* editing shipped agent files. Lean entirely on OpenCode's native `agent.<name>.model` override layer — no custom config parsing in the plugin.
+
+**Status:** SCOPED 2026-06-03. Mechanism proven via spike (`.planning/spikes/per-persona-model-SPIKE.md`). OpenCode-only this milestone; Claude Code parity explicitly out of scope.
+
+**Key findings driving the design (from spike):**
+
+- Model precedence for a spawned subagent: **frontmatter `model:` > `opencode.json` `agent.<name>.model` > inherited session model.**
+- Both `agent.<name>.model` and `agent.<name>.variant` propagate to spawned personas — but only when frontmatter is model-silent.
+- **Consequence:** we must NOT ship `model:` in persona frontmatter, or users get locked out of native overrides. Tier defaults are delivered as a generated, paste-able `opencode.json` `agent` block instead.
+
+**Scope decisions:**
+
+- OpenCode only (Claude Code keeps inheriting the session model — its override mechanism is frontmatter, which conflicts with the model-silent guardrail; deferred).
+- Preset generator emits a snippet (stdout/file); it does NOT auto-merge the user's `opencode.json`.
+
+## v1.3 Phases
+
+- [ ] **Phase 1: Tier Taxonomy + Sidecar Tagging** — Finalize tier vocabulary; add `model_tier` to every persona sidecar; lint enforces
+  - Requirements: OC-MODEL-01
+
+- [ ] **Phase 2: Preset Generator** — Script expands sidecar tiers + a chosen preset map into a native `opencode.json` `agent` block; ship Bedrock / Anthropic-direct / cheap presets
+  - Requirements: OC-MODEL-02, OC-MODEL-03
+
+- [ ] **Phase 3: Model-Silent Guardrail** — Ensure `build.sh` never emits `model:` into generated agents; CI gate fails if any shipped persona declares a frontmatter model
+  - Requirements: OC-MODEL-04
+
+- [ ] **Phase 4: Docs + README** — Document tiers, presets, precedence table, and a worked per-persona override example
+  - Requirements: OC-MODEL-05
+
+## v1.3 Requirements
+
+| ID | Requirement | Phase | Status |
+|----|-------------|-------|--------|
+| OC-MODEL-01 | Every OpenCode persona sidecar declares exactly one valid `model_tier`; lint enforces | 1 | ⬜ |
+| OC-MODEL-02 | Preset generator emits a valid `opencode.json` `agent` block from sidecars + a chosen tier→model preset; output round-trips through OpenCode without error | 2 | ⬜ |
+| OC-MODEL-03 | At least 3 presets shipped (Bedrock, Anthropic-direct, cheap/free) | 2 | ⬜ |
+| OC-MODEL-04 | No shipped OpenCode persona declares a frontmatter `model:`; CI gate fails if one does | 3 | ⬜ |
+| OC-MODEL-05 | README documents tiers, presets, precedence rules, and a worked per-persona override example | 4 | ⬜ |
