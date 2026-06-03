@@ -78,6 +78,14 @@ The core mechanism is the plugin's `config` hook.
 - **Cross-runtime field shape (DA2-4).** `model_tier` is OpenCode-consumed now. Confirm before v1.4 whether the CC path maps tier→model into frontmatter (runtime-neutral, no conflict) or needs a concrete string in the sidecar (real conflict). Likely the former.
 - **Provider available-models API.** FR-09 assumes OpenCode exposes the provider's available models to the plugin; confirm the surface in Phase 2 (PluginInput has `client`/provider hooks). If unavailable, skip injection entirely (all personas on session model + one log) — a predictable no-op, not a try-spawn-and-catch that reintroduces the mid-review 403.
 
+## Implementation notes (Phase 2, 2026-06-03)
+
+- **Plugin migrated to the real `@opencode-ai/plugin` function shape.** The custom `definePlugin({hooks})` shape silently ignores the `config` hook; the function shape (`input => Hooks`) fires it. Ported `session.created` → an `event` handler filtering `event.type === "session.created"`; `tool.execute.after` → `(input, output)` with the speckit suggestion surfaced by appending to `output.output` (the real API has no `ctx.suggest`). Removed the custom type shim. Verified no regression (command symlinks still created).
+- **Selector is an env var for v1:** `DEVILS_COUNCIL_MODEL_PRESET=bedrock|cheap|off`; unset → off + a one-line hint. Native `userConfig` wrapping is a later nicety; the env var is the explicit selector (no silent detection).
+- **Verified (cheap preset, DB readback):** deep-reasoning → minimax, workhorse → deepseek; `off` and unset inject nothing; user `model` override beats the default (Test B); corrupt preset → logged + session still runs + fall-through (Test E, the fail-safe blocker).
+- **OpenCode limitation found:** an `agent.<name>` entry with `variant` but no `model` is **not honored by OpenCode itself** (variant resets to `default`), independent of this plugin. SRE2-4's "variant-only override clobbered by the guard" is moot in practice, and the per-field guard is correct regardless (it never overwrites a user-set field).
+- **T008 now unblocked:** the function shape exposes `input.client`, so model-availability validation can be implemented next.
+
 ## Verification
 
 - Fresh install, `bedrock`: a spawned persona runs on its tier model with no per-persona user config (DB readback).
