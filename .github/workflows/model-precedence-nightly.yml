@@ -1,0 +1,47 @@
+name: Model precedence (nightly)
+
+# v1.3 FR-12: behavioral check that a user opencode.json model override beats the
+# plugin config-hook default (the merge-order invariant). This is a LIVE model
+# spawn, so it is intentionally NOT part of required CI — it runs nightly and when
+# the pinned OpenCode version / lockfile or the presets change. The script skips
+# gracefully where opencode or a free model isn't available, so this workflow is a
+# scaffold that becomes load-bearing in an environment with the opencode runtime.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # nightly ~07:00 UTC
+  push:
+    paths:
+      - ".opencode/package-lock.json"   # OpenCode dependency / version bump proxy
+      - "lib/model-presets.json"        # preset model changes
+  workflow_dispatch:
+
+jobs:
+  precedence:
+    name: Override-precedence round-trip (cheap preset only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python dependencies (PyYAML)
+        shell: bash
+        run: pip3 install pyyaml --quiet --break-system-packages 2>/dev/null || pip3 install pyyaml --quiet
+
+      - name: Install OpenCode CLI (best effort)
+        shell: bash
+        run: |
+          npm install -g opencode-ai 2>/dev/null || true
+          command -v opencode && opencode --version || echo "opencode not available — precedence script will skip"
+
+      - name: Run override-precedence check
+        shell: bash
+        env:
+          DEVILS_COUNCIL_MODEL_PRESET: cheap
+        run: |
+          # Skips (exit 0) where opencode / a free model isn't reachable. Refuses
+          # to run on any non-cheap preset (it never spawns an expensive model).
+          ./scripts/test-model-precedence.sh

@@ -304,6 +304,17 @@ for persona in "${PERSONAS[@]}"; do
     continue
   fi
 
+  # Check 2b (v1.3 FR-10): NO frontmatter `model:` — shipped personas must stay
+  # model-silent so the plugin config-hook default and the user's opencode.json
+  # override both win (frontmatter beats project config). Inspect only the
+  # frontmatter (between the first two --- delimiters).
+  frontmatter=$(awk 'BEGIN{c=0} /^---$/{c++; if(c==2) exit; next} c==1{print}' "$target_file")
+  if echo "$frontmatter" | grep -qE '^model:'; then
+    echo "  FAIL: frontmatter declares 'model:' (v1.3 FR-10 — personas must be model-silent)" >&2
+    VALIDATION_FAILED=1
+    continue
+  fi
+
   # Check 3: No $RUN_DIR in body (after frontmatter)
   # Extract body (everything after second ---)
   body_content=$(awk 'BEGIN{c=0} /^---$/{c++;next} c>=2{print}' "$target_file")
