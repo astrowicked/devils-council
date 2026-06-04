@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-04
+
+### Added
+
+- **Per-persona model config (OpenCode)** — each persona runs on a right-sized model instead of your session model. Set one env var (`DEVILS_COUNCIL_MODEL_PRESET`) and the next review puts the Devil's Advocate and Chair on a strong reasoner while cheaper personas run cheap. Zero-action: defaults apply on install, and your own `opencode.json` always wins per field.
+- **`model_tier` on every critic persona** — `deep-reasoning` (Devil's Advocate, Chair, Security), `workhorse` (Staff/SRE/PM, most bench), `cheap` (weak-signal personas). Tagged in each `persona-metadata/<name>.yml`; lint rule R10 enforces it.
+- **Three presets** in `lib/model-presets.json`: `bedrock` (opus/sonnet/haiku, deep-reasoning gets `variant: max`), `budget` (all tiers on opencode's hosted `big-pickle`, near-zero cost), `cheap` (free opencode models for dogfooding). Define your own by adding a key — the selector validates against the file, no code change.
+
+### Changed
+
+- **Plugin migrated to the real `@opencode-ai/plugin` function shape.** The old `definePlugin({hooks})` shape silently ignored the `config` hook, which is where model injection happens. Ported `session.created` to an `event` handler and `tool.execute.after` to the `(input, output)` signature. No behavior change to existing hooks.
+
+### Design Decisions
+
+- **Shipped personas stay model-silent** (no `model:` in frontmatter) — frontmatter beats `opencode.json` and would lock users out of overriding. A CI guardrail fails the build and checks the npm tarball if any persona declares a model.
+- **The hook can't break your session.** Injection is wrapped fail-safe: a missing or corrupt preset logs one line and every persona falls through to the session model.
+- **Model picks are evidence-backed.** A 30-cell study (5 personas × {opus, sonnet, haiku} × 2 benchmark artifacts) plus a non-Anthropic screen (GLM, Kimi, MiniMax, gpt-oss, Gemma, big-pickle) found recall is nearly model-independent, but reasoning quality isn't — and the real failure mode is *fabrication*. Haiku invented an impossible concurrency bug on the deep-reasoning cells (so did sonnet on one); `big-pickle` scored 7.5/9 with none, which is why `budget` uses it over haiku.
+- **Model-availability isn't pre-validated** — the OpenCode `config` hook can't call back into the server without deadlocking startup. Presets use real IDs; a bad model only affects that one persona's spawn.
+
 ## [1.5.0] - 2026-05-16
 
 ### Added
