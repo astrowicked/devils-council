@@ -150,15 +150,15 @@ By default every persona runs on your session model. That's wasteful — the Dev
 Set a preset with an env var:
 
 ```bash
-# bedrock | cheap | off  (unset behaves as off, with a one-line hint)
+# bedrock | budget | cheap | off  (unset behaves as off, with a one-line hint)
 export DEVILS_COUNCIL_MODEL_PRESET=bedrock
 ```
 
 That's it — the next `/devils-council:review` runs each persona on its tier's model. No file to paste, nothing to wire up.
 
-### Tiers
+### Tiers (the categories)
 
-Each persona has a `model_tier` (in its `persona-metadata/*.yml`), picked by how much reasoning the role actually needs:
+Every persona is tagged with a `model_tier` in its `persona-metadata/<name>.yml` sidecar, picked by how much reasoning the role actually needs. A preset then maps each tier to a model, so you set the model in one place per tier instead of per persona.
 
 | Tier | Personas | Why |
 |------|----------|-----|
@@ -166,7 +166,38 @@ Each persona has a `model_tier` (in its `persona-metadata/*.yml`), picked by how
 | `workhorse` | Staff Engineer, SRE, PM, most bench | solid mid-tier critique |
 | `cheap` | Executive Sponsor, Competing Team Lead | weak-signal personas |
 
-The presets map each tier to a concrete model (see `lib/model-presets.json`). `bedrock` targets Anthropic models on Bedrock (deep-reasoning gets `variant: max`); `cheap` uses free models for low-cost dogfooding. `off` injects nothing.
+The classifier persona is intentionally untagged — it's not a critic, so the hook leaves it on your session model.
+
+### Presets
+
+Three ship in `lib/model-presets.json`:
+
+| Preset | deep-reasoning | workhorse | cheap | When to use |
+|--------|----------------|-----------|-------|-------------|
+| `bedrock` | opus-4-8 (`variant: max`) | sonnet-4-6 | haiku-4-5 | You're on AWS Bedrock and want the strongest reasoners where it counts. |
+| `budget` | big-pickle | big-pickle | big-pickle | Near-zero cost. `big-pickle` is opencode-hosted, so no marginal Bedrock spend. |
+| `cheap` | minimax-m3-free | deepseek-v4-flash-free | deepseek-v4-flash-free | Dogfooding on free opencode models. |
+| `off` (or unset) | — | — | — | Everything stays on your session model. |
+
+A note on the model picks, since they're not arbitrary: I ran every persona against a fixed benchmark on opus, sonnet, haiku, and six non-Anthropic models, then blind-judged the reasoning quality. Two things fell out. Recall (did the persona catch the seeded issue) barely moved across models. Reasoning quality did move, and the thing that separated models was **fabrication** — haiku invented an impossible concurrency bug on the deep-reasoning cells, and so did sonnet on one. `big-pickle` scored 7.5/9 on those same cells with zero fabrication, which is why `budget` leans on it rather than haiku. So `bedrock` spends on opus where the reasoning is hardest, and `budget` is a genuinely usable free council, not a toy. (Full writeup lives in the project's planning notes.)
+
+### Define your own preset or change a tier's model
+
+The presets are just JSON. To point a tier at a different model, edit `lib/model-presets.json` and add a preset (or tweak an existing one):
+
+```jsonc
+{
+  "myteam": {
+    "deep-reasoning": { "model": "amazon-bedrock/us.anthropic.claude-opus-4-8", "variant": "max" },
+    "workhorse":      { "model": "opencode/big-pickle" },
+    "cheap":          { "model": "opencode/big-pickle" }
+  }
+}
+```
+
+Then `export DEVILS_COUNCIL_MODEL_PRESET=myteam`. The selector validates against the preset names actually in the file, so a new preset just works — no code change. Each tier takes a `model` (the `provider/model` string from `opencode models`) and an optional `variant` (e.g. `max`, `high`).
+
+To move a *persona* to a different tier, edit its `model_tier` in `persona-metadata/<name>.yml`. The lint (`scripts/validate-personas.sh`) checks every critic has a valid tier, and the build copies the sidecars into the plugin.
 
 ### Override a single persona
 

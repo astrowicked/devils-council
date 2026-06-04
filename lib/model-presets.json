@@ -1,9 +1,15 @@
 {
-  "_comment": "v1.3 per-persona model presets. tier -> {model, variant?}. Authored here in root lib/; build.sh copies to .opencode/lib/. The config hook (plugins/devils-council.ts) reads this and the persona model_tier sidecars, then per-field guarded-injects agent.<name>.{model,variant}. Selector: env DEVILS_COUNCIL_MODEL_PRESET (bedrock|cheap|off); unset => off + one-time hint.",
+  "_comment": "v1.3 per-persona model presets. tier -> {model, variant?}. Authored here in root lib/; build.sh copies to .opencode/lib/. The config hook (plugins/devils-council.ts) reads this and the persona model_tier sidecars, then per-field guarded-injects agent.<name>.{model,variant}. Selector: env DEVILS_COUNCIL_MODEL_PRESET (bedrock|budget|cheap|off); unset => off + one-time hint. Preset names are validated against the keys here, so adding a preset needs no code change.",
   "bedrock": {
     "deep-reasoning": { "model": "amazon-bedrock/us.anthropic.claude-opus-4-8", "variant": "max" },
     "workhorse": { "model": "amazon-bedrock/us.anthropic.claude-sonnet-4-6" },
     "cheap": { "model": "amazon-bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0" }
+  },
+  "budget": {
+    "_comment": "Evidence-backed low-cost preset (see .planning/model-study FINDINGS addendum). big-pickle scored 7.5/9 reasoning with ZERO fabrication on deep cells (vs haiku 5.0 which fabricated), matches all models on recall, and is opencode-hosted at no marginal Bedrock cost. Safer for deep-reasoning than haiku.",
+    "deep-reasoning": { "model": "opencode/big-pickle" },
+    "workhorse": { "model": "opencode/big-pickle" },
+    "cheap": { "model": "opencode/big-pickle" }
   },
   "cheap": {
     "deep-reasoning": { "model": "opencode/minimax-m3-free" },

@@ -108,17 +108,21 @@ export function injectModelDefaults(cfg: { agent?: Record<string, TierDefault> }
     if (!preset) {
       console.error(
         "[devils-council] per-persona model tiering is available but off. " +
-        "Set DEVILS_COUNCIL_MODEL_PRESET=bedrock|cheap to enable."
+        "Set DEVILS_COUNCIL_MODEL_PRESET=bedrock|budget|cheap to enable."
       )
       return
     }
     if (preset === "off") return
-    if (preset !== "bedrock" && preset !== "cheap") {
-      console.error(`[devils-council] unknown DEVILS_COUNCIL_MODEL_PRESET='${preset}' (expected bedrock|cheap|off); tiering off.`)
+
+    const presets = JSON.parse(readFileSync(PRESETS_PATH, "utf-8"))
+    // Validate against the actual preset names in model-presets.json (minus the
+    // _comment key) so adding a preset to the JSON needs no code change here.
+    const known = Object.keys(presets).filter((k) => !k.startsWith("_"))
+    if (!known.includes(preset)) {
+      console.error(`[devils-council] unknown DEVILS_COUNCIL_MODEL_PRESET='${preset}' (expected ${known.join("|")}|off); tiering off.`)
       return
     }
 
-    const presets = JSON.parse(readFileSync(PRESETS_PATH, "utf-8"))
     const tierMap: Record<string, TierDefault> = presets[preset]
     if (!tierMap) {
       console.error(`[devils-council] preset '${preset}' not found in model-presets.json; tiering off.`)

@@ -78,3 +78,19 @@ test("bedrock preset sets variant:max on deep-reasoning", () => {
     assert.equal(cfg.agent!["staff-engineer"]?.variant, undefined)
   })
 })
+
+test("budget preset maps every tier to big-pickle, classifier exempt, no variant", () => {
+  withPreset("budget", () => {
+    const cfg: { agent?: Agent } = {}
+    injectModelDefaults(cfg)
+    assert.ok(cfg.agent, "agent map populated")
+    // deep-reasoning + workhorse both resolve to big-pickle
+    assert.equal(cfg.agent!["council-chair"]?.model, "opencode/big-pickle")
+    assert.equal(cfg.agent!["security-reviewer"]?.model, "opencode/big-pickle")
+    assert.equal(cfg.agent!["staff-engineer"]?.model, "opencode/big-pickle")
+    // no variant on the budget preset
+    assert.equal(cfg.agent!["council-chair"]?.variant, undefined)
+    // classifier exempt
+    assert.equal(cfg.agent!["artifact-classifier"], undefined)
+  })
+})
