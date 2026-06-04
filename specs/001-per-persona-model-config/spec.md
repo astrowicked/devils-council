@@ -76,7 +76,7 @@ The savings ratio holds across fan-out because Security is the only bench person
 
 **Contributor / maintainer:**
 
-5. **Add a persona.** A contributor adds a bench persona, sets its `model_tier`, lint passes, and the hook picks it up automatically — no model strings touched.
+1. **Add a persona.** A contributor adds a bench persona, sets its `model_tier`, lint passes, and the hook picks it up automatically — no model strings touched.
 
 ## Success criteria
 
