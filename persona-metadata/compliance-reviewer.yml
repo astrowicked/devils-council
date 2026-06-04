@@ -1,4 +1,5 @@
 tier: bench
+model_tier: workhorse
 triggers:
   - compliance_marker
 primary_concern: "Which specific regulatory control does this violate or fail to address?"

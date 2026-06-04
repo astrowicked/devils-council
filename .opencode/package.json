@@ -1,6 +1,6 @@
 {
   "name": "devils-council-opencode",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Adversarial review council for plans, code, and RFCs — OpenCode plugin",
   "type": "module",
   "main": "plugins/devils-council.js",
@@ -46,6 +46,6 @@
   "scripts": {
     "build": "./build.sh",
     "prepublishOnly": "./build.sh",
-    "test": "npx tsx --test plugins/signals.test.ts plugins/speckit-hook.test.ts"
+    "test": "npx tsx --test plugins/signals.test.ts plugins/speckit-hook.test.ts plugins/model-presets.test.ts"
   }
 }

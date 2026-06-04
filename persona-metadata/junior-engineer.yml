@@ -1,4 +1,5 @@
 tier: bench
+model_tier: workhorse
 always_invoke_on:
   - code-diff
 triggers: []

@@ -1,4 +1,5 @@
 tier: bench
+model_tier: cheap
 triggers:
   - shared_infra_change
 primary_concern: "Which downstream contract does this change break, and which team owns the consumer?"

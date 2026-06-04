@@ -143,6 +143,97 @@ Output renders synthesis-first: top-3 blockers with persona attribution, contrad
 
 ---
 
+## Per-persona models (OpenCode)
+
+By default every persona runs on your session model. That's wasteful — the Devil's Advocate and the Chair want a strong reasoner, but a nit-level persona on a top-tier model is just burning tokens. v1.3 lets you put each persona on a right-sized model with one setting, and you can still override any persona yourself.
+
+Set a preset with an env var:
+
+```bash
+# bedrock | budget | cheap | off  (unset behaves as off, with a one-line hint)
+export DEVILS_COUNCIL_MODEL_PRESET=bedrock
+```
+
+That's it — the next `/devils-council:review` runs each persona on its tier's model. No file to paste, nothing to wire up.
+
+### Tiers (the categories)
+
+Every persona is tagged with a `model_tier` in its `persona-metadata/<name>.yml` sidecar, picked by how much reasoning the role actually needs. A preset then maps each tier to a model, so you set the model in one place per tier instead of per persona.
+
+| Tier | Personas | Why |
+|------|----------|-----|
+| `deep-reasoning` | Devil's Advocate, Council Chair, Security | premise attacks, cross-persona synthesis, and line-cited attack paths are reasoning-heavy |
+| `workhorse` | Staff Engineer, SRE, PM, most bench | solid mid-tier critique |
+| `cheap` | Executive Sponsor, Competing Team Lead | weak-signal personas |
+
+The classifier persona is intentionally untagged — it's not a critic, so the hook leaves it on your session model.
+
+### Presets
+
+Three ship in `lib/model-presets.json`:
+
+| Preset | deep-reasoning | workhorse | cheap | When to use |
+|--------|----------------|-----------|-------|-------------|
+| `bedrock` | opus-4-8 (`variant: max`) | sonnet-4-6 | haiku-4-5 | You're on AWS Bedrock and want the strongest reasoners where it counts. |
+| `budget` | big-pickle | big-pickle | big-pickle | Near-zero cost. `big-pickle` is opencode-hosted, so no marginal Bedrock spend. |
+| `cheap` | minimax-m3-free | deepseek-v4-flash-free | deepseek-v4-flash-free | Dogfooding on free opencode models. |
+| `off` (or unset) | — | — | — | Everything stays on your session model. |
+
+A note on the model picks, since they're not arbitrary: I ran every persona against a fixed benchmark on opus, sonnet, haiku, and six non-Anthropic models, then blind-judged the reasoning quality. Two things fell out. Recall (did the persona catch the seeded issue) barely moved across models. Reasoning quality did move, and the thing that separated models was **fabrication** — haiku invented an impossible concurrency bug on the deep-reasoning cells, and so did sonnet on one. `big-pickle` scored 7.5/9 on those same cells with zero fabrication, which is why `budget` leans on it rather than haiku. So `bedrock` spends on opus where the reasoning is hardest, and `budget` is a genuinely usable free council, not a toy. (Full writeup lives in the project's planning notes.)
+
+### Define your own preset or change a tier's model
+
+The presets are just JSON. To point a tier at a different model, edit `lib/model-presets.json` and add a preset (or tweak an existing one):
+
+```jsonc
+{
+  "myteam": {
+    "deep-reasoning": { "model": "amazon-bedrock/us.anthropic.claude-opus-4-8", "variant": "max" },
+    "workhorse":      { "model": "opencode/big-pickle" },
+    "cheap":          { "model": "opencode/big-pickle" }
+  }
+}
+```
+
+Then `export DEVILS_COUNCIL_MODEL_PRESET=myteam`. The selector validates against the preset names actually in the file, so a new preset just works — no code change. Each tier takes a `model` (the `provider/model` string from `opencode models`) and an optional `variant` (e.g. `max`, `high`).
+
+To move a *persona* to a different tier, edit its `model_tier` in `persona-metadata/<name>.yml`. The lint (`scripts/validate-personas.sh`) checks every critic has a valid tier, and the build copies the sidecars into the plugin.
+
+### Override a single persona
+
+The preset is just a default — your own `opencode.json` always wins, per field. To put Security on a bigger model with max reasoning, **merge** this into your existing `agent` block (don't replace it):
+
+```jsonc
+{
+  "agent": {
+    "security-reviewer": {
+      "model": "amazon-bedrock/us.anthropic.claude-opus-4-8",
+      "variant": "max"
+    }
+  }
+}
+```
+
+Everything else keeps the preset defaults; only `security-reviewer` changes.
+
+### Precedence
+
+For a spawned persona, model resolution is:
+
+1. your `opencode.json` `agent.<name>.model` — always wins
+2. the plugin's preset default (the tier mapping above)
+3. your session model — when neither is set
+
+Note: shipped personas are deliberately **model-silent** (no `model:` in their frontmatter), because frontmatter would beat your `opencode.json` and lock you out of overriding. A CI guardrail enforces this.
+
+### Fail-safe
+
+The injection runs in a `config` hook wrapped so it can never break your session: a missing/corrupt preset, a parse error, anything — it logs one line and every persona falls through to the session model. A model that isn't enabled for your provider only affects that one persona's spawn; the rest of the review still runs.
+
+> **Heads-up:** model-availability isn't pre-validated (the OpenCode `config` hook can't call back into the server without deadlocking startup). The shipped presets use real model IDs, but if you point a preset at a model your account can't reach, that persona will fail to spawn — fix the preset or override that persona.
+
+---
+
 ## HTML Reports
 
 After every review, if `python3` is available, devils-council automatically generates a self-contained HTML report:

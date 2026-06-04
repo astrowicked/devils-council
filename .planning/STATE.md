@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: — OpenCode Compatibility
-status: verifying
-last_updated: "2026-05-12T19:04:00.109Z"
-last_activity: 2026-05-12
+milestone: v1.3
+milestone_name: — Per-Persona Model Configuration
+status: scoped
+last_updated: "2026-06-03T00:00:00.000Z"
+last_activity: 2026-06-03
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12 — v1.2 milestone added)
 
 **Core value:** Catch weak plans, overengineered designs, and business misalignment before execution — by surfacing the pushback a senior engineering org would give, in a form the author can respond to.
-**Current focus:** v1.2 — OpenCode Compatibility (in progress)
+**Current focus:** v1.3 — Per-Persona Model Configuration (scoped; v1.2 complete and shipped as v1.4.0–v1.6.0)
 
 ## Current Position
 
-Phase: 06 (Dual-Runtime CI)
-Plan: 01 complete (1/1 plans in phase)
-Status: Phase 6 plan executed, all verifications pass
-Last activity: 2026-05-12
+Milestone: v1.3 — Per-Persona Model Configuration
+Phase: not started (4 phases scoped)
+Status: scoped 2026-06-03; mechanism proven via spike (.planning/spikes/per-persona-model-SPIKE.md)
+Next action: plan Phase 1 (Tier Taxonomy + Sidecar Tagging)
+Last activity: 2026-06-03
 
 ## Accumulated Context
 

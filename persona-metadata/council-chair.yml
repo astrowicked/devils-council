@@ -2,6 +2,7 @@
 # Routed to synthesizer-schema path by scripts/validate-personas.sh based on tier: chair.
 # Consumed by bin/dc-validate-synthesis.sh (Plan 05-03) to enforce CHAIR-02, CHAIR-03, CHAIR-04.
 tier: chair
+model_tier: deep-reasoning
 
 # D-39 required sections. Missing Perspectives and Also Raised are conditional (per-run presence).
 required_sections:

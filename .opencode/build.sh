@@ -304,6 +304,17 @@ for persona in "${PERSONAS[@]}"; do
     continue
   fi
 
+  # Check 2b (v1.3 FR-10): NO frontmatter `model:` — shipped personas must stay
+  # model-silent so the plugin config-hook default and the user's opencode.json
+  # override both win (frontmatter beats project config). Inspect only the
+  # frontmatter (between the first two --- delimiters).
+  frontmatter=$(awk 'BEGIN{c=0} /^---$/{c++; if(c==2) exit; next} c==1{print}' "$target_file")
+  if echo "$frontmatter" | grep -qE '^model:'; then
+    echo "  FAIL: frontmatter declares 'model:' (v1.3 FR-10 — personas must be model-silent)" >&2
+    VALIDATION_FAILED=1
+    continue
+  fi
+
   # Check 3: No $RUN_DIR in body (after frontmatter)
   # Extract body (everything after second ---)
   body_content=$(awk 'BEGIN{c=0} /^---$/{c++;next} c>=2{print}' "$target_file")
@@ -374,11 +385,35 @@ rm -r "$SCRIPT_DIR/bin" "$SCRIPT_DIR/lib" 2>/dev/null || true
 cp -r "$REPO_ROOT/bin" "$SCRIPT_DIR/bin"
 cp -r "$REPO_ROOT/lib" "$SCRIPT_DIR/lib"
 cp "$REPO_ROOT/config.json" "$SCRIPT_DIR/config.json"
+rm -r "$SCRIPT_DIR/persona-metadata" 2>/dev/null || true   # avoid cp -r nesting into an existing dir
 cp -r "$REPO_ROOT/persona-metadata" "$SCRIPT_DIR/persona-metadata"
 rm -r "$SCRIPT_DIR/lib/__pycache__" 2>/dev/null || true
 rm "$SCRIPT_DIR/bin/.gitkeep" 2>/dev/null || true
 chmod +x "$SCRIPT_DIR/bin/"*.sh "$SCRIPT_DIR/bin/"*.py 2>/dev/null || true
 
 echo "✓ bin/ and lib/ copied"
+
+# FR-04 (v1.3): assert model_tier propagated to the generated sidecar copy.
+# Root persona-metadata/ is authored; .opencode/persona-metadata/ is this generated copy.
+# Every non-classifier sidecar must carry the same model_tier in both.
+mt_sync_fail=0
+for src in "$REPO_ROOT/persona-metadata/"*.yml; do
+  base="$(basename "$src")"
+  gen="$SCRIPT_DIR/persona-metadata/$base"
+  # classifier is exempt (no model_tier on either side)
+  if grep -q '^tier: classifier' "$src"; then continue; fi
+  src_mt="$(grep '^model_tier:' "$src" || true)"
+  gen_mt="$(grep '^model_tier:' "$gen" 2>/dev/null || true)"
+  if [ -z "$src_mt" ]; then
+    echo "  ✗ $base: root sidecar missing model_tier" >&2; mt_sync_fail=1; continue
+  fi
+  if [ "$src_mt" != "$gen_mt" ]; then
+    echo "  ✗ $base: model_tier did not propagate to generated copy (root='$src_mt' gen='$gen_mt')" >&2; mt_sync_fail=1
+  fi
+done
+if [ "$mt_sync_fail" -ne 0 ]; then
+  echo "✗ model_tier propagation check failed (FR-04)" >&2; exit 1
+fi
+echo "✓ model_tier propagated to generated sidecars"
 echo ""
 echo "Build complete."

@@ -1,4 +1,5 @@
 tier: bench
+model_tier: cheap
 triggers:
   - exec_keyword
 primary_concern: "What specific number — dollars, weeks, customers, or ticket ID — justifies this decision?"

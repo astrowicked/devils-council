@@ -287,6 +287,19 @@ jobs:
             echo "OpenCode tests skipped — scripts/test-opencode.sh or .opencode/ not yet present"
           fi
 
+      - name: Run OpenCode package guardrail (v1.3 FR-11 — model-silent + entry smoke)
+        shell: bash
+        run: |
+          # v1.3 FR-11: packs the npm tarball and asserts no shipped persona
+          # declares a frontmatter model: (the model-silent rule that keeps the
+          # config-hook default + user override working), plus an entry-validity
+          # smoke and presets-present check. Runs after the build step above.
+          if [ -x scripts/test-opencode-package.sh ] && [ -f .opencode/package.json ]; then
+            ./scripts/test-opencode-package.sh
+          else
+            echo "package guardrail skipped — scripts/test-opencode-package.sh or .opencode/package.json not yet present"
+          fi
+
       - name: Run signal classifier parity test (Phase 6 OC-CI-01)
         shell: bash
         run: |

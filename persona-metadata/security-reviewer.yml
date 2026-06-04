@@ -1,4 +1,5 @@
 tier: bench
+model_tier: deep-reasoning
 triggers:
   - auth_code_change
   - crypto_import

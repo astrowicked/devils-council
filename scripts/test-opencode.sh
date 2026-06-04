@@ -30,7 +30,7 @@ else
   TS_OUT=$(mktemp)
   trap 'rm -f "$TS_OUT"' EXIT
   set +e
-  npx tsx --test .opencode/plugins/signals.test.ts .opencode/plugins/speckit-hook.test.ts > "$TS_OUT" 2>&1
+  npx tsx --test .opencode/plugins/signals.test.ts .opencode/plugins/speckit-hook.test.ts .opencode/plugins/model-presets.test.ts > "$TS_OUT" 2>&1
   TS_EXIT=$?
   set -e
   if [ "$TS_EXIT" -eq 0 ]; then
