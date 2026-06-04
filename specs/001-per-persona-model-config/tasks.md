@@ -6,6 +6,15 @@
 
 Dependency-ordered, by plan phase. `[P]` = can run in parallel with its siblings. Each task names the file(s) it touches.
 
+## Status (2026-06-03)
+
+**All phases implemented and committed** on `feat/per-persona-model-config` (8 commits). Verified via session-DB readback + 42/42 unit tests + repo-wide markdownlint clean.
+
+- Phase 0–1 (T001–T004): done — `model_tier` on all critics, R10 lint, build propagation guard + `cp` nesting fix.
+- Phase 2 (T005, T007, T009): done — plugin migrated to the `@opencode-ai/plugin` function shape; config-hook per-field guarded atomic inject + fail-safe; env-var selector. **T010** done (6 CI-safe unit tests). **T008** documented as *not feasible* (config-hook client deadlock); mitigated.
+- Phase 3 (T011–T014): done — build model-silent check, npm-tarball guardrail + entry smoke (wired into CI), nightly+version-bump precedence round-trip.
+- Phase 4 (T015): done — README "Per-persona models" section. **T016** (cost truth-up): estimates stand; real Bedrock measurement deferred. **T006** (native `userConfig`): env var works today; native wrapper deferred.
+
 ## Phase 0 — Resolve sidecar source of truth *(gates Phase 1)*
 
 - [ ] T001 Read `.opencode/build.sh` and determine whether `.opencode/persona-metadata/*.yml` is generated from root `persona-metadata/*.yml` or both are hand-maintained. Record the answer (which copy is authored, which is generated) in `plan.md` Technical Context. Decides T005's shape. (FR-04)
