@@ -40,7 +40,22 @@ if [ "$oc_name" != "$pkg_name" ]; then
   fail=1
 fi
 
+# --- version parity -------------------------------------------------------
+# There is no release/bump tooling in this repo; all three manifests are
+# edited by hand. .opencode/plugin.json drifted to 1.5.1 while the other
+# two reached 1.8.0, which is how the shadowing bug above stayed invisible
+# (`claude plugin list` reported a version matching no released package).
+claude_ver=$(jq -r .version "$REPO_ROOT/.claude-plugin/plugin.json")
+oc_ver=$(jq -r .version "$REPO_ROOT/.opencode/plugin.json")
+pkg_ver=$(jq -r .version "$REPO_ROOT/.opencode/package.json")
+
+if [ "$claude_ver" != "$oc_ver" ] || [ "$claude_ver" != "$pkg_ver" ]; then
+  echo "FAIL: manifest versions disagree — .claude-plugin=$claude_ver .opencode/plugin.json=$oc_ver .opencode/package.json=$pkg_ver" >&2
+  echo "      All three are bumped by hand; bump them together." >&2
+  fail=1
+fi
+
 if [ "$fail" -eq 0 ]; then
-  echo "test-plugin-manifest-name-collision: OK — claude='$claude_name' opencode='$oc_name'"
+  echo "test-plugin-manifest-name-collision: OK — names claude='$claude_name' opencode='$oc_name'; versions all $claude_ver"
 fi
 exit "$fail"
