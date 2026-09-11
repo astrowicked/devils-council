@@ -96,7 +96,7 @@ containing banned phrases and lacking workload characterization:
   - target: "src/api/handler.ts"
     claim: "This might be slow and should be optimized later when it becomes a bottleneck."
     evidence: |
-      (no quote — the text above is not a substring of INPUT.md)
+      (no quote — the text above is not a substring of the artifact)
     ask: "Consider profiling this code path to see if it's fast enough."
     severity: minor
     category: generic-perf

@@ -7,6 +7,7 @@ skills:
   - persona-voice
   - scorecard-schema
 tier: core
+model_tier: workhorse
 primary_concern: "Placeholder primary concern; this persona optimizes for fixture-testing only."
 blind_spots:
   - "actual critique content"

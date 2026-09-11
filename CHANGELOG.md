@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The OpenCode bench grows 9 → 16.** `compliance-reviewer`, `dual-deploy-reviewer`, `executive-sponsor`, `competing-team-lead`, `junior-engineer`, `test-lead`, and `artifact-classifier` now ship to npm installers. They have existed in `agents/` for releases; `.opencode/build.sh` carried a hand-written `PERSONAS` array that nobody extended when they landed, so OpenCode users have been reviewing with just over half the roster. **If you install via npm, your next review spawns more personas than your last one.**
+- **Banned-token gate in the OpenCode build.** The build now fails if a transformed persona still mentions `$RUN_DIR`, `INPUT.md`, `delegation_request`, `Codex`, or a `persona-metadata/` path — things OpenCode has no equivalent for. This is what caught the leaks fixed below.
+
+### Changed
+
+- **`PERSONAS` is derived from `agents/*.md`, not hand-listed.** The roster can no longer drift from the plugin's. `agents/` holds personas and nothing else, which is what makes the glob safe.
+- **`agents/AUTHORING.md` moved to `docs/AUTHORING.md`.** The plugin loader registers every file in `agents/`, so the authoring doc was registering as an agent named `devils-council:AUTHORING` — a subagent with no frontmatter and no persona. `scripts/validate-personas.sh` no longer skips it by name either: a non-persona file in `agents/` now fails the validator instead of being quietly exempted.
+
+### Fixed
+
+- **Five of the nine already-shipping personas had stale Claude Code references in their OpenCode builds.** The transform is a set of prose-pattern matches, and each pattern was pinned to one persona's exact line wrapping. `devils-advocate` still told the agent to read `INPUT.md` from a run directory that does not exist; `sre` and three others said "Write your scorecard to (removed — filesystem references not used in OpenCode)", an instruction to write nowhere; four leaked a `persona-metadata/<name>.yml` path the npm package does not ship. The patterns are now whitespace- and punctuation-agnostic, and the run-directory bullet is removed line-by-line rather than by regex.
+- **Persona validator fixtures** were missing the `model_tier` field that rule R10 has required since 1.8.0, so `scripts/test-validate-personas.sh` had been failing on its own two valid fixtures.
+
+### Known Issues
+
+- **`council-chair` still ships with unrewritten filesystem references** and is explicitly exempted from the new gate. Its contract is coupled to the run directory in about a dozen places — `MANIFEST.json`, `personas_run[]`, the `SYNTHESIS.md.draft` → `SYNTHESIS.md` rename owned by `bin/dc-validate-synthesis.sh` — and an OpenCode variant needs those input and output contracts hand-authored, not regex-substituted.
+
 ## [1.8.0] - 2026-06-04
 
 ### Added

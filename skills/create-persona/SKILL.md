@@ -13,7 +13,7 @@ guides you through creating a schema-valid custom persona by collecting
 voice-kit fields one at a time, coaching you on voice distinctness, and
 producing a validated persona file in a workspace directory.
 
-This automates the manual workflow described in `agents/AUTHORING.md`.
+This automates the manual workflow described in `docs/AUTHORING.md`.
 Where AUTHORING.md asks you to read PERSONA-SCHEMA.md and author a file
 by hand, this wizard collects the same fields interactively, enforces
 quality minimums inline, and runs `validate-personas.sh` before declaring
