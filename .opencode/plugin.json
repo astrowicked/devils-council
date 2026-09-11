@@ -1,5 +1,5 @@
 {
-  "name": "devils-council",
+  "name": "devils-council-opencode",
   "version": "1.5.1",
   "description": "Persona-driven adversarial review council for plans, code, and RFCs. Staff Engineer, SRE, PM, Devil's Advocate + auto-triggered bench personas critique in parallel; Council Chair synthesizes contradictions without collapsing dissent.",
   "author": {
