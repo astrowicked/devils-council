@@ -1,6 +1,7 @@
 # Persona Authoring
 
-Every file in this directory is a persona subagent. To add a persona,
+Every file in `agents/` is a persona subagent — the plugin loader registers
+all of them, which is why this doc lives in `docs/` and not there. To add a persona,
 follow the steps below — the schema and validator will catch anything
 you miss. Do not try to hand-derive the rules from memory: read the
 referenced docs, author against them, and let the validator fail loudly

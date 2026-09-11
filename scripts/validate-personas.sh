@@ -665,14 +665,13 @@ if [ -n "$TARGET_FILE" ]; then
   fi
   FILES=("$TARGET_FILE")
 else
-  # Default: validate every agents/*.md except AUTHORING.md / .gitkeep.
-  # Use `find` with -print0 for robustness; exclude AUTHORING.md by name.
+  # Default: validate every agents/*.md. agents/ holds persona subagents and
+  # nothing else — the plugin loader registers every file in it, so a doc left
+  # here ships as a broken agent (that is how docs/AUTHORING.md came to register
+  # as devils-council:AUTHORING). No name-based exceptions: a non-persona file in
+  # agents/ must fail this validator rather than be skipped by it.
   if [ -d "agents" ]; then
     while IFS= read -r -d '' f; do
-      base=$(basename "$f")
-      case "$base" in
-        AUTHORING.md|.gitkeep) continue ;;
-      esac
       FILES+=("$f")
     done < <(find agents -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null)
   fi
