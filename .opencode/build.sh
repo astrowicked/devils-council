@@ -25,9 +25,20 @@ python3 -c "import yaml" 2>/dev/null || {
   exit 1
 }
 
-# Personas transformed from agents/ source. Files in .opencode/agents/ NOT in this
-# array are simply left alone — not validated, not deleted, not categorized.
-PERSONAS=(staff-engineer sre product-manager devils-advocate council-chair security-reviewer finops-auditor air-gap-reviewer performance-reviewer)
+# Personas are derived from agents/ source, not hand-listed. agents/ contains
+# persona subagents and nothing else — authoring docs live in docs/ — so every
+# agents/*.md is a persona and the roster cannot drift from the plugin's.
+# Files in .opencode/agents/ with no agents/ source are left alone — not
+# validated, not deleted, not categorized.
+PERSONAS=()
+while IFS= read -r -d '' _src; do
+  PERSONAS+=("$(basename "$_src" .md)")
+done < <(find "$REPO_ROOT/agents" -maxdepth 1 -type f -name '*.md' -print0 | sort -z)
+
+if [[ ${#PERSONAS[@]} -eq 0 ]]; then
+  echo "ERROR: no persona sources found in $REPO_ROOT/agents" >&2
+  exit 1
+fi
 
 # --- Atomic write: build to temp dir, move on success ---
 TEMP_DIR="$(mktemp -d)"
@@ -69,9 +80,15 @@ if not isinstance(fields, dict):
     print(f"ERROR: Frontmatter is not a mapping in {src_path}", file=sys.stderr)
     sys.exit(1)
 
-# Build OpenCode frontmatter
+# Build OpenCode frontmatter.
+# Codex delegation is not part of the OpenCode build (see post-build cleanup), so
+# drop any description sentence that mentions it. Sentence-level, not phrase-level:
+# each persona words its delegation clause differently.
+_desc = fields.get('description', 'Adversarial reviewer persona')
+_desc = re.sub(r'\s*[^.]*?\b(?:Codex|delegation_request)\b[^.]*?\.', '', _desc).strip()
+
 oc_fields = {
-    'description': fields.get('description', 'Adversarial reviewer persona'),
+    'description': _desc or 'Adversarial reviewer persona',
     'mode': 'subagent',
     'permission': {
         'edit': 'deny',
@@ -83,15 +100,35 @@ oc_fm = yaml.dump(oc_fields, default_flow_style=False, sort_keys=False).rstrip()
 
 # --- Body transformations ---
 
-# 1. Replace $RUN_DIR input instructions with OpenCode equivalent
-# Pattern: lines referencing "Read `INPUT.md` at the run directory..."
-body = re.sub(
-    r'- Read `INPUT\.md` at the run directory specified by the conductor\. You are reviewing only that artifact — no extra files\.\n',
-    '',
-    body
-)
+# 1. Drop the "Read `INPUT.md` at the run directory" bullet — OpenCode has no run
+# directory. Done line-by-line rather than by regex: personas wrap this bullet at
+# different widths and punctuate the tail with either an em-dash or `--`, and a
+# regex pinned to one spelling silently leaves the bullet in place (the defect that
+# shipped junior-engineer and competing-team-lead with a stale filesystem read).
+_lines = body.split('\n')
+_out = []
+_i = 0
+while _i < len(_lines):
+    if _lines[_i].startswith('- Read `INPUT.md` at the run directory'):
+        _i += 1
+        # consume the bullet's continuation lines
+        while _i < len(_lines) and _lines[_i].strip() and not re.match(r'\s*(?:[-*+]\s|#|\d+\.\s)', _lines[_i]):
+            _i += 1
+        continue
+    _out.append(_lines[_i])
+    _i += 1
+body = '\n'.join(_out)
 
 # 2. Replace output contract "Write your scorecard to $RUN_DIR/..." sections
+# Whitespace-flexible: personas wrap this sentence three different ways and a
+# pattern pinned to one wrapping leaves the $RUN_DIR path to be swallowed by the
+# catch-all below, which yields "Write your scorecard to (removed — ...)" — an
+# instruction to write nowhere.
+body = re.sub(
+    r'Write your scorecard to `\$RUN_DIR/[^`]+`\.\s+The\s+file\s+has\s+exactly\s+two\s+parts:',
+    'Output your scorecard directly in your response. Use the exact format below —\nYAML frontmatter between `---` fences with `findings:` array, followed by prose\nSummary body.\n\nThe scorecard has exactly two parts:',
+    body
+)
 body = re.sub(
     r'Write your scorecard to `\$RUN_DIR/[^`]+`\. The file has\s*\n\s*exactly two parts:',
     'Output your scorecard directly in your response. Use the exact format below —\nYAML frontmatter between `---` fences with `findings:` array, followed by prose\nSummary body.\n\nThe scorecard has exactly two parts:',
@@ -103,7 +140,13 @@ body = re.sub(
     body
 )
 
-# 3. Remove "Do not write the final $RUN_DIR/..." lines
+# 3. Remove "Do not write the final $RUN_DIR/..." lines. The whitespace-flexible
+# pattern comes first: the two pinned ones below miss any other line wrapping.
+body = re.sub(
+    r'Do not write the final `\$RUN_DIR/[^`]+`\.\s+Do\s+not\s+validate\s+your\s+own\s+output\.\n',
+    '',
+    body
+)
 body = re.sub(r'Do not write the final `\$RUN_DIR/[^`]+`\. Do not validate your\s*\nown output\.\n', '', body)
 body = re.sub(r'Do not write the final `\$RUN_DIR/[^`]+`\. Do not validate\s*\nyour own output\.\n', '', body)
 
@@ -141,6 +184,11 @@ body = re.sub(
     'without the banned phrases listed below.',
     body
 )
+
+# 10. Catch-all: any surviving INPUT.md reference. The specific replacements above
+# only cover the phrasings that existed when they were written; this is the floor.
+body = body.replace('`INPUT.md`', 'the artifact')
+body = body.replace('INPUT.md', 'the artifact')
 
 with open(dst_path, 'w') as f:
     f.write('---\n')
@@ -249,7 +297,18 @@ content = re.sub(
     content
 )
 
-# 9. Replace persona-metadata sidecar references with "listed below"
+# 9a. Sidecar reference where the paren stays OPEN and wraps the inlined phrase
+# list: "listed in your persona-metadata sidecar (`persona-metadata/sre.yml`:
+# `monitor carefully`, ...)". The patterns below (9b+) all assume the paren closes
+# immediately after the path, so they miss this form and the sidecar path — a file
+# the npm package does not ship — survives into the shipped agent.
+content = re.sub(
+    r'(?:listed\s+)?in your persona-metadata sidecar\s*\(\s*`persona-metadata/[^`]+`\s*:[ \t]*',
+    'listed below (',
+    content
+)
+
+# 9b. Replace persona-metadata sidecar references with "listed below"
 # Handles multiple patterns: single-line and multi-line with newlines
 content = re.sub(
     r'without the banned phrases\s+listed\s+in your persona-metadata sidecar\s*\n?\s*\(`persona-metadata/[^`]+`\)[.:]\s*',
@@ -266,6 +325,17 @@ content = re.sub(
     'without the banned phrases listed below.',
     content
 )
+
+# 10. Generalized worked-example intro: personas end this sentence differently
+# ("The body below contains only prose." vs "...below the frontmatter...").
+content = re.sub(
+    r'findings AND one delegation_request\.\s+The findings live inside the YAML\s+frontmatter `findings:` array;\s+the delegation_request is a top-level\s+sibling\.',
+    'findings. The findings live inside the YAML\nfrontmatter `findings:` array.',
+    content
+)
+
+# 11. Generalized: any sentence that delegates a question to Codex.
+content = re.sub(r'\s*[^.]*?\bdelegated to\s+Codex\b[^.]*?\.', '', content)
 
 if content != original:
     with open(path, 'w') as f:
@@ -335,13 +405,57 @@ for persona in "${PERSONAS[@]}"; do
 done
 
 echo ""
+# --- Banned-token gate -------------------------------------------------------
+# The transforms above are prose-pattern matches. When a new persona words a
+# Codex/run-directory reference differently, those patterns silently miss and the
+# stale reference ships. This gate turns that class of miss into a build failure.
+# Every token here is something OpenCode has no equivalent for:
+#   RUN_DIR / INPUT.md  — Claude Code's per-run filesystem contract
+#   delegation_request / Codex — Codex CLI integration, not part of this build
+#   persona-metadata/   — sidecar files the npm package does not ship
+BANNED_TOKENS=(RUN_DIR 'INPUT\.md' delegation_request Codex 'persona-metadata/')
+
+# The catch-all replacement in the transform ("(removed — filesystem references not
+# used in OpenCode)") is a last resort: it strips the path but leaves a sentence that
+# instructs the agent to write nowhere. Its presence means a targeted rewrite was
+# missed, so it is a build failure too.
+#
+# EXEMPT: council-chair. Its Claude Code contract is coupled to the run directory in
+# ~12 places (MANIFEST.json, personas_run[], SYNTHESIS.md.draft, and the
+# bin/dc-validate-synthesis.sh atomic rename). An OpenCode variant needs those input
+# and output contracts hand-authored, not regex-substituted. Open defect — remove
+# this exemption when the variant is written.
+CATCHALL_EXEMPT=(council-chair)
+
+for persona in "${PERSONAS[@]}"; do
+  target_file="$TARGET_DIR/${persona}.md"
+
+  exempt=0
+  for e in "${CATCHALL_EXEMPT[@]}"; do
+    [[ "$persona" == "$e" ]] && exempt=1
+  done
+  if [[ $exempt -eq 0 ]] && grep -qF '(removed' "$target_file"; then
+    echo "  FAIL: ${persona}.md has an unrewritten filesystem reference" >&2
+    grep -nF '(removed' "$target_file" | sed 's/^/    /' >&2
+    VALIDATION_FAILED=1
+  fi
+
+  for token in "${BANNED_TOKENS[@]}"; do
+    if grep -qE "$token" "$target_file"; then
+      echo "  FAIL: ${persona}.md still contains '$token' after transform" >&2
+      grep -nE "$token" "$target_file" | sed 's/^/    /' >&2
+      VALIDATION_FAILED=1
+    fi
+  done
+done
+
 if [[ $VALIDATION_FAILED -ne 0 ]]; then
   echo "VALIDATION FAILED: One or more personas did not pass checks." >&2
   exit 1
 fi
 
 echo "All ${#PERSONAS[@]} personas validated successfully."
-echo "Files in .opencode/agents/ not in PERSONAS array: left untouched."
+echo "Files in .opencode/agents/ without an agents/ source: left untouched."
 
 # --- TypeScript compilation (for npm publish) ---
 # OpenCode loads plugins via `await import()` on a compiled binary —
