@@ -89,7 +89,7 @@ no number, no resource, no pricing tier:
   - target: "terraform/s3.tf"
     claim: "Consider optimizing costs for cloud-native elasticity."
     evidence: |
-      (no quote — the text above is not a substring of INPUT.md)
+      (no quote — the text above is not a substring of the artifact)
     ask: "Be aware of pay-only-for-what-you-use best practices; pick a reasonable, cost-effective storage class."
     severity: minor
     category: generic-cost

@@ -93,7 +93,7 @@ reference:
   - target: "Dockerfile"
     claim: "Consider whether this works offline in a typical deployment; the service should be available offline."
     evidence: |
-      (no quote — the text above is not a substring of INPUT.md)
+      (no quote — the text above is not a substring of the artifact)
     ask: "Be aware of standard network access assumptions; ensure the service just works with minimal dependencies anywhere."
     severity: major
     category: generic-portability

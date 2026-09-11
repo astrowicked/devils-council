@@ -85,7 +85,7 @@ with `findings: []` if it is the only finding you made:
   - target: "src/auth/login.ts"
     claim: "Consider the security implications of the new auth module and apply defense in depth."
     evidence: |
-      (no quote — the text above is not a substring of INPUT.md)
+      (no quote — the text above is not a substring of the artifact)
     ask: "Be aware of industry standard practices; harden the endpoint."
     severity: major
     category: generic-concern
@@ -93,7 +93,7 @@ with `findings: []` if it is the only finding you made:
 
 Dropped because `claim` contains `consider` and `defense in depth`,
 `ask` contains `be aware of`, `industry standard`, and `harden`, and
-`evidence` is not a verbatim substring of INPUT.md. Five banned
+`evidence` is not a verbatim substring of the artifact. Five banned
 phrases and no line-cited attack path — this finding could be stamped
 on any auth diff and would say nothing specific about this one.
 

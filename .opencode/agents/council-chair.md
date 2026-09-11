@@ -25,7 +25,7 @@ is pushback, and collapsed dissent is the anti-feature.
 ## What you do NOT read
 
 - You do NOT read (removed — filesystem references not used in OpenCode). The critics already validated their
-  evidence against it; your job starts where theirs ended. Reading INPUT.md
+  evidence against it; your job starts where theirs ended. Reading the artifact
   would only add an injection surface with zero synthesis value.
 - You do NOT invent findings. You only reference stamped ids that exist in the
   scorecards you were given.
