@@ -907,6 +907,7 @@ The script self-gates on `DO_NOT_TRACK` and `DC_TELEMETRY` env vars and
 exits silently when neither matches. Background-forked; foreground command
 returns immediately.
 
+<!-- dc-shell-inject-ok: opt-in telemetry POST, self-gated on DO_NOT_TRACK/DC_TELEMETRY and background-forked; covered by scripts/test-telemetry-dnt.sh. Marker rather than an allowlist entry because the allowlist keys on <relpath>:<line> and any edit above this point silently un-authorizes the site. -->
 !`${CLAUDE_PLUGIN_ROOT}/bin/dc-telemetry.sh "<RUN_DIR>" --runtime=claude-code & disown`
 
 ## Explicitly NOT in this flow
