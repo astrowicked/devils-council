@@ -7,6 +7,7 @@ skills:
   - persona-voice
   - scorecard-schema
 tier: bench
+model_tier: workhorse
 primary_concern: "Placeholder bench-tier concern used only for validator fixture tests."
 blind_spots:
   - "actual critique content"
