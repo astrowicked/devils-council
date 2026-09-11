@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-11
+
 ### Added
 
 - **The OpenCode bench grows 9 → 16.** `compliance-reviewer`, `dual-deploy-reviewer`, `executive-sponsor`, `competing-team-lead`, `junior-engineer`, `test-lead`, and `artifact-classifier` now ship to npm installers. They have existed in `agents/` for releases; `.opencode/build.sh` carried a hand-written `PERSONAS` array that nobody extended when they landed, so OpenCode users have been reviewing with just over half the roster. **If you install via npm, your next review spawns more personas than your last one.**
@@ -379,7 +381,8 @@ Running total: 63/63 v1 requirements delivered across 8 phases.
 - RESP-01 path reconciled from `.devils-council/responses.md` to `.council/responses.md` (unified with ENGN-04 run-directory convention)
 - MCP delegation deferred to v1.1; v1 is shell-primary per plan decision D-12
 
-[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/astrowicked/devils-council/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/astrowicked/devils-council/compare/v1.8.0...v1.9.0
 [1.1.0]: https://github.com/astrowicked/devils-council/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/astrowicked/devils-council/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/astrowicked/devils-council/compare/v1.0.0...v1.0.1
